@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2 } from "lucide-react";
+import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getQueryFn } from "@/lib/queryClient";
 
@@ -28,114 +28,6 @@ type Match = {
   imageUrl?: string;
 };
 
-// Fallback matches data in case API fails
-const fallbackMatches: Match[] = [
-  {
-    id: "m1",
-    title: "T20 World Cup 2023",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "184/6" 
-      },
-      team2: { 
-        name: "Australia", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-        score: "185/4" 
-      }
-    },
-    status: "completed",
-    result: "Australia won by 6 wickets",
-    date: "2023-06-15",
-    time: "19:00",
-    venue: "Melbourne Cricket Ground",
-    type: "T20I",
-    imageUrl: "https://resources.pulse.icc-cricket.com/ICC/photo/2023/11/19/1c246730-8321-465a-b390-1118ac859254/Travis-Head.png"
-  },
-  {
-    id: "m2",
-    title: "IPL 2023",
-    teams: {
-      team1: { 
-        name: "RCB", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/Roundbig/RCBroundbig.png"
-      },
-      team2: { 
-        name: "CSK", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png" 
-      }
-    },
-    status: "upcoming",
-    date: "2023-06-20",
-    time: "19:30",
-    venue: "M. Chinnaswamy Stadium, Bangalore",
-    type: "T20"
-  },
-  {
-    id: "m3",
-    title: "India vs England Test Series",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "245/3" 
-      },
-      team2: { 
-        name: "England", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-        score: "467" 
-      }
-    },
-    status: "live",
-    date: "2023-06-18",
-    time: "10:00",
-    venue: "Lord's Cricket Ground, London",
-    type: "Test"
-  },
-  {
-    id: "m4",
-    title: "Big Bash League",
-    teams: {
-      team1: { 
-        name: "Sydney Sixers", 
-        logo: "https://www.cricket.com.au/-/media/Logos/Teams/BBL/Sydney-Sixers.ashx"
-      },
-      team2: { 
-        name: "Melbourne Stars", 
-        logo: "https://www.cricket.com.au/-/media/Logos/Teams/BBL/Melbourne-Stars.ashx" 
-      }
-    },
-    status: "upcoming",
-    date: "2023-06-25",
-    time: "14:30",
-    venue: "Sydney Cricket Ground",
-    type: "T20"
-  },
-  {
-    id: "m5",
-    title: "Pakistan vs South Africa ODI Series",
-    teams: {
-      team1: { 
-        name: "Pakistan", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Flag_of_Pakistan.svg/1200px-Flag_of_Pakistan.svg.png",
-        score: "267/5" 
-      },
-      team2: { 
-        name: "South Africa", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Flag_of_South_Africa.svg/1200px-Flag_of_South_Africa.svg.png",
-        score: "205/8" 
-      }
-    },
-    status: "completed",
-    result: "Pakistan won by 62 runs",
-    date: "2023-06-10",
-    time: "13:00",
-    venue: "Rawalpindi Cricket Stadium",
-    type: "ODI"
-  }
-];
-
 export default function MatchesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [matchType, setMatchType] = useState("all");
@@ -146,11 +38,8 @@ export default function MatchesPage() {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
-  // Use API data or fallback to demo data if loading failed
-  const matchData = matches || fallbackMatches;
-  
   // Filter matches based on search query and match type
-  const filteredMatches = matchData.filter(match => {
+  const filteredMatches = matches ? matches.filter(match => {
     const matchesSearch = 
       match.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       match.teams.team1.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -159,7 +48,7 @@ export default function MatchesPage() {
     
     if (matchType === "all") return matchesSearch;
     return matchesSearch && match.type.toLowerCase() === matchType.toLowerCase();
-  });
+  }) : [];
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
@@ -205,6 +94,32 @@ export default function MatchesPage() {
           {isLoading ? (
             <div className="flex justify-center items-center py-16">
               <Loader2 className="h-12 w-12 animate-spin text-[#FF5722]" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-red-100 bg-red-50 rounded-md">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <h3 className="text-xl font-bold text-red-700 mb-2">Unable to load match data</h3>
+              <p className="text-red-600 max-w-md">We're experiencing issues retrieving the latest match information. Please check your connection and try again later.</p>
+              <Button onClick={() => window.location.reload()} variant="outline" className="mt-6">
+                Retry
+              </Button>
+            </div>
+          ) : filteredMatches.length === 0 && !searchQuery && matchType === "all" ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
+              <Trophy className="h-12 w-12 text-neutral-300 mb-4" />
+              <h3 className="text-xl font-medium text-neutral-700 mb-2">No matches available</h3>
+              <p className="text-neutral-500 max-w-md">We don't have any cricket matches to display at the moment. Please check back later for updates.</p>
+            </div>
+          ) : filteredMatches.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
+              <Search className="h-12 w-12 text-neutral-300 mb-4" />
+              <h3 className="text-xl font-medium text-neutral-700 mb-2">No matches found</h3>
+              <p className="text-neutral-500 max-w-md">We couldn't find any matches matching your search criteria. Try adjusting your filters or search terms.</p>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={() => {setSearchQuery(""); setMatchType("all");}} variant="outline">
+                  Clear all filters
+                </Button>
+              </div>
             </div>
           ) : (
             <Tabs defaultValue="all" className="w-full">

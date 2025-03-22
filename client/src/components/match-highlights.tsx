@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, CalendarDays, Clock, ArrowRight, Loader2 } from "lucide-react";
+import { Trophy, CalendarDays, Clock, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
+import { Link } from "wouter";
 
 type MatchHighlight = {
   id: string;
@@ -23,81 +24,11 @@ type MatchHighlight = {
   imageUrl?: string;
 };
 
-// Fallback data in case API fails
-const fallbackHighlights: MatchHighlight[] = [
-  {
-    id: "m1",
-    title: "T20 World Cup 2023",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "184/6" 
-      },
-      team2: { 
-        name: "Australia", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-        score: "185/4" 
-      }
-    },
-    status: "completed",
-    result: "Australia won by 6 wickets",
-    date: "2023-06-15",
-    time: "19:00",
-    venue: "Melbourne Cricket Ground",
-    type: "T20I",
-    imageUrl: "https://resources.pulse.icc-cricket.com/ICC/photo/2023/11/19/1c246730-8321-465a-b390-1118ac859254/Travis-Head.png"
-  },
-  {
-    id: "m2",
-    title: "IPL 2023",
-    teams: {
-      team1: { 
-        name: "RCB", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/Roundbig/RCBroundbig.png"
-      },
-      team2: { 
-        name: "CSK", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png" 
-      }
-    },
-    status: "upcoming",
-    date: "2023-06-20",
-    time: "19:30",
-    venue: "M. Chinnaswamy Stadium, Bangalore",
-    type: "T20"
-  },
-  {
-    id: "m3",
-    title: "India vs England Test Series",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "245/3" 
-      },
-      team2: { 
-        name: "England", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-        score: "467" 
-      }
-    },
-    status: "live",
-    date: "2023-06-18",
-    time: "10:00",
-    venue: "Lord's Cricket Ground, London",
-    type: "Test"
-  }
-];
-
 export function MatchHighlights() {
   const { data: matches, isLoading, error } = useQuery<MatchHighlight[]>({
     queryKey: ["/api/cricket/matches"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
-
-  // Use matches data or fallback to demo data if loading failed
-  const matchData = matches || fallbackHighlights;
 
   return (
     <Card className="w-full mb-6">
@@ -107,15 +38,30 @@ export function MatchHighlights() {
             <Trophy className="h-5 w-5 mr-2 text-[#FF5722]" />
             <CardTitle className="text-lg font-bold">Match Highlights</CardTitle>
           </div>
-          <Button variant="ghost" size="sm" className="text-sm">
-            View All <ArrowRight className="h-4 w-4 ml-1" />
-          </Button>
+          <Link href="/matches">
+            <Button variant="ghost" size="sm" className="text-sm">
+              View All <ArrowRight className="h-4 w-4 ml-1" />
+            </Button>
+          </Link>
         </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center items-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-[#FF5722]" />
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+            <p className="text-red-500 font-medium">Unable to load match data</p>
+            <p className="text-sm text-neutral-500 mt-1">Please check your connection and try again later</p>
+          </div>
+        ) : !matches || matches.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <div className="p-3 rounded-full bg-neutral-100 mb-2">
+              <Trophy className="h-6 w-6 text-neutral-400" />
+            </div>
+            <p className="text-neutral-500">No matches available at the moment</p>
           </div>
         ) : (
           <Tabs defaultValue="all">
@@ -127,13 +73,13 @@ export function MatchHighlights() {
             </TabsList>
             
             <TabsContent value="all" className="space-y-4">
-              {matchData.map((match) => (
+              {matches.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
             </TabsContent>
             
             <TabsContent value="live" className="space-y-4">
-              {matchData
+              {matches
                 .filter((match) => match.status === "live")
                 .map((match) => (
                   <MatchCard key={match.id} match={match} />
@@ -141,7 +87,7 @@ export function MatchHighlights() {
             </TabsContent>
             
             <TabsContent value="upcoming" className="space-y-4">
-              {matchData
+              {matches
                 .filter((match) => match.status === "upcoming")
                 .map((match) => (
                   <MatchCard key={match.id} match={match} />
@@ -149,7 +95,7 @@ export function MatchHighlights() {
             </TabsContent>
             
             <TabsContent value="completed" className="space-y-4">
-              {matchData
+              {matches
                 .filter((match) => match.status === "completed")
                 .map((match) => (
                   <MatchCard key={match.id} match={match} />

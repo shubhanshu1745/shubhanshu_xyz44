@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter, Loader2 } from "lucide-react";
+import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter, Loader2, AlertCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getQueryFn } from "@/lib/queryClient";
 
@@ -33,120 +33,6 @@ type Team = {
   recentForm: string;
 };
 
-// Fallback teams data in case API fails
-const fallbackTeams: Team[] = [
-  {
-    id: "t1",
-    name: "India",
-    fullName: "Indian Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-    country: "India",
-    type: "international",
-    founded: "1932",
-    homeGround: "Multiple venues across India",
-    captain: "Rohit Sharma",
-    coach: "Rahul Dravid",
-    achievements: ["T20 World Cup (2007)", "Cricket World Cup (1983, 2011)", "ICC Champions Trophy (2013)"],
-    players: ["Rohit Sharma", "Virat Kohli", "Jasprit Bumrah", "Ravindra Jadeja", "KL Rahul"],
-    ranking: {
-      test: 1,
-      odi: 2,
-      t20: 1
-    },
-    recentForm: "W-W"
-  },
-  {
-    id: "t2",
-    name: "Australia",
-    fullName: "Australian Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-    country: "Australia",
-    type: "international",
-    founded: "1877",
-    homeGround: "Melbourne Cricket Ground",
-    captain: "Pat Cummins",
-    coach: "Andrew McDonald",
-    achievements: ["Cricket World Cup (1987, 1999, 2003, 2007, 2015, 2023)", "ICC Champions Trophy (2006, 2009)"],
-    players: ["Pat Cummins", "Steve Smith", "Mitchell Starc", "Josh Hazlewood", "David Warner"],
-    ranking: {
-      test: 2,
-      odi: 1,
-      t20: 3
-    },
-    recentForm: "W"
-  },
-  {
-    id: "t3",
-    name: "CSK",
-    fullName: "Chennai Super Kings",
-    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png",
-    country: "India",
-    type: "franchise",
-    founded: "2008",
-    homeGround: "M. A. Chidambaram Stadium, Chennai",
-    captain: "MS Dhoni",
-    coach: "Stephen Fleming",
-    achievements: ["IPL Champions (2010, 2011, 2018, 2021, 2023)", "Champions League T20 (2010, 2014)"],
-    players: ["MS Dhoni", "Ravindra Jadeja", "Ruturaj Gaikwad", "Devon Conway", "Deepak Chahar"],
-    recentForm: "W"
-  },
-  {
-    id: "t4",
-    name: "England",
-    fullName: "England Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-    country: "England",
-    type: "international",
-    founded: "1877",
-    homeGround: "Lord's Cricket Ground",
-    captain: "Jos Buttler",
-    coach: "Brendon McCullum",
-    achievements: ["Cricket World Cup (2019)", "T20 World Cup (2022)"],
-    players: ["Jos Buttler", "Joe Root", "Ben Stokes", "James Anderson", "Jonny Bairstow"],
-    ranking: {
-      test: 3,
-      odi: 3,
-      t20: 2
-    },
-    recentForm: "L-W"
-  },
-  {
-    id: "t5",
-    name: "RCB",
-    fullName: "Royal Challengers Bangalore",
-    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/Roundbig/RCBroundbig.png",
-    country: "India",
-    type: "franchise",
-    founded: "2008",
-    homeGround: "M. Chinnaswamy Stadium, Bangalore",
-    captain: "Faf du Plessis",
-    coach: "Andy Flower",
-    achievements: ["IPL Runners-up (2009, 2011, 2016)"],
-    players: ["Virat Kohli", "Faf du Plessis", "Glenn Maxwell", "Mohammed Siraj", "Dinesh Karthik"],
-    recentForm: "L"
-  },
-  {
-    id: "t6",
-    name: "Pakistan",
-    fullName: "Pakistan Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Flag_of_Pakistan.svg/1200px-Flag_of_Pakistan.svg.png",
-    country: "Pakistan",
-    type: "international",
-    founded: "1952",
-    homeGround: "Gaddafi Stadium, Lahore",
-    captain: "Babar Azam",
-    coach: "Gary Kirsten",
-    achievements: ["Cricket World Cup (1992)", "T20 World Cup (2009)", "ICC Champions Trophy (2017)"],
-    players: ["Babar Azam", "Mohammad Rizwan", "Shaheen Afridi", "Shadab Khan", "Fakhar Zaman"],
-    ranking: {
-      test: 6,
-      odi: 5,
-      t20: 4
-    },
-    recentForm: "L-L"
-  }
-];
-
 export default function TeamsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [teamType, setTeamType] = useState("all");
@@ -157,11 +43,8 @@ export default function TeamsPage() {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
-  // Use API data or fallback to demo data if loading failed
-  const teamData = teams || fallbackTeams;
-  
   // Filter teams based on search query and team type
-  const filteredTeams = teamData.filter(team => {
+  const filteredTeams = teams ? teams.filter(team => {
     const matchesSearch = 
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -169,7 +52,7 @@ export default function TeamsPage() {
     
     if (teamType === "all") return matchesSearch;
     return matchesSearch && team.type === teamType;
-  });
+  }) : [];
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
