@@ -1,4 +1,4 @@
-import { Home, PlusSquare, Trophy, Users, MessageCircle, Film } from "lucide-react";
+import { Home, PlusSquare, Trophy, Users, MessageCircle, Film, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useLocation } from "wouter";
@@ -62,14 +62,14 @@ export function MobileNav() {
             <span className="sr-only">Create</span>
           </Button>
           
-          <Link href="/teams">
+          <Link href="/suggestions">
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location === "/teams" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
+              className={location === "/suggestions" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
             >
-              <Users className="h-6 w-6" />
-              <span className="sr-only">Teams</span>
+              <UserPlus className="h-6 w-6" />
+              <span className="sr-only">Suggestions</span>
             </Button>
           </Link>
           
