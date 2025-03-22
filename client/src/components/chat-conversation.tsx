@@ -41,12 +41,8 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await apiRequest(`/api/conversations/${conversationId}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ content }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await apiRequest("POST", `/api/conversations/${conversationId}/messages`, {
+        content
       });
       return response as MessageWithSender;
     },
@@ -79,12 +75,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     if (conversationId && user) {
       const markAsRead = async () => {
         try {
-          await apiRequest(`/api/conversations/${conversationId}/read`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          await apiRequest("POST", `/api/conversations/${conversationId}/read`);
           // Invalidate conversations list to update unread counts
           queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
         } catch (error) {

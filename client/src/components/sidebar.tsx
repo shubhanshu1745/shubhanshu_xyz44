@@ -62,9 +62,16 @@ export function Sidebar() {
           </Link>
           <p className="text-neutral-500 text-sm">{user.fullName || user.username}</p>
         </div>
-        <Button variant="link" size="sm" className="ml-auto">
-          Switch
-        </Button>
+        <div className="ml-auto flex gap-2">
+          <Link href="/chat">
+            <Button variant="ghost" size="icon" className="text-muted-foreground" title="Messages">
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+          </Link>
+          <Button variant="link" size="sm">
+            Switch
+          </Button>
+        </div>
       </div>
       
       {/* Suggestions */}

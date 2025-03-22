@@ -32,12 +32,8 @@ export function ChatList() {
   
   const createConversationMutation = useMutation({
     mutationFn: async (username: string) => {
-      const response = await apiRequest("/api/conversations", {
-        method: "POST",
-        body: JSON.stringify({ username }),
-        headers: {
-          "Content-Type": "application/json",
-        },
+      const response = await apiRequest("POST", "/api/conversations", {
+        username
       });
       return response as ConversationWithMeta;
     },
