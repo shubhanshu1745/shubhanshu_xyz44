@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   profileImage: text("profile_image"),
   password: text("password").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  isPlayer: boolean("is_player").default(false),
 });
 
 export const posts = pgTable("posts", {
@@ -19,11 +20,14 @@ export const posts = pgTable("posts", {
   userId: integer("user_id").notNull(),
   content: text("content"),
   imageUrl: text("image_url"),
+  videoUrl: text("video_url"), // For reels/short videos
+  thumbnailUrl: text("thumbnail_url"), // For video thumbnails
   location: text("location"),
-  category: text("category"), // E.g., "match_discussion", "player_highlight", "news", "opinion", "meme"
+  category: text("category"), // E.g., "match_discussion", "player_highlight", "news", "opinion", "meme", "reel"
   matchId: text("match_id"), // Reference to a cricket match (could be an external API ID)
   teamId: text("team_id"), // Reference to a cricket team (could be an external API ID)
   playerId: text("player_id"), // Reference to a cricket player (could be an external API ID)
+  duration: integer("duration"), // Video duration in seconds
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -66,6 +70,71 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const stories = pgTable("stories", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  imageUrl: text("image_url"),
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"), // 24 hours after creation
+});
+
+export const playerStats = pgTable("player_stats", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  position: text("position"), // e.g., "Batsman", "Bowler", "All-rounder"
+  battingStyle: text("batting_style"), // e.g., "Right-handed", "Left-handed"
+  bowlingStyle: text("bowling_style"), // e.g., "Right-arm fast", "Left-arm spin"
+  totalMatches: integer("total_matches").default(0),
+  totalRuns: integer("total_runs").default(0),
+  totalWickets: integer("total_wickets").default(0),
+  totalCatches: integer("total_catches").default(0),
+  totalSixes: integer("total_sixes").default(0),
+  totalFours: integer("total_fours").default(0),
+  highestScore: integer("highest_score").default(0),
+  bestBowling: text("best_bowling"), // e.g., "5/20"
+  battingAverage: numeric("batting_average").default("0"),
+  bowlingAverage: numeric("bowling_average").default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const playerMatches = pgTable("player_matches", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  matchName: text("match_name").notNull(),
+  matchDate: timestamp("match_date").notNull(),
+  venue: text("venue"),
+  opponent: text("opponent").notNull(),
+  matchType: text("match_type"), // e.g., "T20", "ODI", "Test"
+  teamScore: text("team_score"), // e.g., "180/5"
+  opponentScore: text("opponent_score"), // e.g., "165/8"
+  result: text("result"), // e.g., "Won by 15 runs", "Lost by 2 wickets"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const playerMatchPerformance = pgTable("player_match_performance", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  matchId: integer("match_id").notNull(), // References playerMatches.id
+  // Batting
+  runsScored: integer("runs_scored").default(0),
+  ballsFaced: integer("balls_faced").default(0),
+  fours: integer("fours").default(0),
+  sixes: integer("sixes").default(0),
+  battingStatus: text("batting_status"), // e.g., "Not Out", "Bowled", "Caught"
+  // Bowling
+  oversBowled: numeric("overs_bowled").default("0"),
+  runsConceded: integer("runs_conceded").default(0),
+  wicketsTaken: integer("wickets_taken").default(0),
+  maidens: integer("maidens").default(0),
+  // Fielding
+  catches: integer("catches").default(0),
+  runOuts: integer("run_outs").default(0),
+  stumpings: integer("stumpings").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -75,17 +144,21 @@ export const insertUserSchema = createInsertSchema(users).pick({
   location: true,
   profileImage: true,
   password: true,
+  isPlayer: true,
 });
 
 export const insertPostSchema = createInsertSchema(posts).pick({
   userId: true,
   content: true,
   imageUrl: true,
+  videoUrl: true,
+  thumbnailUrl: true,
   location: true,
   category: true,
   matchId: true,
   teamId: true,
   playerId: true,
+  duration: true,
 });
 
 export const insertLikeSchema = createInsertSchema(likes).pick({
@@ -115,6 +188,59 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   content: true,
 });
 
+export const insertStorySchema = createInsertSchema(stories).pick({
+  userId: true,
+  imageUrl: true,
+  caption: true,
+  expiresAt: true,
+});
+
+export const insertPlayerStatsSchema = createInsertSchema(playerStats).pick({
+  userId: true,
+  position: true,
+  battingStyle: true,
+  bowlingStyle: true,
+  totalMatches: true,
+  totalRuns: true,
+  totalWickets: true,
+  totalCatches: true,
+  totalSixes: true,
+  totalFours: true,
+  highestScore: true,
+  bestBowling: true,
+  battingAverage: true,
+  bowlingAverage: true,
+});
+
+export const insertPlayerMatchSchema = createInsertSchema(playerMatches).pick({
+  userId: true,
+  matchName: true,
+  matchDate: true,
+  venue: true,
+  opponent: true,
+  matchType: true,
+  teamScore: true,
+  opponentScore: true,
+  result: true,
+});
+
+export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatchPerformance).pick({
+  userId: true,
+  matchId: true,
+  runsScored: true,
+  ballsFaced: true,
+  fours: true,
+  sixes: true,
+  battingStatus: true,
+  oversBowled: true,
+  runsConceded: true,
+  wicketsTaken: true,
+  maidens: true,
+  catches: true,
+  runOuts: true,
+  stumpings: true,
+});
+
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -137,6 +263,18 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 
+export type InsertStory = z.infer<typeof insertStorySchema>;
+export type Story = typeof stories.$inferSelect;
+
+export type InsertPlayerStats = z.infer<typeof insertPlayerStatsSchema>;
+export type PlayerStats = typeof playerStats.$inferSelect;
+
+export type InsertPlayerMatch = z.infer<typeof insertPlayerMatchSchema>;
+export type PlayerMatch = typeof playerMatches.$inferSelect;
+
+export type InsertPlayerMatchPerformance = z.infer<typeof insertPlayerMatchPerformanceSchema>;
+export type PlayerMatchPerformance = typeof playerMatchPerformance.$inferSelect;
+
 // Extended schemas for frontend validation
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -158,6 +296,9 @@ export type RegisterFormData = z.infer<typeof registerSchema>;
 export const createPostSchema = insertPostSchema.omit({ userId: true }).extend({
   content: z.string().max(500, "Caption must be less than 500 characters"),
   imageUrl: z.string().optional(),
+  videoUrl: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  duration: z.number().optional(),
   location: z.string().optional(),
   category: z.enum([
     "match_discussion", 
@@ -165,11 +306,55 @@ export const createPostSchema = insertPostSchema.omit({ userId: true }).extend({
     "team_news", 
     "opinion", 
     "meme", 
-    "highlights"
+    "highlights",
+    "reel"
   ]).optional(),
   matchId: z.string().optional(),
   teamId: z.string().optional(),
   playerId: z.string().optional(),
 });
 
+// Player Dashboard Schemas
+export const createPlayerStatsSchema = insertPlayerStatsSchema.extend({
+  position: z.string().min(1, "Position is required"),
+  battingStyle: z.string().optional(),
+  bowlingStyle: z.string().optional(),
+});
+
+export const createPlayerMatchSchema = insertPlayerMatchSchema.extend({
+  matchName: z.string().min(1, "Match name is required"),
+  matchDate: z.coerce.date(),
+  venue: z.string().optional(),
+  opponent: z.string().min(1, "Opponent is required"),
+  matchType: z.string().optional(),
+  teamScore: z.string().optional(),
+  opponentScore: z.string().optional(),
+  result: z.string().optional(),
+});
+
+export const createPlayerMatchPerformanceSchema = insertPlayerMatchPerformanceSchema.extend({
+  runsScored: z.number().min(0, "Runs scored must be a positive number").optional(),
+  ballsFaced: z.number().min(0, "Balls faced must be a positive number").optional(),
+  fours: z.number().min(0, "Fours must be a positive number").optional(),
+  sixes: z.number().min(0, "Sixes must be a positive number").optional(),
+  battingStatus: z.string().optional(),
+  oversBowled: z.string().optional(),
+  runsConceded: z.number().min(0, "Runs conceded must be a positive number").optional(),
+  wicketsTaken: z.number().min(0, "Wickets taken must be a positive number").optional(),
+  maidens: z.number().min(0, "Maidens must be a positive number").optional(),
+  catches: z.number().min(0, "Catches must be a positive number").optional(),
+  runOuts: z.number().min(0, "Run outs must be a positive number").optional(),
+  stumpings: z.number().min(0, "Stumpings must be a positive number").optional(),
+});
+
+// Story Schema
+export const createStorySchema = insertStorySchema.extend({
+  imageUrl: z.string().min(1, "Image URL is required"),
+  caption: z.string().max(100, "Caption must be less than 100 characters").optional(),
+});
+
 export type CreatePostFormData = z.infer<typeof createPostSchema>;
+export type CreatePlayerStatsFormData = z.infer<typeof createPlayerStatsSchema>;
+export type CreatePlayerMatchFormData = z.infer<typeof createPlayerMatchSchema>;
+export type CreatePlayerMatchPerformanceFormData = z.infer<typeof createPlayerMatchPerformanceSchema>;
+export type CreateStoryFormData = z.infer<typeof createStorySchema>;

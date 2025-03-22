@@ -5,7 +5,11 @@ import {
   comments, type Comment, type InsertComment,
   follows, type Follow, type InsertFollow,
   conversations, type Conversation, type InsertConversation,
-  messages, type Message, type InsertMessage
+  messages, type Message, type InsertMessage,
+  stories, type Story, type InsertStory,
+  playerStats, type PlayerStats, type InsertPlayerStats,
+  playerMatches, type PlayerMatch, type InsertPlayerMatch,
+  playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
