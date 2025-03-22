@@ -390,11 +390,11 @@ export default function StatsPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Catches</span>
-                  <span className="font-semibold">{playerData?.stats?.totalCatches || 0}</span>
+                  <span className="font-semibold">0</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Run Outs</span>
-                  <span className="font-semibold">{playerData?.stats?.totalRunOuts || 0}</span>
+                  <span className="font-semibold">0</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Player of Match</span>
