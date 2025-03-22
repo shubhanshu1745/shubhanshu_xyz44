@@ -13,6 +13,16 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   isPlayer: boolean("is_player").default(false),
+  emailVerified: boolean("email_verified").default(false),
+});
+
+export const tokens = pgTable("tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  token: text("token").notNull(),
+  type: text("type").notNull(), // 'email_verification', 'password_reset'
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const posts = pgTable("posts", {
@@ -275,6 +285,17 @@ export type PlayerMatch = typeof playerMatches.$inferSelect;
 export type InsertPlayerMatchPerformance = z.infer<typeof insertPlayerMatchPerformanceSchema>;
 export type PlayerMatchPerformance = typeof playerMatchPerformance.$inferSelect;
 
+// Token schema
+export const insertTokenSchema = createInsertSchema(tokens).pick({
+  userId: true,
+  token: true,
+  type: true,
+  expiresAt: true,
+});
+
+export type InsertToken = z.infer<typeof insertTokenSchema>;
+export type Token = typeof tokens.$inferSelect;
+
 // Extended schemas for frontend validation
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -292,6 +313,23 @@ export const registerSchema = insertUserSchema.extend({
 });
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+});
+
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string(),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"]
+});
+
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
 export const createPostSchema = insertPostSchema.omit({ userId: true }).extend({
   content: z.string().max(500, "Caption must be less than 500 characters"),
