@@ -16,6 +16,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { CreatePostModal } from "./create-post-modal";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,11 +26,19 @@ import {
 
 export function MobileNav() {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const handleCreatePost = () => {
     setIsCreatePostModalOpen(true);
+  };
+  
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/suggestions?q=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
   return (
@@ -116,6 +125,27 @@ export function MobileNav() {
                   <span>Messages</span>
                 </DropdownMenuItem>
               </Link>
+              
+              {/* Search Item */}
+              <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
+                <div className="w-full">
+                  <form onSubmit={handleSearch}>
+                    <div className="relative">
+                      <Input 
+                        type="text"
+                        className="pl-9 pr-4 w-full bg-white/10 border-0 text-white placeholder:text-white/70" 
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                      <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-white/70" />
+                      <Button type="submit" size="sm" variant="ghost" className="absolute right-1 top-1 text-white/70 p-0 h-6 w-6">
+                        <SearchIcon className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
