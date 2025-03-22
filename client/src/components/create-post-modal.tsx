@@ -5,12 +5,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { Upload, MapPin, Tag, ChevronRight, X } from "lucide-react";
+import { Upload, MapPin, Tag, ChevronRight, X, Cricket, User, Users, Trophy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CreatePostFormData } from "@shared/schema";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -22,6 +24,11 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("");
+  const [category, setCategory] = useState<string>("");
+  const [matchId, setMatchId] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [playerId, setPlayerId] = useState("");
+  const [showCricketDetails, setShowCricketDetails] = useState(false);
   const [step, setStep] = useState<"upload" | "details">("upload");
   const { toast } = useToast();
   const queryClient = useQueryClient();

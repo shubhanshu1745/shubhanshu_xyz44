@@ -134,6 +134,10 @@ export class MemStorage implements IStorage {
       content: insertPost.content || null,
       imageUrl: insertPost.imageUrl || null,
       location: insertPost.location || null,
+      category: insertPost.category || null,
+      matchId: insertPost.matchId || null,
+      teamId: insertPost.teamId || null,
+      playerId: insertPost.playerId || null,
       createdAt: new Date()
     };
     this.posts.set(id, post);

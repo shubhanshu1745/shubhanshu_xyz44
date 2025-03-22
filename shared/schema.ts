@@ -20,6 +20,10 @@ export const posts = pgTable("posts", {
   content: text("content"),
   imageUrl: text("image_url"),
   location: text("location"),
+  category: text("category"), // E.g., "match_discussion", "player_highlight", "news", "opinion", "meme"
+  matchId: text("match_id"), // Reference to a cricket match (could be an external API ID)
+  teamId: text("team_id"), // Reference to a cricket team (could be an external API ID)
+  playerId: text("player_id"), // Reference to a cricket player (could be an external API ID)
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -61,6 +65,10 @@ export const insertPostSchema = createInsertSchema(posts).pick({
   content: true,
   imageUrl: true,
   location: true,
+  category: true,
+  matchId: true,
+  teamId: true,
+  playerId: true,
 });
 
 export const insertLikeSchema = createInsertSchema(likes).pick({
@@ -117,6 +125,17 @@ export const createPostSchema = insertPostSchema.omit({ userId: true }).extend({
   content: z.string().max(500, "Caption must be less than 500 characters"),
   imageUrl: z.string().optional(),
   location: z.string().optional(),
+  category: z.enum([
+    "match_discussion", 
+    "player_highlight", 
+    "team_news", 
+    "opinion", 
+    "meme", 
+    "highlights"
+  ]).optional(),
+  matchId: z.string().optional(),
+  teamId: z.string().optional(),
+  playerId: z.string().optional(),
 });
 
 export type CreatePostFormData = z.infer<typeof createPostSchema>;
