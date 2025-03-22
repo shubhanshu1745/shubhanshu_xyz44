@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Share, Bookmark, MoreHorizontal, Tag, Trophy, User as UserIcon, Users } from "lucide-react";
+import { Heart, MessageCircle, Share, Bookmark, MoreHorizontal, Tag, Trophy, User as UserIcon, Users, Link as LinkIcon, Copy, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -12,6 +12,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type PostCardProps = {
   post: Post & {
@@ -28,6 +34,8 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
   const [comment, setComment] = useState("");
   const [isLiked, setIsLiked] = useState(post.hasLiked);
   const [likeCount, setLikeCount] = useState(post.likeCount);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [hasCopied, setHasCopied] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -117,6 +125,33 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
       commentMutation.mutate();
     }
   };
+  
+  const handleCopyLink = async () => {
+    try {
+      const postUrl = `${window.location.origin}/post/${post.id}`;
+      await navigator.clipboard.writeText(postUrl);
+      setHasCopied(true);
+      toast({
+        title: "Link copied",
+        description: "Post link copied to clipboard"
+      });
+      
+      // Reset the copied status after 2 seconds
+      setTimeout(() => {
+        setHasCopied(false);
+      }, 2000);
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy link to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleShare = () => {
+    setIsShareMenuOpen(true);
+  };
 
   const formattedDate = post.createdAt 
     ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })
@@ -139,10 +174,26 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
             {post.location && <p className="text-xs text-neutral-500">{post.location}</p>}
           </div>
         </div>
-        <Button variant="ghost" size="icon" className="text-neutral-500">
-          <MoreHorizontal className="h-5 w-5" />
-          <span className="sr-only">More options</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-neutral-500">
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="sr-only">More options</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+              <Copy className="h-4 w-4 mr-2" />
+              <span>Copy link</span>
+            </DropdownMenuItem>
+            {user?.id === post.userId && (
+              <DropdownMenuItem className="text-red-600 cursor-pointer">
+                <Share className="h-4 w-4 mr-2" />
+                <span>Delete</span>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       
       <div className="w-full aspect-square overflow-hidden bg-neutral-100">
@@ -180,10 +231,34 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
               <MessageCircle className="h-6 w-6" />
               <span className="sr-only">Comment</span>
             </Button>
-            <Button variant="ghost" size="icon" className="text-neutral-600 hover:text-primary">
-              <Share className="h-6 w-6" />
-              <span className="sr-only">Share</span>
-            </Button>
+            
+            <DropdownMenu open={isShareMenuOpen} onOpenChange={setIsShareMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="text-neutral-600 hover:text-primary" onClick={handleShare}>
+                  <Share className="h-6 w-6" />
+                  <span className="sr-only">Share</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
+                  {hasCopied ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      <span>Copy link</span>
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <LinkIcon className="h-4 w-4 mr-2" />
+                  <span>Share via...</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <Button variant="ghost" size="icon" className="text-neutral-600 hover:text-primary">
             <Bookmark className="h-6 w-6" />

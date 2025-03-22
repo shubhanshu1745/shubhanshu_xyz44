@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { Upload, MapPin, Tag, ChevronRight, X, User, Users, Trophy, Info } from "lucide-react";
+import { Upload, MapPin, Tag, ChevronRight, X, User, Users, Trophy, Film, Image } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CreatePostFormData } from "@shared/schema";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface CreatePostModalProps {
   open: boolean;
@@ -22,6 +23,8 @@ interface CreatePostModalProps {
 export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const { user } = useAuth();
   const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("");
   const [category, setCategory] = useState("");
@@ -30,6 +33,8 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [playerId, setPlayerId] = useState("");
   const [showCricketDetails, setShowCricketDetails] = useState(false);
   const [step, setStep] = useState<"upload" | "details">("upload");
+  const [postType, setPostType] = useState<"image" | "reel">("image");
+  const [duration, setDuration] = useState<number>(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -39,17 +44,22 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      if (postType === "reel") {
+        queryClient.invalidateQueries({ queryKey: ["/api/reels"] });
+      }
       toast({
-        title: "Post created",
-        description: "Your post has been published successfully",
+        title: postType === "image" ? "Post created" : "Reel uploaded",
+        description: postType === "image" 
+          ? "Your post has been published successfully" 
+          : "Your reel has been uploaded successfully",
       });
       resetForm();
       onClose();
     },
     onError: (error) => {
       toast({
-        title: "Error creating post",
-        description: "There was a problem creating your post. Please try again.",
+        title: `Error creating ${postType === "image" ? "post" : "reel"}`,
+        description: `There was a problem with your ${postType === "image" ? "post" : "reel"}. Please try again.`,
         variant: "destructive",
       });
     },
@@ -57,27 +67,47 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
 
   const resetForm = () => {
     setImageUrl("");
+    setVideoUrl("");
+    setThumbnailUrl("");
     setContent("");
     setLocation("");
     setCategory("");
     setMatchId("");
     setTeamId("");
     setPlayerId("");
+    setDuration(0);
     setShowCricketDetails(false);
     setStep("upload");
+    setPostType("image");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createPostMutation.mutate({
-      content,
-      imageUrl: imageUrl || undefined,
-      location: location || undefined,
-      category: category || undefined as any,
-      matchId: matchId || undefined,
-      teamId: teamId || undefined,
-      playerId: playerId || undefined,
-    });
+    
+    if (postType === "image") {
+      createPostMutation.mutate({
+        content,
+        imageUrl: imageUrl || undefined,
+        location: location || undefined,
+        category: category || undefined as any,
+        matchId: matchId || undefined,
+        teamId: teamId || undefined,
+        playerId: playerId || undefined,
+      });
+    } else {
+      // For reels
+      createPostMutation.mutate({
+        content,
+        videoUrl: videoUrl || undefined,
+        thumbnailUrl: thumbnailUrl || undefined,
+        location: location || undefined,
+        category: "reel", // Force category to reel for video posts
+        matchId: matchId || undefined,
+        teamId: teamId || undefined,
+        playerId: playerId || undefined,
+        duration: duration || 30, // Default duration if not specified
+      });
+    }
   };
 
   const handleNext = () => {
@@ -119,29 +149,147 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
         
         <div className="flex flex-col md:flex-row">
           {step === "upload" && (
-            <div className="w-full md:w-full h-80 md:h-96 bg-black flex items-center justify-center">
-              {imageUrl ? (
-                <div className="w-full h-full">
-                  <img 
-                    src={imageUrl} 
-                    alt="Post preview" 
-                    className="w-full h-full object-contain" 
-                  />
+            <div className="w-full md:w-full h-auto bg-black flex flex-col items-center justify-center">
+              {/* Tabs for post type selection */}
+              <div className="w-full border-b border-neutral-700">
+                <Tabs defaultValue="image" value={postType} onValueChange={(value) => setPostType(value as "image" | "reel")} className="w-full">
+                  <TabsList className="w-full bg-black text-white">
+                    <TabsTrigger value="image" className="w-1/2 data-[state=active]:bg-neutral-800">
+                      <Image className="mr-2 h-4 w-4" />
+                      Image Post
+                    </TabsTrigger>
+                    <TabsTrigger value="reel" className="w-1/2 data-[state=active]:bg-neutral-800">
+                      <Film className="mr-2 h-4 w-4" />
+                      Reel
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+              
+              {/* Image Upload Section */}
+              {postType === "image" && (
+                <div className="h-80 md:h-96 w-full flex items-center justify-center">
+                  {imageUrl ? (
+                    <div className="w-full h-full p-2">
+                      <img 
+                        src={imageUrl} 
+                        alt="Post preview" 
+                        className="w-full h-full object-contain" 
+                      />
+                      <Button
+                        variant="destructive" 
+                        size="sm"
+                        className="absolute bottom-2 right-2"
+                        onClick={() => setImageUrl("")}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Clear
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center p-4">
+                      <Upload className="h-16 w-16 text-white mb-4 mx-auto" />
+                      <p className="text-white text-sm mb-4">Drag photos here</p>
+                      <Input
+                        type="text"
+                        placeholder="Or enter image URL here"
+                        className="bg-white mb-4 mx-auto max-w-xs"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                      />
+                      <Button 
+                        variant="default" 
+                        className="mb-4"
+                        onClick={handleNext}
+                        disabled={!imageUrl.trim()}
+                      >
+                        Next
+                      </Button>
+                      <p className="text-neutral-400 text-xs">
+                        For demo purposes, please paste a direct image URL
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-center p-4">
-                  <Upload className="h-16 w-16 text-white mb-4 mx-auto" />
-                  <p className="text-white text-sm mb-4">Drag photos and videos here</p>
-                  <Input
-                    type="text"
-                    placeholder="Or enter image URL here"
-                    className="bg-white mb-4 mx-auto max-w-xs"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                  <p className="text-neutral-400 text-xs mb-4">
-                    For demo purposes, please paste a direct image URL
-                  </p>
+              )}
+              
+              {/* Reel Upload Section */}
+              {postType === "reel" && (
+                <div className="h-80 md:h-96 w-full flex items-center justify-center">
+                  {videoUrl ? (
+                    <div className="w-full h-full relative p-2">
+                      <video 
+                        src={videoUrl} 
+                        className="w-full h-full object-contain" 
+                        controls
+                        poster={thumbnailUrl || undefined}
+                      />
+                      <Button
+                        variant="destructive" 
+                        size="sm"
+                        className="absolute bottom-2 right-2"
+                        onClick={() => {
+                          setVideoUrl("");
+                          setThumbnailUrl("");
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Clear
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center p-4">
+                      <Film className="h-16 w-16 text-white mb-4 mx-auto" />
+                      <p className="text-white text-sm mb-4">Create a new reel</p>
+                      
+                      <div className="mb-4">
+                        <Label htmlFor="videoUrl" className="text-white text-xs mb-2 block">Video URL</Label>
+                        <Input
+                          id="videoUrl"
+                          type="text"
+                          placeholder="Enter video URL here"
+                          className="bg-white mb-2 mx-auto max-w-xs"
+                          value={videoUrl}
+                          onChange={(e) => setVideoUrl(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <Label htmlFor="thumbnailUrl" className="text-white text-xs mb-2 block">Thumbnail URL (optional)</Label>
+                        <Input
+                          id="thumbnailUrl"
+                          type="text"
+                          placeholder="Enter thumbnail URL here"
+                          className="bg-white mb-2 mx-auto max-w-xs"
+                          value={thumbnailUrl}
+                          onChange={(e) => setThumbnailUrl(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <Label htmlFor="duration" className="text-white text-xs mb-2 block">Duration (seconds)</Label>
+                        <Input
+                          id="duration"
+                          type="number"
+                          placeholder="Duration in seconds"
+                          className="bg-white mb-4 mx-auto max-w-xs"
+                          value={duration || ""}
+                          onChange={(e) => setDuration(parseInt(e.target.value) || 0)}
+                          min={1}
+                        />
+                      </div>
+                      
+                      <Button 
+                        variant="default" 
+                        className="mb-4"
+                        onClick={handleNext}
+                        disabled={!videoUrl.trim()}
+                      >
+                        Next
+                      </Button>
+                      <p className="text-neutral-400 text-xs">
+                        For demo purposes, please paste direct video/image URLs
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -171,14 +319,28 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                 />
               </div>
               
-              {/* Preview */}
-              {imageUrl && (
+              {/* Preview - Image */}
+              {postType === "image" && imageUrl && (
                 <div className="px-3 pb-3">
                   <div className="border border-neutral-200 rounded-md overflow-hidden h-48">
                     <img 
                       src={imageUrl} 
                       alt="Post preview" 
                       className="w-full h-full object-contain bg-neutral-100" 
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Preview - Video */}
+              {postType === "reel" && videoUrl && (
+                <div className="px-3 pb-3">
+                  <div className="border border-neutral-200 rounded-md overflow-hidden h-48">
+                    <video
+                      src={videoUrl}
+                      poster={thumbnailUrl || undefined}
+                      className="w-full h-full object-contain bg-neutral-100"
+                      controls
                     />
                   </div>
                 </div>
