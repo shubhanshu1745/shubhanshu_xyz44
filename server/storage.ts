@@ -9,7 +9,8 @@ import {
   stories, type Story, type InsertStory,
   playerStats, type PlayerStats, type InsertPlayerStats,
   playerMatches, type PlayerMatch, type InsertPlayerMatch,
-  playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance
+  playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance,
+  tokens, type Token, type InsertToken
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -25,6 +26,11 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  
+  // Token methods
+  createToken(token: InsertToken): Promise<Token>;
+  getTokenByToken(token: string): Promise<Token | undefined>;
+  deleteToken(id: number): Promise<boolean>;
   
   // Post methods
   createPost(post: InsertPost): Promise<Post>;
@@ -105,6 +111,7 @@ export class MemStorage implements IStorage {
   private playerStats: Map<number, PlayerStats>;
   private playerMatches: Map<number, PlayerMatch>;
   private playerMatchPerformances: Map<number, PlayerMatchPerformance>;
+  private tokens: Map<number, Token>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -117,6 +124,7 @@ export class MemStorage implements IStorage {
   playerStatsCurrentId: number;
   playerMatchCurrentId: number;
   playerMatchPerformanceCurrentId: number;
+  tokenCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -131,6 +139,7 @@ export class MemStorage implements IStorage {
     this.playerStats = new Map();
     this.playerMatches = new Map();
     this.playerMatchPerformances = new Map();
+    this.tokens = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -143,10 +152,36 @@ export class MemStorage implements IStorage {
     this.playerStatsCurrentId = 1;
     this.playerMatchCurrentId = 1;
     this.playerMatchPerformanceCurrentId = 1;
+    this.tokenCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     });
+  }
+  
+  // Token methods
+  async createToken(insertToken: InsertToken): Promise<Token> {
+    const id = this.tokenCurrentId++;
+    const token: Token = {
+      id,
+      userId: insertToken.userId,
+      token: insertToken.token,
+      type: insertToken.type,
+      expiresAt: insertToken.expiresAt,
+      createdAt: new Date()
+    };
+    this.tokens.set(id, token);
+    return token;
+  }
+  
+  async getTokenByToken(tokenString: string): Promise<Token | undefined> {
+    return Array.from(this.tokens.values()).find(
+      token => token.token === tokenString
+    );
+  }
+  
+  async deleteToken(id: number): Promise<boolean> {
+    return this.tokens.delete(id);
   }
 
   // User methods
@@ -178,6 +213,7 @@ export class MemStorage implements IStorage {
       location: insertUser.location || null,
       profileImage: insertUser.profileImage || null,
       isPlayer: insertUser.isPlayer || false,
+      emailVerified: false,
       createdAt: new Date() 
     };
     this.users.set(id, user);
