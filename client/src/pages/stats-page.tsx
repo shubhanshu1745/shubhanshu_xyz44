@@ -156,15 +156,18 @@ export default function StatsPage() {
     mutationFn: async (data: PerformanceFormValues) => {
       if (!createdMatchId) throw new Error("No match selected");
       
+      // Log match ID and performance data for debugging
+      console.log("Adding performance for match ID:", createdMatchId, "with data:", data);
+      
       return await apiRequest("POST", `/api/player-match-performances`, {
         userId: user?.id,
         matchId: createdMatchId,
-        runs: data.runs,
-        balls: data.balls,
+        runsScored: data.runs,
+        ballsFaced: data.balls,
         fours: data.fours,
         sixes: data.sixes,
-        wickets: data.wickets,
-        oversBowled: data.oversBowled,
+        wicketsTaken: data.wickets,
+        oversBowled: data.oversBowled.toString(),
         runsConceded: data.runsConceded,
         catches: data.catches,
         runOuts: data.runOuts,
@@ -175,20 +178,31 @@ export default function StatsPage() {
         title: "Success",
         description: "Performance added successfully",
       });
-      // Refetch both matches and stats to update all data
-      refetchMatches();
-      refetchStats();
+      
+      // Close the dialog first
       setIsPerformanceDialogOpen(false);
       
-      // Force invalidate the cache for both queries
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
+      // Clear the query cache properly
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'matches']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'player-stats']
+      });
       
-      // Add a small delay then refresh again to ensure updates
+      // Also invalidate with legacy format for backward compatibility
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${user?.username}/matches`] 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${user?.username}/player-stats`] 
+      });
+      
+      // Manually trigger refetches to guarantee updates
       setTimeout(() => {
         refetchMatches();
         refetchStats();
-      }, 500);
+      }, 300);
     },
     onError: (error) => {
       toast({
@@ -196,6 +210,7 @@ export default function StatsPage() {
         description: "Failed to add performance",
         variant: "destructive",
       });
+      console.error("Error adding performance:", error);
     },
   });
 

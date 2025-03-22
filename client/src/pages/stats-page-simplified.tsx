@@ -264,6 +264,7 @@ export default function StatsPage() {
   // Add match performance
   const addPerformanceMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log("Adding performance with data:", data);
       return await apiRequest("POST", "/api/player-match-performances", data);
     },
     onSuccess: () => {
@@ -303,13 +304,32 @@ export default function StatsPage() {
       setNewMatchId(null);
       setIsAddMatchDialogOpen(false);
       
-      // Invalidate queries to reload data
+      // Invalidate queries with both formats to ensure updates
+      // Array format for hierarchical cache segments
       queryClient.invalidateQueries({
         queryKey: ['/api/users', user?.username, 'matches']
       });
       queryClient.invalidateQueries({
         queryKey: ['/api/users', user?.username, 'player-stats']
       });
+      
+      // Also try the legacy format
+      queryClient.invalidateQueries({
+        queryKey: [`/api/users/${user?.username}/matches`]
+      });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/users/${user?.username}/player-stats`]
+      });
+      
+      // Force a timeout and manual refresh
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: ['/api/users', user?.username, 'matches']
+        });
+        queryClient.refetchQueries({
+          queryKey: ['/api/users', user?.username, 'player-stats']
+        });
+      }, 300);
     },
     onError: (error) => {
       toast({
@@ -317,6 +337,7 @@ export default function StatsPage() {
         description: "Failed to add performance stats",
         variant: "destructive"
       });
+      console.error("Error adding performance:", error);
     }
   });
 

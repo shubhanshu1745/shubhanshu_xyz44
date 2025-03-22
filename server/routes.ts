@@ -1748,29 +1748,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { matchId } = req.body;
       
+      // Convert matchId to number and validate
+      const matchIdNum = parseInt(matchId);
+      if (isNaN(matchIdNum)) {
+        return res.status(400).json({ message: "Invalid match ID" });
+      }
+      
       // Check if match exists
-      if (matchId) {
-        const match = await storage.getPlayerMatch(parseInt(matchId));
-        if (!match) {
-          return res.status(404).json({ message: "Match not found" });
-        }
+      const match = await storage.getPlayerMatch(matchIdNum);
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
       }
       
       // Check if performance for this match already exists
-      if (matchId) {
-        const existingPerformance = await storage.getPlayerMatchPerformance(userId, parseInt(matchId));
-        if (existingPerformance) {
-          return res.status(400).json({ message: "Performance record already exists for this match" });
-        }
+      const existingPerformance = await storage.getPlayerMatchPerformance(userId, matchIdNum);
+      if (existingPerformance) {
+        return res.status(400).json({ message: "Performance record already exists for this match" });
       }
       
-      const performanceData = insertPlayerMatchPerformanceSchema.parse({ ...req.body, userId });
+      // Log the incoming performance data
+      console.log("Received performance data:", req.body);
+      
+      // Create the performance record
+      const performanceData = insertPlayerMatchPerformanceSchema.parse({ 
+        ...req.body, 
+        userId, 
+        matchId: matchIdNum 
+      });
+      
+      // Log performance data after validation
+      console.log("Validated performance data:", performanceData);
+      
       const performance = await storage.createPlayerMatchPerformance(performanceData);
       
-      res.status(201).json(performance);
+      // Update player stats with this new performance
+      await updatePlayerStatsFromPerformance(userId, performanceData);
+      
+      // Return the created performance with a 201 Created status
+      res.status(201).json({
+        success: true,
+        performance,
+        message: "Performance saved and stats updated successfully"
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Validation error", errors: error.errors });
+        console.error("Validation error:", error.errors);
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
       }
       console.error("Error creating match performance:", error);
       res.status(500).json({ message: "Failed to create match performance" });
