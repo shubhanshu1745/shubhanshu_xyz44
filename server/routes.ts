@@ -1873,15 +1873,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log performance data after validation
       console.log("Validated performance data:", performanceData);
       
+      // Calculate additional analytics metrics
+      const strikeRate = performanceData.ballsFaced > 0 
+        ? (performanceData.runsScored / performanceData.ballsFaced * 100).toFixed(2) 
+        : "0.00";
+        
+      // Parse overs bowled and calculate balls bowled
+      let totalBallsBowled = 0;
+      if (performanceData.oversBowled) {
+        const [fullOvers, partialBalls] = performanceData.oversBowled.split('.').map(num => parseInt(num || '0'));
+        totalBallsBowled = (fullOvers * 6) + (partialBalls || 0);
+      }
+      
+      // Calculate economy rate (runs conceded per over)
+      const economyRate = totalBallsBowled > 0 
+        ? (performanceData.runsConceded / (totalBallsBowled / 6)).toFixed(2) 
+        : "0.00";
+      
+      // Calculate bowling strike rate (balls per wicket)
+      const bowlingStrikeRate = performanceData.wicketsTaken > 0 && totalBallsBowled > 0
+        ? (totalBallsBowled / performanceData.wicketsTaken).toFixed(2) 
+        : "0.00";
+        
+      // Calculate match impact score (custom formula)
+      const battingImpact = performanceData.runsScored * 1 + 
+                          performanceData.fours * 1 + 
+                          performanceData.sixes * 2;
+                          
+      const bowlingImpact = performanceData.wicketsTaken * 20 + 
+                          (performanceData.maidens || 0) * 5;
+                          
+      const fieldingImpact = (performanceData.catches || 0) * 10 + 
+                          (performanceData.runOuts || 0) * 15;
+                          
+      const matchImpactScore = battingImpact + bowlingImpact + fieldingImpact;
+      
       const performance = await storage.createPlayerMatchPerformance(performanceData);
       
       // Update player stats with this new performance
       await updatePlayerStatsFromPerformance(userId, performanceData);
       
-      // Return the created performance with a 201 Created status
+      // Return the created performance with analytics and a 201 Created status
       res.status(201).json({
         success: true,
-        performance,
+        performance: {
+          ...performance,
+          analytics: {
+            strikeRate,
+            economyRate,
+            bowlingStrikeRate,
+            matchImpactScore,
+            battingContribution: battingImpact,
+            bowlingContribution: bowlingImpact,
+            fieldingContribution: fieldingImpact
+          }
+        },
         message: "Performance saved and stats updated successfully"
       });
     } catch (error) {
