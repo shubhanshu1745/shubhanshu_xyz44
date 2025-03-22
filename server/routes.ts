@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth } from "./auth";
 import { z } from "zod";
 import { insertCommentSchema, insertPostSchema, insertFollowSchema } from "@shared/schema";
+import { CricketDataService } from "./services/cricket-data";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
@@ -344,6 +345,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "User unfollowed successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  // Cricket Match endpoints
+  app.get("/api/cricket/matches", (req, res) => {
+    try {
+      const status = req.query.status as string;
+      
+      if (status && ["live", "upcoming", "completed"].includes(status)) {
+        return res.json(CricketDataService.getMatchesByStatus(status as any));
+      }
+      
+      res.json(CricketDataService.getAllMatches());
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch matches" });
+    }
+  });
+
+  app.get("/api/cricket/matches/recent", (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
+      res.json(CricketDataService.getRecentMatches(limit));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch recent matches" });
+    }
+  });
+
+  app.get("/api/cricket/matches/:id", (req, res) => {
+    try {
+      const matchId = req.params.id;
+      const match = CricketDataService.getMatchById(matchId);
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      res.json(match);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch match" });
+    }
+  });
+
+  // Cricket Team endpoints
+  app.get("/api/cricket/teams", (req, res) => {
+    try {
+      const type = req.query.type as string;
+      const query = req.query.query as string;
+      
+      if (query) {
+        return res.json(CricketDataService.searchTeams(query));
+      }
+      
+      if (type && ["international", "franchise", "domestic"].includes(type)) {
+        return res.json(CricketDataService.getTeamsByType(type as any));
+      }
+      
+      res.json(CricketDataService.getAllTeams());
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch teams" });
+    }
+  });
+
+  app.get("/api/cricket/teams/:id", (req, res) => {
+    try {
+      const teamId = req.params.id;
+      const team = CricketDataService.getTeamById(teamId);
+      
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      res.json(team);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch team" });
     }
   });
 

@@ -8,8 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter } from "lucide-react";
+import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getQueryFn } from "@/lib/queryClient";
 
 type Team = {
   id: string;
@@ -29,11 +30,11 @@ type Team = {
     odi?: number;
     t20?: number;
   };
-  recentForm: "W" | "L" | "D" | "W-L" | "L-W" | "W-W" | "L-L";
+  recentForm: string;
 };
 
-// Demo teams data
-const demoTeams: Team[] = [
+// Fallback teams data in case API fails
+const fallbackTeams: Team[] = [
   {
     id: "t1",
     name: "India",
@@ -150,8 +151,17 @@ export default function TeamsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [teamType, setTeamType] = useState("all");
   
+  // Fetch teams data from API
+  const { data: teams, isLoading, error } = useQuery<Team[]>({
+    queryKey: ["/api/cricket/teams"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+  
+  // Use API data or fallback to demo data if loading failed
+  const teamData = teams || fallbackTeams;
+  
   // Filter teams based on search query and team type
-  const filteredTeams = demoTeams.filter(team => {
+  const filteredTeams = teamData.filter(team => {
     const matchesSearch = 
       team.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       team.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -202,28 +212,34 @@ export default function TeamsPage() {
           </div>
           
           {/* Teams */}
-          <Tabs defaultValue="grid" className="w-full">
-            <TabsList className="mb-6 w-48 justify-start bg-white border border-neutral-200 rounded-md p-1">
-              <TabsTrigger value="grid" className="flex-1">Grid View</TabsTrigger>
-              <TabsTrigger value="list" className="flex-1">List View</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="grid">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {filteredTeams.map(team => (
-                  <TeamGridCard key={team.id} team={team} />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="list">
-              <div className="space-y-4">
-                {filteredTeams.map(team => (
-                  <TeamListCard key={team.id} team={team} />
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+          {isLoading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="h-12 w-12 animate-spin text-[#FF5722]" />
+            </div>
+          ) : (
+            <Tabs defaultValue="grid" className="w-full">
+              <TabsList className="mb-6 w-48 justify-start bg-white border border-neutral-200 rounded-md p-1">
+                <TabsTrigger value="grid" className="flex-1">Grid View</TabsTrigger>
+                <TabsTrigger value="list" className="flex-1">List View</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="grid">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {filteredTeams.map(team => (
+                    <TeamGridCard key={team.id} team={team} />
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="list">
+                <div className="space-y-4">
+                  {filteredTeams.map(team => (
+                    <TeamListCard key={team.id} team={team} />
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </main>
       

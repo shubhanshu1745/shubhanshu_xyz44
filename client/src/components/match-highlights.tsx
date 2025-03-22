@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, CalendarDays, Clock, ArrowRight } from "lucide-react";
+import { Trophy, CalendarDays, Clock, ArrowRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
 
 type MatchHighlight = {
   id: string;
@@ -21,7 +23,8 @@ type MatchHighlight = {
   imageUrl?: string;
 };
 
-const demoHighlights: MatchHighlight[] = [
+// Fallback data in case API fails
+const fallbackHighlights: MatchHighlight[] = [
   {
     id: "m1",
     title: "T20 World Cup 2023",
@@ -88,6 +91,14 @@ const demoHighlights: MatchHighlight[] = [
 ];
 
 export function MatchHighlights() {
+  const { data: matches, isLoading, error } = useQuery<MatchHighlight[]>({
+    queryKey: ["/api/cricket/matches"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+
+  // Use matches data or fallback to demo data if loading failed
+  const matchData = matches || fallbackHighlights;
+
   return (
     <Card className="w-full mb-6">
       <CardHeader className="pb-2">
@@ -102,44 +113,50 @@ export function MatchHighlights() {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="all">
-          <TabsList className="mb-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="live">Live</TabsTrigger>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="all" className="space-y-4">
-            {demoHighlights.map((match) => (
-              <MatchCard key={match.id} match={match} />
-            ))}
-          </TabsContent>
-          
-          <TabsContent value="live" className="space-y-4">
-            {demoHighlights
-              .filter((match) => match.status === "live")
-              .map((match) => (
+        {isLoading ? (
+          <div className="flex justify-center items-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-[#FF5722]" />
+          </div>
+        ) : (
+          <Tabs defaultValue="all">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="live">Live</TabsTrigger>
+              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+              <TabsTrigger value="completed">Completed</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all" className="space-y-4">
+              {matchData.map((match) => (
                 <MatchCard key={match.id} match={match} />
               ))}
-          </TabsContent>
-          
-          <TabsContent value="upcoming" className="space-y-4">
-            {demoHighlights
-              .filter((match) => match.status === "upcoming")
-              .map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-          </TabsContent>
-          
-          <TabsContent value="completed" className="space-y-4">
-            {demoHighlights
-              .filter((match) => match.status === "completed")
-              .map((match) => (
-                <MatchCard key={match.id} match={match} />
-              ))}
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+            
+            <TabsContent value="live" className="space-y-4">
+              {matchData
+                .filter((match) => match.status === "live")
+                .map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+            </TabsContent>
+            
+            <TabsContent value="upcoming" className="space-y-4">
+              {matchData
+                .filter((match) => match.status === "upcoming")
+                .map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+            </TabsContent>
+            
+            <TabsContent value="completed" className="space-y-4">
+              {matchData
+                .filter((match) => match.status === "completed")
+                .map((match) => (
+                  <MatchCard key={match.id} match={match} />
+                ))}
+            </TabsContent>
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );
