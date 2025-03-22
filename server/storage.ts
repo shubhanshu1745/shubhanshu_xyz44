@@ -47,7 +47,7 @@ export interface IStorage {
   getSuggestedUsers(userId: number, limit?: number): Promise<User[]>;
 
   // Session store for authentication
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Fixed to work with various session store types
 }
 
 export class MemStorage implements IStorage {
@@ -62,7 +62,7 @@ export class MemStorage implements IStorage {
   likeCurrentId: number;
   commentCurrentId: number;
   followCurrentId: number;
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 
   constructor() {
     this.users = new Map();
@@ -230,7 +230,7 @@ export class MemStorage implements IStorage {
       id,
       userId: insertComment.userId,
       postId: insertComment.postId,
-      content: insertComment.content || null,
+      content: insertComment.content,
       createdAt: new Date()
     };
     this.comments.set(id, comment);
