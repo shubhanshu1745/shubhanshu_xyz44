@@ -454,16 +454,17 @@ export default function StatsPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Average</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.matches > 0
-                        ? (playerStats.totalRuns / (playerStats.innings - playerStats.notOuts || 1)).toFixed(2)
+                      {playerStats && playerStats.matches && playerStats.matches > 0
+                        ? ((playerStats.totalRuns || 0) / 
+                           ((playerStats.innings || 1) - (playerStats.notOuts || 0) || 1)).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Strike Rate</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.ballsFaced > 0
-                        ? ((playerStats.totalRuns / playerStats.ballsFaced) * 100).toFixed(2)
+                      {playerStats && playerStats.ballsFaced && playerStats.ballsFaced > 0
+                        ? (((playerStats.totalRuns || 0) / playerStats.ballsFaced) * 100).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
@@ -495,16 +496,16 @@ export default function StatsPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Economy</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.oversBowled > 0
-                        ? (playerStats.runsConceded / playerStats.oversBowled).toFixed(2)
+                      {playerStats && playerStats.oversBowled && parseFloat(playerStats.oversBowled) > 0
+                        ? ((playerStats.runsConceded || 0) / parseFloat(playerStats.oversBowled)).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Average</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.wickets > 0
-                        ? (playerStats.runsConceded / playerStats.wickets).toFixed(2)
+                      {playerStats && playerStats.wickets && playerStats.wickets > 0
+                        ? ((playerStats.runsConceded || 0) / playerStats.wickets).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
