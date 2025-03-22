@@ -43,7 +43,9 @@ const matchFormSchema = z.object({
   venue: z.string().min(1, "Venue is required"),
   matchDate: z.string().min(1, "Match date is required"),
   matchType: z.string().min(1, "Match type is required"),
-  result: z.string().optional(),
+  teamScore: z.string().min(1, "Your team's score is required"),
+  opponentScore: z.string().min(1, "Opponent's score is required"),
+  result: z.string().min(1, "Result is required"),
 });
 
 type PlayerWithStats = {
@@ -78,7 +80,9 @@ export default function StatsPage() {
       venue: "",
       matchDate: format(new Date(), "yyyy-MM-dd"),
       matchType: "T20",
-      result: "",
+      teamScore: "",
+      opponentScore: "",
+      result: "Win",
     },
   });
   
@@ -93,12 +97,13 @@ export default function StatsPage() {
       venue: values.venue,
       matchDate: new Date(values.matchDate), // Convert to Date for API
       matchType: values.matchType,
-      result: values.result || 'N/A', // Provide default if empty
+      result: values.result,
       matchName: `${user.username} vs ${values.opponent}`,
-      teamScore: '0', // Add default required fields
-      opponentScore: '0', // Add default required fields
+      teamScore: values.teamScore,
+      opponentScore: values.opponentScore,
     };
     
+    console.log('Submitting match data:', matchData);
     addMatchMutation.mutate(matchData);
   }
 
@@ -185,7 +190,9 @@ export default function StatsPage() {
         venue: "",
         matchDate: format(new Date(), "yyyy-MM-dd"),
         matchType: "T20",
-        result: "",
+        teamScore: "",
+        opponentScore: "",
+        result: "Win",
       });
       
       // Close dialog
@@ -701,13 +708,55 @@ export default function StatsPage() {
               
               <FormField
                 control={matchForm.control}
+                name="teamScore"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Team Score</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g., '150/6'" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
+                name="opponentScore"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Opponent Score</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g., '142/8'" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
                 name="result"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Result (Optional)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="E.g., 'Won by 5 wickets'" {...field} />
-                    </FormControl>
+                    <FormLabel>Result</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select match result" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Win">Win</SelectItem>
+                        <SelectItem value="Loss">Loss</SelectItem>
+                        <SelectItem value="Draw">Draw</SelectItem>
+                        <SelectItem value="Tie">Tie</SelectItem>
+                        <SelectItem value="No Result">No Result</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
