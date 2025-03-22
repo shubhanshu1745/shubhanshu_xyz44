@@ -11,6 +11,7 @@ import ReelsPage from "@/pages/reels-page";
 import PlayerStatsPage from "@/pages/player-stats-page";
 import StatsPage from "@/pages/stats-page-simplified";
 import SuggestionsPage from "@/pages/suggestions-page";
+import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -31,6 +32,7 @@ function Router() {
       <ProtectedRoute path="/suggestions" component={SuggestionsPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
+      <ProtectedRoute path="/settings" component={SettingsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
