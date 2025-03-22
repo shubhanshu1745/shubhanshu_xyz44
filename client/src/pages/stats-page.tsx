@@ -16,7 +16,26 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Spinner } from "@/components/ui/spinner";
-import { Bot, Calendar, Calendar as CalendarIcon, Clock, Flag, MapPin, Award, Bath, Send, Gauge } from "lucide-react";
+import { Bot, Calendar, Calendar as CalendarIcon, Clock, Flag, MapPin, Award, Send, Gauge, Trophy, BarChart2, TrendingUp, Zap } from "lucide-react";
+
+// Custom Cricket and Bat icons as React components
+const Cricket = (props: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M12 3v18" />
+    <path d="M5 8h14" />
+    <path d="M8 12a4 4 0 0 0 8 0" />
+  </svg>
+);
+
+const Bat = (props: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M4.5 14.5L3 16c-.667.667-.667 2 0 4 2 .667 3.333.667 4 0l1.5-1.5" />
+    <path d="M8 16l3.5 3.5c.667.667 2 .667 4 0 .667-2 .667-3.333 0-4" />
+    <path d="M18 3l3 3" />
+    <path d="M14 7l-1 1" />
+    <path d="M16 5l-3.5 3.5C11.833 9.167 10 9.167 7 7" />
+  </svg>
+);
 
 // Define a schema for the match form
 const matchFormSchema = z.object({
@@ -372,6 +391,289 @@ export default function StatsPage() {
             </CardContent>
           </Card>
         </div>
+        
+        {/* Match Form Dialog */}
+        <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add New Match</DialogTitle>
+              <DialogDescription>
+                Enter the details of your cricket match
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...matchForm}>
+              <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
+                <FormField
+                  control={matchForm.control}
+                  name="opponent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Opponent Team</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Super Kings" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={matchForm.control}
+                  name="venue"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Venue</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Local Cricket Ground" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={matchForm.control}
+                  name="matchDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Match Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={matchForm.control}
+                  name="matchType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Match Type</FormLabel>
+                      <FormControl>
+                        <select
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          {...field}
+                        >
+                          <option value="T20">T20</option>
+                          <option value="ODI">ODI</option>
+                          <option value="Test">Test</option>
+                          <option value="Friendly">Friendly</option>
+                          <option value="Club">Club</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={matchForm.control}
+                  name="result"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Result (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Won by 5 wickets" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Leave blank if match is upcoming or in progress
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsMatchDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D] text-white"
+                    disabled={createMatchMutation.isPending}
+                  >
+                    {createMatchMutation.isPending && (
+                      <Spinner className="mr-2 h-4 w-4" />
+                    )}
+                    Add Match
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Performance Form Dialog */}
+        <Dialog open={isPerformanceDialogOpen} onOpenChange={setIsPerformanceDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Match Performance</DialogTitle>
+              <DialogDescription>
+                Enter your performance details for this match
+              </DialogDescription>
+            </DialogHeader>
+            
+            <Form {...performanceForm}>
+              <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={performanceForm.control}
+                    name="runs"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Runs Scored</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="balls"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Balls Faced</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="fours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>4s</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="sixes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>6s</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="wickets"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wickets Taken</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" max="10" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="oversBowled"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Overs Bowled</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" step="0.1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="runsConceded"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Runs Conceded</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="catches"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Catches</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={performanceForm.control}
+                    name="runOuts"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Run Outs</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsPerformanceDialogOpen(false)}
+                  >
+                    Skip
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D] text-white"
+                    disabled={addPerformanceMutation.isPending}
+                  >
+                    {addPerformanceMutation.isPending && (
+                      <Spinner className="mr-2 h-4 w-4" />
+                    )}
+                    Save Performance
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
         
         {/* Tabs for Recent Matches and Stats */}
         <Tabs defaultValue="recent-matches" className="bg-white rounded-lg shadow-md">

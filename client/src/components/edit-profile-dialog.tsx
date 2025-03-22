@@ -90,8 +90,14 @@ export function EditProfileDialog({
       return await apiRequest("PATCH", `/api/user`, updatedProfile);
     },
     onSuccess: () => {
+      // Invalidate all queries that might use the profile data
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${profile.username}`] });
+      
+      // Force a reload of the profile data from the server
+      queryClient.refetchQueries({ queryKey: ["/api/user"] });
+      queryClient.refetchQueries({ queryKey: [`/api/users/${profile.username}`] });
+      
       toast({
         title: "Profile updated",
         description: "Your profile has been updated successfully"
