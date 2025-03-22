@@ -1,7 +1,27 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
-import { PlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
+import { PlayerStats as DbPlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
+
+// Extended interface for PlayerStats to match our UI needs
+interface PlayerStats extends DbPlayerStats {
+  matches?: number;
+  innings?: number;
+  notOuts?: number;
+  wickets?: number;
+  ballsFaced?: number;
+  oversBowled?: number;
+  runsConceded?: number;
+  bestBowlingFigures?: string;
+  fifties?: number;
+  hundreds?: number;
+  fours?: number;
+  sixes?: number;
+  catches?: number;
+  runOuts?: number;
+  playerOfMatchAwards?: number;
+  highestScoreNotOut?: boolean;
+}
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +51,93 @@ export default function StatsPage() {
   const { toast } = useToast();
   const [isAddMatchDialogOpen, setIsAddMatchDialogOpen] = useState(false);
 
+  // Fetch player stats
+  const { data: dbPlayerStats, isLoading: isStatsLoading } = useQuery<DbPlayerStats>({
+    queryKey: ['/api/users', user?.username, 'player-stats'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user
+  });
+  
+  // Create an enhanced player stats object with our needed UI fields
+  const playerStats: PlayerStats | undefined = dbPlayerStats ? {
+    ...dbPlayerStats,
+    matches: dbPlayerStats.totalMatches || 0,
+    innings: 0, // We'll need to add this to the database later
+    notOuts: 0, // We'll need to add this to the database later
+    wickets: dbPlayerStats.totalWickets || 0,
+    ballsFaced: 0, // We'll need to add this to the database later
+    oversBowled: 0, // We'll need to add this to the database later
+    runsConceded: 0, // We'll need to add this to the database later
+    bestBowlingFigures: dbPlayerStats.bestBowling || "0/0",
+    fifties: 0, // We'll need to add this to the database later
+    hundreds: 0, // We'll need to add this to the database later
+    fours: dbPlayerStats.totalFours || 0,
+    sixes: dbPlayerStats.totalSixes || 0,
+    catches: dbPlayerStats.totalCatches || 0,
+    runOuts: 0, // We'll need to add this to the database later
+    playerOfMatchAwards: 0, // We'll need to add this to the database later
+    highestScoreNotOut: false // We'll need to add this to the database later
+  } : undefined;
+  
+  // Fetch recent matches
+  const { data: dbMatches, isLoading: isMatchesLoading } = useQuery<PlayerMatch[]>({
+    queryKey: ['/api/users', user?.username, 'matches'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user
+  });
+  
+  // Create enhanced matches with the fields we need for UI
+  const matches: MatchWithPerformances[] = dbMatches ? dbMatches.map(match => ({
+    ...match,
+    date: match.matchDate,
+    matchTitle: match.matchName,
+    overs: match.matchType?.includes('T20') ? '20' : match.matchType?.includes('ODI') ? '50' : 'Full',
+    format: match.matchType || 'T20',
+    performance: {
+      id: 0, // Placeholder
+      userId: user.id,
+      matchId: match.id,
+      runsScored: 0,
+      ballsFaced: 0,
+      fours: 0,
+      sixes: 0,
+      battingStatus: '',
+      oversBowled: '0',
+      runsConceded: 0,
+      wicketsTaken: 0,
+      maidens: 0,
+      catches: 0,
+      runOuts: 0,
+      stumpings: 0,
+      createdAt: null,
+      // UI-specific fields
+      runs: 0,
+      notOut: false,
+      wickets: 0
+    }
+  })) : [];
+
+  // Add a new match performance
+  const addMatchMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("POST", "/api/player-matches", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Match added",
+        description: "Your match has been added successfully"
+      });
+      setIsAddMatchDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add match",
+        variant: "destructive"
+      });
+    }
+  });
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -38,6 +145,8 @@ export default function StatsPage() {
       </div>
     );
   }
+  
+  const isLoading = isStatsLoading || isMatchesLoading;
 
   return (
     <div className="container max-w-5xl mx-auto py-6 px-4 relative">
@@ -120,24 +229,43 @@ export default function StatsPage() {
               <CardTitle className="text-lg cricket-primary">Batting</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Matches</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Runs</span>
-                  <span className="font-semibold">0</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Matches</span>
+                    <span className="font-semibold">{playerStats?.matches || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Runs</span>
+                    <span className="font-semibold">{playerStats?.totalRuns || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Average</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.matches > 0
+                        ? (playerStats.totalRuns / (playerStats.innings - playerStats.notOuts || 1)).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Strike Rate</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.ballsFaced > 0
+                        ? ((playerStats.totalRuns / playerStats.ballsFaced) * 100).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Average</span>
-                  <span className="font-semibold">0.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Strike Rate</span>
-                  <span className="font-semibold">0.00</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
           
@@ -146,24 +274,45 @@ export default function StatsPage() {
               <CardTitle className="text-lg cricket-primary">Bowling</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Wickets</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Economy</span>
-                  <span className="font-semibold">0.00</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Wickets</span>
+                    <span className="font-semibold">{playerStats?.wickets || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Economy</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.oversBowled > 0
+                        ? (playerStats.runsConceded / playerStats.oversBowled).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Average</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.wickets > 0
+                        ? (playerStats.runsConceded / playerStats.wickets).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Best Figures</span>
+                    <span className="font-semibold">
+                      {playerStats?.bestBowlingFigures || "0/0"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Average</span>
-                  <span className="font-semibold">0.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Best Figures</span>
-                  <span className="font-semibold">0/0</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
           
@@ -172,24 +321,35 @@ export default function StatsPage() {
               <CardTitle className="text-lg cricket-primary">Batting Milestones</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">50s</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">100s</span>
-                  <span className="font-semibold">0</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">50s</span>
+                    <span className="font-semibold">{playerStats?.fifties || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">100s</span>
+                    <span className="font-semibold">{playerStats?.hundreds || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">4s</span>
+                    <span className="font-semibold">{playerStats?.fours || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">6s</span>
+                    <span className="font-semibold">{playerStats?.sixes || 0}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">4s</span>
-                  <span className="font-semibold">0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">6s</span>
-                  <span className="font-semibold">0</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
           
@@ -198,24 +358,35 @@ export default function StatsPage() {
               <CardTitle className="text-lg cricket-primary">Fielding & More</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Catches</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Run Outs</span>
-                  <span className="font-semibold">0</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Catches</span>
+                    <span className="font-semibold">{playerStats?.catches || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Run Outs</span>
+                    <span className="font-semibold">{playerStats?.runOuts || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Player of Match</span>
+                    <span className="font-semibold">{playerStats?.playerOfMatchAwards || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Highest Score</span>
+                    <span className="font-semibold">{playerStats?.highestScore || 0}{playerStats?.highestScoreNotOut ? '*' : ''}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Player of Match</span>
-                  <span className="font-semibold">0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Highest Score</span>
-                  <span className="font-semibold">0</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -238,17 +409,109 @@ export default function StatsPage() {
           </TabsList>
           
           <TabsContent value="recent-matches" className="p-4">
-            <div className="text-center py-10">
-              <h3 className="text-lg font-medium mb-2">No match data available</h3>
-              <p className="text-muted-foreground mb-4">Add your match details to start tracking your cricket performance</p>
-              <Button 
-                variant="default"
-                className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-                onClick={() => setIsAddMatchDialogOpen(true)}
-              >
-                Add Your First Match
-              </Button>
-            </div>
+            {isLoading ? (
+              <div className="space-y-4 animate-pulse">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-gray-100 p-4 rounded-md">
+                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                {matches && matches.length > 0 ? (
+                  <div className="space-y-4">
+                    {matches.map((match) => (
+                      <Card key={match.id} className="overflow-hidden border-[#2E8B57]/20">
+                        <div className="flex bg-[#2E8B57]/10 p-2 items-center">
+                          <Calendar className="h-4 w-4 text-[#2E8B57] mr-2" />
+                          <span className="text-sm font-medium">
+                            {match.date ? format(new Date(match.date), 'PPP') : 'Date not available'}
+                          </span>
+                          <div className="mx-2 text-gray-400">•</div>
+                          <MapPin className="h-4 w-4 text-[#2E8B57] mr-2" />
+                          <span className="text-sm">{match.venue || 'Venue not specified'}</span>
+                        </div>
+                        
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold mb-2">{match.matchTitle || 'Cricket Match'}</h3>
+                          <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-2" />
+                              <span>{match.overs || '20'} overs</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Flag className="h-4 w-4 mr-2" />
+                              <span>{match.format || 'T20'}</span>
+                            </div>
+                          </div>
+                          
+                          {match.performance && (
+                            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                              <div>
+                                <h4 className="font-medium mb-1 text-[#2E8B57]">Batting</h4>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Runs:</span>
+                                  <span className="font-medium">{match.performance.runs || 0} 
+                                    {match.performance.notOut ? '*' : ''}
+                                  </span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Balls:</span>
+                                  <span className="font-medium">{match.performance.ballsFaced || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">4s / 6s:</span>
+                                  <span className="font-medium">{match.performance.fours || 0} / {match.performance.sixes || 0}</span>
+                                </p>
+                              </div>
+                              
+                              <div>
+                                <h4 className="font-medium mb-1 text-[#2E8B57]">Bowling</h4>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Wickets:</span>
+                                  <span className="font-medium">{match.performance.wickets || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Overs:</span>
+                                  <span className="font-medium">{match.performance.oversBowled || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Runs:</span>
+                                  <span className="font-medium">{match.performance.runsConceded || 0}</span>
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {match.result && (
+                          <div className="border-t p-3 bg-[#2E8B57]/5">
+                            <p className="text-sm">
+                              <span className="font-medium text-[#2E8B57]">Result:</span> {match.result}
+                            </p>
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <h3 className="text-lg font-medium mb-2">No match data available</h3>
+                    <p className="text-muted-foreground mb-4">Add your match details to start tracking your cricket performance</p>
+                    <Button 
+                      variant="default"
+                      className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                      onClick={() => setIsAddMatchDialogOpen(true)}
+                    >
+                      Add Your First Match
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
           </TabsContent>
           
           <TabsContent value="performance-trends" className="p-4">
