@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MessageCircle, Share, Bookmark, MoreHorizontal, Tag, Trophy, User as UserIcon, Users, Link as LinkIcon, Copy, Check } from "lucide-react";
+import { Heart, MessageCircle, Share, Bookmark, MoreHorizontal, Tag, Trophy, User as UserIcon, Users, Link as LinkIcon, Copy, Check, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";

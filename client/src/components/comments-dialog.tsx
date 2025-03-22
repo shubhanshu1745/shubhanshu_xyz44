@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Heart, Trash2, MoreHorizontal, AlertCircle, Loader2, Reply, MessageSquare } from "lucide-react";
+import { Heart, Trash2, MoreHorizontal, AlertCircle, Loader2, Reply, MessageSquare, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface CommentsDialogProps {
