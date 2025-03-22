@@ -37,8 +37,9 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
         try {
           await apiRequest("DELETE", `/api/posts/${post.id}/like`);
         } catch (error) {
-          // If the like doesn't exist yet, create it again
+          // If error, try to create the like
           console.error("Error unliking post:", error);
+          await apiRequest("POST", `/api/posts/${post.id}/like`);
           return true;
         }
         return false;

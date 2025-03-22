@@ -1,4 +1,4 @@
-import { Home, Search, PlusSquare, Heart, Trophy, Users } from "lucide-react";
+import { Home, PlusSquare, Trophy, Users, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useLocation } from "wouter";
@@ -48,14 +48,33 @@ export function MobileNav() {
           </Button>
           
           <Link href="/teams">
-            <Button variant="ghost" size="icon" className="text-neutral-600">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={location === "/teams" ? "text-primary" : "text-neutral-600"}
+            >
               <Users className="h-6 w-6" />
               <span className="sr-only">Teams</span>
             </Button>
           </Link>
           
+          <Link href="/chat">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={location.startsWith("/chat") ? "text-primary" : "text-neutral-600"}
+            >
+              <MessageCircle className="h-6 w-6" />
+              <span className="sr-only">Messages</span>
+            </Button>
+          </Link>
+          
           <Link href={`/profile/${user?.username}`}>
-            <Button variant="ghost" size="icon" className="rounded-full">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={location.startsWith(`/profile/${user?.username}`) ? "text-primary rounded-full" : "text-neutral-600 rounded-full"}
+            >
               <Avatar className="h-7 w-7">
                 <AvatarImage 
                   src={user?.profileImage || "https://github.com/shadcn.png"} 

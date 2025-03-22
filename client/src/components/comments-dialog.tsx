@@ -164,7 +164,12 @@ export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps
                     <p className="text-xs text-neutral-500">
                       {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
                     </p>
-                    <Button variant="ghost" size="sm" className="h-4 p-0 text-xs text-neutral-500">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-4 p-0 text-xs flex items-center gap-1 hover:text-primary"
+                    >
+                      <Heart className="h-3 w-3" />
                       Like
                     </Button>
                     <Button variant="ghost" size="sm" className="h-4 p-0 text-xs text-neutral-500">
