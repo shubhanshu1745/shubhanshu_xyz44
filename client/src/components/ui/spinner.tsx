@@ -1,26 +1,31 @@
-import { cn } from "@/lib/utils";
+import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
-// Define the variants for the spinner using cva
 const spinnerVariants = cva(
-  "inline-block animate-spin rounded-full border-current border-t-transparent",
+  "inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]",
   {
     variants: {
       size: {
-        sm: "h-4 w-4 border-2",
-        md: "h-6 w-6 border-2",
-        lg: "h-8 w-8 border-3",
-        xl: "h-12 w-12 border-4",
+        default: "h-4 w-4",
+        sm: "h-2 w-2",
+        lg: "h-6 w-6",
+        xl: "h-8 w-8",
       },
       variant: {
         default: "text-primary",
-        white: "text-white",
-        green: "text-[#2E8B57]",
-        blue: "text-[#1F3B4D]",
+        primary: "text-primary",
+        secondary: "text-secondary",
+        destructive: "text-destructive",
+        muted: "text-muted-foreground",
+        blue: "text-blue-500",
+        green: "text-green-500",
+        red: "text-red-500",
+        yellow: "text-yellow-500",
       },
     },
     defaultVariants: {
-      size: "md",
+      size: "default",
       variant: "default",
     },
   }
@@ -36,7 +41,9 @@ export function Spinner({ className, size, variant, ...props }: SpinnerProps) {
       className={cn(spinnerVariants({ size, variant }), className)}
       {...props}
       role="status"
-      aria-label="Loading"
-    />
+      aria-label="loading"
+    >
+      <span className="sr-only">Loading...</span>
+    </div>
   );
 }

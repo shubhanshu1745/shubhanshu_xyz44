@@ -138,7 +138,8 @@ export function setupAuth(app: Express) {
       
       // Handle any other errors
       try {
-        return res.status(500).json({ message: "Registration failed", error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return res.status(500).json({ message: "Registration failed", error: errorMessage });
       } catch (jsonError) {
         console.error("Error sending error response:", jsonError);
         return res.status(500).send("Registration failed. Please try again.");

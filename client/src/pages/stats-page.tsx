@@ -16,7 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Spinner } from "@/components/ui/spinner";
-import { Bot, Calendar, Calendar as CalendarIcon, Clock, Flag, MapPin, Award, Bat, Send, Gauge, Cricket } from "lucide-react";
+import { Bot, Calendar, Calendar as CalendarIcon, Clock, Flag, MapPin, Award, Bath, Send, Gauge } from "lucide-react";
 
 // Define a schema for the match form
 const matchFormSchema = z.object({
