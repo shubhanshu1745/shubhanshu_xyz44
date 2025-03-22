@@ -1,4 +1,4 @@
-import { Home, Search, PlusSquare, Heart } from "lucide-react";
+import { Home, Search, PlusSquare, Heart, Trophy, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useLocation } from "wouter";

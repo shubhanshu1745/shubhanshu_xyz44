@@ -166,6 +166,37 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
         
         <p className="font-semibold text-sm mb-1">{likeCount} likes</p>
         
+        {/* Cricket category badge */}
+        {post.category && (
+          <div className="mb-2">
+            <Badge variant="outline" className="bg-[#f8f5ff] text-[#5b33b9] border-[#e2d7ff] mr-1">
+              <Tag className="h-3 w-3 mr-1" />
+              {post.category.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+            </Badge>
+            
+            {post.matchId && (
+              <Badge variant="outline" className="bg-[#fff8f5] text-[#b95633] border-[#ffe2d7] mr-1">
+                <Trophy className="h-3 w-3 mr-1" />
+                {post.matchId}
+              </Badge>
+            )}
+            
+            {post.teamId && (
+              <Badge variant="outline" className="bg-[#f5fff8] text-[#33b956] border-[#d7ffe2] mr-1">
+                <Users className="h-3 w-3 mr-1" />
+                {post.teamId}
+              </Badge>
+            )}
+            
+            {post.playerId && (
+              <Badge variant="outline" className="bg-[#f5f8ff] text-[#3356b9] border-[#d7e2ff] mr-1">
+                <UserIcon className="h-3 w-3 mr-1" />
+                {post.playerId}
+              </Badge>
+            )}
+          </div>
+        )}
+        
         {post.content && (
           <p className="text-sm mb-1">
             <Link href={`/profile/${post.user.username}`}>

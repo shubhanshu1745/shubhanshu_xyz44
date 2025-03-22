@@ -6,6 +6,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Sidebar } from "@/components/sidebar";
 import { PostCard } from "@/components/post-card";
 import { StoryCircle } from "@/components/story-circle";
+import { MatchHighlights } from "@/components/match-highlights";
 import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
@@ -28,8 +29,13 @@ export default function HomePage() {
         <div className="container mx-auto max-w-5xl px-0 md:px-4 flex flex-col md:flex-row">
           {/* Feed Section */}
           <div className="w-full md:w-2/3 bg-white md:bg-transparent">
+            {/* Match Highlights */}
+            <div className="px-4 py-4 md:mt-4">
+              <MatchHighlights />
+            </div>
+
             {/* Stories */}
-            <div className="px-4 py-4 bg-white border-b border-neutral-200 md:rounded-lg md:mt-4 md:border overflow-x-auto custom-scrollbar">
+            <div className="px-4 py-4 bg-white border-b border-neutral-200 md:rounded-lg md:border overflow-x-auto custom-scrollbar">
               <div className="flex space-x-4">
                 {isLoading ? (
                   // Loading skeletons for stories
