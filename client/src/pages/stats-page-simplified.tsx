@@ -35,8 +35,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Award, Calendar, Clock, Flag, MapPin } from "lucide-react";
+import { Award, Calendar, Clock, Flag, MapPin, ChevronRight, ChevronLeft } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const matchFormSchema = z.object({
   opponent: z.string().min(1, "Opponent is required"),
@@ -46,6 +47,21 @@ const matchFormSchema = z.object({
   teamScore: z.string().min(1, "Your team's score is required"),
   opponentScore: z.string().min(1, "Opponent's score is required"),
   result: z.string().min(1, "Result is required"),
+});
+
+const performanceFormSchema = z.object({
+  runsScored: z.string().optional().default("0"), 
+  ballsFaced: z.string().optional().default("0"),
+  notOut: z.boolean().default(false),
+  fours: z.string().optional().default("0"),
+  sixes: z.string().optional().default("0"),
+  wicketsTaken: z.string().optional().default("0"),
+  oversBowled: z.string().optional().default("0"),
+  runsConceded: z.string().optional().default("0"),
+  maidens: z.string().optional().default("0"),
+  catches: z.string().optional().default("0"),
+  runOuts: z.string().optional().default("0"),
+  stumpings: z.string().optional().default("0"),
 });
 
 type PlayerWithStats = {
@@ -67,10 +83,14 @@ type MatchWithPerformances = PlayerMatch & {
   format?: string;
 };
 
+type PerformanceFormValues = z.infer<typeof performanceFormSchema>;
+
 export default function StatsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAddMatchDialogOpen, setIsAddMatchDialogOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<"match" | "performance">("match");
+  const [newMatchId, setNewMatchId] = useState<number | null>(null);
   
   // Form for adding a new match
   const matchForm = useForm<MatchFormValues>({
@@ -83,6 +103,25 @@ export default function StatsPage() {
       teamScore: "",
       opponentScore: "",
       result: "Win",
+    },
+  });
+  
+  // Form for adding player performance
+  const performanceForm = useForm<PerformanceFormValues>({
+    resolver: zodResolver(performanceFormSchema),
+    defaultValues: {
+      runsScored: "0",
+      ballsFaced: "0",
+      notOut: false,
+      fours: "0",
+      sixes: "0",
+      wicketsTaken: "0",
+      oversBowled: "0",
+      runsConceded: "0",
+      maidens: "0",
+      catches: "0",
+      runOuts: "0",
+      stumpings: "0",
     },
   });
   
@@ -105,6 +144,31 @@ export default function StatsPage() {
     
     console.log('Submitting match data:', matchData);
     addMatchMutation.mutate(matchData);
+  }
+  
+  // Handle performance form submission
+  function onPerformanceSubmit(values: PerformanceFormValues) {
+    if (!user || !newMatchId) return;
+    
+    const performanceData = {
+      userId: user.id,
+      matchId: newMatchId,
+      runsScored: parseInt(values.runsScored || "0"),
+      ballsFaced: parseInt(values.ballsFaced || "0"),
+      battingStatus: values.notOut ? "Not Out" : "Out",
+      fours: parseInt(values.fours || "0"),
+      sixes: parseInt(values.sixes || "0"),
+      wicketsTaken: parseInt(values.wicketsTaken || "0"),
+      oversBowled: values.oversBowled || "0",
+      runsConceded: parseInt(values.runsConceded || "0"),
+      maidens: parseInt(values.maidens || "0"),
+      catches: parseInt(values.catches || "0"),
+      runOuts: parseInt(values.runOuts || "0"),
+      stumpings: parseInt(values.stumpings || "0"),
+    };
+    
+    console.log('Submitting performance data:', performanceData);
+    addPerformanceMutation.mutate(performanceData);
   }
 
   // Fetch player stats
@@ -143,7 +207,7 @@ export default function StatsPage() {
   });
   
   // Create enhanced matches with the fields we need for UI
-  const matches: MatchWithPerformances[] = dbMatches ? dbMatches.map(match => ({
+  const matches: MatchWithPerformances[] = dbMatches && user ? dbMatches.map(match => ({
     ...match,
     date: match.matchDate ? match.matchDate.toString() : "",
     matchTitle: match.matchName,
@@ -173,18 +237,42 @@ export default function StatsPage() {
     }
   })) : [];
 
-  // Add a new match performance
+  // Add a new match 
   const addMatchMutation = useMutation({
     mutationFn: async (data: any) => {
       return await apiRequest("POST", "/api/player-matches", data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      const matchId = response.id;
+      setNewMatchId(matchId);
+      setCurrentStep("performance");
+      
       toast({
         title: "Match added",
-        description: "Your match has been added successfully"
+        description: "Now add your performance details"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add match",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  // Add match performance
+  const addPerformanceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("POST", "/api/player-match-performances", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Performance added",
+        description: "Your match and performance stats have been saved"
       });
       
-      // Reset form
+      // Reset forms
       matchForm.reset({
         opponent: "",
         venue: "",
@@ -195,7 +283,24 @@ export default function StatsPage() {
         result: "Win",
       });
       
-      // Close dialog
+      performanceForm.reset({
+        runsScored: "0",
+        ballsFaced: "0", 
+        notOut: false,
+        fours: "0",
+        sixes: "0",
+        wicketsTaken: "0",
+        oversBowled: "0",
+        runsConceded: "0",
+        maidens: "0",
+        catches: "0",
+        runOuts: "0",
+        stumpings: "0",
+      });
+      
+      // Reset state and close dialog
+      setCurrentStep("match");
+      setNewMatchId(null);
       setIsAddMatchDialogOpen(false);
       
       // Invalidate queries to reload data
@@ -209,7 +314,7 @@ export default function StatsPage() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to add match",
+        description: "Failed to add performance stats",
         variant: "destructive"
       });
     }
@@ -623,163 +728,397 @@ export default function StatsPage() {
         </Tabs>
       </div>
       
-      {/* Add Match Dialog */}
-      <Dialog open={isAddMatchDialogOpen} onOpenChange={setIsAddMatchDialogOpen}>
-        <DialogContent>
+      {/* Add Match & Performance Dialog */}
+      <Dialog open={isAddMatchDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Reset everything when dialog closes
+          setCurrentStep("match");
+          setNewMatchId(null);
+        }
+        setIsAddMatchDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Add New Match</DialogTitle>
+            <DialogTitle>{currentStep === "match" ? "Add New Match" : "Add Your Performance"}</DialogTitle>
             <DialogDescription>
-              Add details about your cricket match to track your performance stats.
+              {currentStep === "match" 
+                ? "Add details about your cricket match to track your performance stats."
+                : "Now add your personal performance stats for this match."}
             </DialogDescription>
           </DialogHeader>
           
-          {/* Match Form */}
-          <Form {...matchForm}>
-            <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
-              <FormField
-                control={matchForm.control}
-                name="opponent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Opponent Team</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter opponent team name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="venue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Venue</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter match venue" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="matchDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Match Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="matchType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Match Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select match type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="T20">T20</SelectItem>
-                        <SelectItem value="ODI">ODI</SelectItem>
-                        <SelectItem value="Test">Test</SelectItem>
-                        <SelectItem value="One Day">One Day</SelectItem>
-                        <SelectItem value="Others">Others</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="teamScore"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Your Team Score</FormLabel>
-                    <FormControl>
-                      <Input placeholder="E.g., '150/6'" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="opponentScore"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Opponent Score</FormLabel>
-                    <FormControl>
-                      <Input placeholder="E.g., '142/8'" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="result"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Result</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select match result" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Win">Win</SelectItem>
-                        <SelectItem value="Loss">Loss</SelectItem>
-                        <SelectItem value="Draw">Draw</SelectItem>
-                        <SelectItem value="Tie">Tie</SelectItem>
-                        <SelectItem value="No Result">No Result</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsAddMatchDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-                  disabled={addMatchMutation.isPending}
-                >
-                  {addMatchMutation.isPending ? "Adding..." : "Add Match"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          {/* Match Form - Step 1 */}
+          {currentStep === "match" && (
+            <Form {...matchForm}>
+              <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={matchForm.control}
+                    name="opponent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Opponent Team</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter opponent team name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={matchForm.control}
+                    name="venue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Venue</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter match venue" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={matchForm.control}
+                    name="matchDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Match Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={matchForm.control}
+                    name="matchType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Match Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select match type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="T20">T20</SelectItem>
+                            <SelectItem value="ODI">ODI</SelectItem>
+                            <SelectItem value="Test">Test</SelectItem>
+                            <SelectItem value="One Day">One Day</SelectItem>
+                            <SelectItem value="Others">Others</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={matchForm.control}
+                    name="teamScore"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Your Team Score</FormLabel>
+                        <FormControl>
+                          <Input placeholder="E.g., '150/6'" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={matchForm.control}
+                    name="opponentScore"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Opponent Score</FormLabel>
+                        <FormControl>
+                          <Input placeholder="E.g., '142/8'" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={matchForm.control}
+                  name="result"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Result</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select match result" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Win">Win</SelectItem>
+                          <SelectItem value="Loss">Loss</SelectItem>
+                          <SelectItem value="Draw">Draw</SelectItem>
+                          <SelectItem value="Tie">Tie</SelectItem>
+                          <SelectItem value="No Result">No Result</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsAddMatchDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                    disabled={addMatchMutation.isPending}
+                  >
+                    {addMatchMutation.isPending ? "Adding..." : "Next: Add Performance"}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+          
+          {/* Performance Form - Step 2 */}
+          {currentStep === "performance" && (
+            <Form {...performanceForm}>
+              <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Batting Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="runsScored"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Runs Scored</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="ballsFaced"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Balls Faced</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="notOut"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-end space-x-2 space-y-0 rounded-md p-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm font-normal">Not Out</FormLabel>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <FormField
+                      control={performanceForm.control}
+                      name="fours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of 4s</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="sixes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of 6s</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Bowling Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="wicketsTaken"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Wickets Taken</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="oversBowled"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Overs Bowled</FormLabel>
+                          <FormControl>
+                            <Input placeholder="0.0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="runsConceded"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Runs Conceded</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="mt-2">
+                    <FormField
+                      control={performanceForm.control}
+                      name="maidens"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Maiden Overs</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Fielding Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="catches"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Catches Taken</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="runOuts"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Run Outs</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={performanceForm.control}
+                      name="stumpings"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stumpings</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setCurrentStep("match")}
+                    disabled={addPerformanceMutation.isPending}
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                    disabled={addPerformanceMutation.isPending}
+                  >
+                    {addPerformanceMutation.isPending ? "Saving..." : "Save Performance"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
