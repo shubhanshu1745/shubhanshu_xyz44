@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Socket } from "socket.io-client";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useSocket } from "@/hooks/use-socket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/chat-input";
@@ -33,18 +32,12 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   const { user } = useAuth();
   const { socket, isConnected } = useSocket();
   const { toast } = useToast();
-  const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
-  const [showAttachmentOptions, setShowAttachmentOptions] = useState(false);
-  const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
   
-  // Use React Query to fetch initial messages, but don't poll
+  // Use React Query to fetch initial messages
   const { data, isLoading, error } = useQuery<ConversationData>({
     queryKey: [`/api/conversations/${conversationId}`],
     enabled: !!conversationId && !!user
@@ -130,125 +123,6 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
       socket.off("messages_read", handleReadReceipts);
     };
   }, [conversationId, user, queryClient, socket, isConnected]);
-  
-  // Handle typing indicator on input change
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNewMessage(e.target.value);
-    
-    if (!isTyping && e.target.value.trim() !== "" && socket && isConnected) {
-      setIsTyping(true);
-      socket.emit("typing", { conversationId, userId: user?.id });
-      
-      // Reset typing status after 2 seconds
-      setTimeout(() => {
-        setIsTyping(false);
-      }, 2000);
-    }
-  };
-  
-  // Handle file selection
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    setUploadingMedia(true);
-    
-    try {
-      // Create a FormData object to send the file
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('conversationId', conversationId.toString());
-      
-      // Upload the file
-      const response = await fetch('/api/messages/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to upload file');
-      }
-      
-      const data = await response.json();
-      
-      // Send the message with media via socket
-      if (socket && isConnected && user) {
-        socket.emit("send_message", {
-          conversationId,
-          senderId: user.id,
-          text: file.name,
-          messageType: file.type.startsWith('image/') ? 'image' : 'document',
-          mediaUrl: data.url
-        });
-      }
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload your file. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setUploadingMedia(false);
-      setShowAttachmentOptions(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-  
-  // Handle image preview before sending
-  const handleImagePreview = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
-    if (!file.type.startsWith('image/')) {
-      handleFileSelect(e);
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPreviewImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-  
-  // Cancel image preview
-  const cancelPreview = () => {
-    setPreviewImage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-  
-  // Send media message after preview
-  const sendMediaMessage = async () => {
-    if (!fileInputRef.current?.files?.length) return;
-    await handleFileSelect({ target: { files: fileInputRef.current.files } } as React.ChangeEvent<HTMLInputElement>);
-    setPreviewImage(null);
-  };
-  
-  // Send message using socket instead of API call
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (newMessage.trim() && socket && isConnected && user) {
-      // Send message through socket
-      socket.emit("send_message", {
-        conversationId,
-        senderId: user.id,
-        text: newMessage.trim(),
-        messageType: 'text'
-      });
-      
-      // Clear input right away for better UX
-      setNewMessage("");
-    }
-  };
   
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -449,127 +323,22 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </>
         )}
-        <div ref={messagesEndRef} />
       </div>
-      
-      {/* Image preview */}
-      {previewImage && (
-        <div className="p-4 border-t">
-          <div className="relative p-2 border rounded-lg">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 rounded-full bg-background/80"
-              onClick={cancelPreview}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            <img 
-              src={previewImage} 
-              alt="Preview" 
-              className="w-40 h-40 object-contain mx-auto rounded-md"
-            />
-            <div className="flex justify-end mt-2">
-              <Button 
-                onClick={sendMediaMessage}
-                disabled={uploadingMedia}
-              >
-                {uploadingMedia ? "Sending..." : "Send Image"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* File input (hidden) */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleImagePreview}
-        className="hidden"
-        accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      />
       
       {/* Message input */}
-      <div className="p-4 border-t">
-        {showAttachmentOptions && (
-          <div className="flex justify-start gap-2 mb-3 p-2 bg-muted rounded-lg">
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => {
-                fileInputRef.current?.click();
-                setShowAttachmentOptions(false);
-              }}
-            >
-              <Image className="h-5 w-5 text-blue-500" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => {
-                fileInputRef.current?.click();
-                setShowAttachmentOptions(false);
-              }}
-            >
-              <Paperclip className="h-5 w-5 text-green-500" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => {
-                toast({
-                  title: "Coming Soon",
-                  description: "Location sharing will be available soon!"
-                });
-                setShowAttachmentOptions(false);
-              }}
-            >
-              <MapPin className="h-5 w-5 text-red-500" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={() => {
-                toast({
-                  title: "Coming Soon",
-                  description: "Voice messages will be available soon!"
-                });
-                setShowAttachmentOptions(false);
-              }}
-            >
-              <Mic className="h-5 w-5 text-amber-500" />
-            </Button>
-          </div>
-        )}
-        
-        <form onSubmit={handleSendMessage} className="flex gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowAttachmentOptions(!showAttachmentOptions)}
-            className="rounded-full"
-          >
-            <Paperclip className="h-5 w-5" />
-          </Button>
-          <Input
-            value={newMessage}
-            onChange={handleInputChange}
-            placeholder="Type a message..."
-            className="flex-1"
-          />
-          <Button 
-            type="submit" 
-            size="icon" 
-            disabled={!newMessage.trim()}
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </form>
-      </div>
+      <ChatInput 
+        conversationId={conversationId}
+        userId={user?.id || 0}
+        onSendMessage={(message) => {
+          if (socket && isConnected) {
+            socket.emit("send_message", message);
+          }
+        }}
+        disabled={!socket || !isConnected}
+      />
     </div>
   );
 }
