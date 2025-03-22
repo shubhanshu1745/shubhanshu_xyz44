@@ -49,26 +49,26 @@ export function Sidebar() {
     <div className="p-4">
       {/* User Profile Summary */}
       <div className="flex items-center mb-6">
-        <Avatar className="w-14 h-14 mr-4">
+        <Avatar className="w-14 h-14 mr-4 border-2 border-[#2E8B57]">
           <AvatarImage 
             src={user.profileImage || "https://github.com/shadcn.png"} 
             alt={user.username} 
           />
-          <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+          <AvatarFallback className="bg-[#2E8B57] text-white">{user.username.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div>
           <Link href={`/profile/${user.username}`}>
-            <p className="font-semibold cursor-pointer">{user.username}</p>
+            <p className="font-semibold cursor-pointer cricket-primary">{user.username}</p>
           </Link>
           <p className="text-neutral-500 text-sm">{user.fullName || user.username}</p>
         </div>
         <div className="ml-auto flex gap-2">
           <Link href="/chat">
-            <Button variant="ghost" size="icon" className="text-muted-foreground" title="Messages">
+            <Button variant="ghost" size="icon" className="text-[#2E8B57] hover:text-[#1F3B4D]" title="Messages">
               <MessageCircle className="h-5 w-5" />
             </Button>
           </Link>
-          <Button variant="link" size="sm">
+          <Button variant="outline" size="sm" className="text-[#2E8B57] border-[#2E8B57] hover:bg-[#2E8B57] hover:text-white">
             Switch
           </Button>
         </div>
@@ -78,7 +78,7 @@ export function Sidebar() {
       <div className="mb-4">
         <div className="flex justify-between items-center mb-3">
           <span className="text-neutral-500 font-semibold text-sm">Suggestions For You</span>
-          <Button variant="link" size="sm" className="text-xs p-0">
+          <Button variant="link" size="sm" className="text-xs p-0 text-[#2E8B57] hover:text-[#1F3B4D]">
             See All
           </Button>
         </div>
@@ -102,24 +102,24 @@ export function Sidebar() {
             {suggestedUsers?.map((suggestedUser) => (
               <div className="flex items-center" key={suggestedUser.id}>
                 <Link href={`/profile/${suggestedUser.username}`}>
-                  <Avatar className="w-9 h-9 mr-3 cursor-pointer">
+                  <Avatar className="w-9 h-9 mr-3 cursor-pointer border border-[#2E8B57]">
                     <AvatarImage 
                       src={suggestedUser.profileImage || "https://github.com/shadcn.png"} 
                       alt={suggestedUser.username} 
                     />
-                    <AvatarFallback>{suggestedUser.username.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback className="bg-[#2E8B57] text-white">{suggestedUser.username.charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
                 </Link>
                 <div className="flex-grow">
                   <Link href={`/profile/${suggestedUser.username}`}>
-                    <p className="text-sm font-semibold cursor-pointer">{suggestedUser.username}</p>
+                    <p className="text-sm font-semibold cursor-pointer cricket-primary">{suggestedUser.username}</p>
                   </Link>
                   <p className="text-xs text-neutral-500">{suggestedUser.fullName || suggestedUser.username}</p>
                 </div>
                 <Button 
                   variant="link" 
                   size="sm" 
-                  className="text-primary text-xs font-semibold p-0"
+                  className="text-[#2E8B57] text-xs font-semibold p-0 hover:text-[#1F3B4D]"
                   onClick={() => handleFollow(suggestedUser.username)}
                 >
                   Follow
@@ -131,59 +131,59 @@ export function Sidebar() {
       </div>
       
       {/* Trending Hashtags */}
-      <div className="bg-white rounded-lg border border-neutral-200 p-4 mb-4">
-        <h3 className="font-semibold text-sm mb-3">Trending Cricket Hashtags</h3>
+      <div className="cricket-surface-bg rounded-lg border border-[#1F3B4D]/10 p-4 mb-4 shadow-sm">
+        <h3 className="font-semibold text-sm mb-3 cricket-primary">Trending Cricket Hashtags</h3>
         <div className="space-y-2">
-          <p className="text-sm hover:bg-neutral-100 p-2 rounded cursor-pointer">
-            <span className="text-primary">#IPL2023</span> 
+          <p className="text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors">
+            <span className="text-[#2E8B57] font-medium">#IPL2023</span> 
             <span className="text-neutral-500 text-xs ml-1">234K posts</span>
           </p>
-          <p className="text-sm hover:bg-neutral-100 p-2 rounded cursor-pointer">
-            <span className="text-primary">#TeamIndia</span> 
+          <p className="text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors">
+            <span className="text-[#2E8B57] font-medium">#TeamIndia</span> 
             <span className="text-neutral-500 text-xs ml-1">189K posts</span>
           </p>
-          <p className="text-sm hover:bg-neutral-100 p-2 rounded cursor-pointer">
-            <span className="text-primary">#CricketWorldCup</span> 
+          <p className="text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors">
+            <span className="text-[#2E8B57] font-medium">#CricketWorldCup</span> 
             <span className="text-neutral-500 text-xs ml-1">156K posts</span>
           </p>
-          <p className="text-sm hover:bg-neutral-100 p-2 rounded cursor-pointer">
-            <span className="text-primary">#TestCricket</span> 
+          <p className="text-sm hover:bg-white p-2 rounded cursor-pointer transition-colors">
+            <span className="text-[#2E8B57] font-medium">#TestCricket</span> 
             <span className="text-neutral-500 text-xs ml-1">98K posts</span>
           </p>
         </div>
       </div>
       
       {/* Upcoming Matches */}
-      <div className="bg-white rounded-lg border border-neutral-200 p-4">
-        <h3 className="font-semibold text-sm mb-3">Upcoming Matches</h3>
+      <div className="cricket-surface-bg rounded-lg border border-[#1F3B4D]/10 p-4 shadow-sm">
+        <h3 className="font-semibold text-sm mb-3 cricket-primary">Upcoming Matches</h3>
         <div className="space-y-3">
-          <div className="border-b border-neutral-100 pb-2">
-            <p className="text-xs text-neutral-500">T20 WORLD CUP • TOMORROW</p>
+          <div className="border-b border-[#1F3B4D]/10 pb-2">
+            <p className="text-xs text-[#2E8B57] font-medium">T20 WORLD CUP • TOMORROW</p>
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center">
-                <span className="font-semibold mr-1">IND</span>
-                <div className="w-5 h-4 bg-[#1A73E8] rounded-sm"></div>
+                <span className="font-semibold mr-1 cricket-primary">IND</span>
+                <div className="w-5 h-4 bg-[#1F3B4D] rounded-sm"></div>
               </div>
-              <span className="text-xs font-semibold">VS</span>
+              <span className="text-xs font-semibold text-[#FFC107]">VS</span>
               <div className="flex items-center">
-                <div className="w-5 h-4 bg-[#FFB74D] rounded-sm"></div>
-                <span className="font-semibold ml-1">AUS</span>
+                <div className="w-5 h-4 bg-[#FFC107] rounded-sm"></div>
+                <span className="font-semibold ml-1 cricket-primary">AUS</span>
               </div>
             </div>
             <p className="text-xs text-neutral-500 mt-1">Sydney Cricket Ground • 7:00 PM</p>
           </div>
           
           <div>
-            <p className="text-xs text-neutral-500">TEST SERIES • 3 DAYS</p>
+            <p className="text-xs text-[#2E8B57] font-medium">TEST SERIES • 3 DAYS</p>
             <div className="flex items-center justify-between mt-1">
               <div className="flex items-center">
-                <span className="font-semibold mr-1">ENG</span>
-                <div className="w-5 h-4 bg-[#E74C3C] rounded-sm"></div>
+                <span className="font-semibold mr-1 cricket-primary">ENG</span>
+                <div className="w-5 h-4 bg-[#1F3B4D] rounded-sm"></div>
               </div>
-              <span className="text-xs font-semibold">VS</span>
+              <span className="text-xs font-semibold text-[#FFC107]">VS</span>
               <div className="flex items-center">
-                <div className="w-5 h-4 bg-[#2ECC71] rounded-sm"></div>
-                <span className="font-semibold ml-1">NZ</span>
+                <div className="w-5 h-4 bg-[#2E8B57] rounded-sm"></div>
+                <span className="font-semibold ml-1 cricket-primary">NZ</span>
               </div>
             </div>
             <p className="text-xs text-neutral-500 mt-1">Lord's Cricket Ground • 11:00 AM</p>
@@ -193,14 +193,14 @@ export function Sidebar() {
       
       {/* Footer Links */}
       <div className="mt-8">
-        <div className="flex flex-wrap text-xs text-neutral-400 mb-3">
-          <Button variant="link" className="text-xs text-neutral-400 p-0 h-auto mr-2 mb-1">About</Button>
-          <Button variant="link" className="text-xs text-neutral-400 p-0 h-auto mr-2 mb-1">Help</Button>
-          <Button variant="link" className="text-xs text-neutral-400 p-0 h-auto mr-2 mb-1">API</Button>
-          <Button variant="link" className="text-xs text-neutral-400 p-0 h-auto mr-2 mb-1">Privacy</Button>
-          <Button variant="link" className="text-xs text-neutral-400 p-0 h-auto mr-2 mb-1">Terms</Button>
+        <div className="flex flex-wrap text-xs mb-3">
+          <Button variant="link" className="text-xs text-[#1F3B4D]/60 hover:text-[#2E8B57] p-0 h-auto mr-2 mb-1">About</Button>
+          <Button variant="link" className="text-xs text-[#1F3B4D]/60 hover:text-[#2E8B57] p-0 h-auto mr-2 mb-1">Help</Button>
+          <Button variant="link" className="text-xs text-[#1F3B4D]/60 hover:text-[#2E8B57] p-0 h-auto mr-2 mb-1">API</Button>
+          <Button variant="link" className="text-xs text-[#1F3B4D]/60 hover:text-[#2E8B57] p-0 h-auto mr-2 mb-1">Privacy</Button>
+          <Button variant="link" className="text-xs text-[#1F3B4D]/60 hover:text-[#2E8B57] p-0 h-auto mr-2 mb-1">Terms</Button>
         </div>
-        <p className="text-xs text-neutral-400">© 2023 CRICSOCIAL</p>
+        <p className="text-xs text-[#1F3B4D]/60">© 2023 CRICSOCIAL</p>
       </div>
     </div>
   );

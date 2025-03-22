@@ -17,13 +17,13 @@ export function MobileNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 py-2 z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 cricket-nav-bg shadow-lg py-3 z-50">
         <div className="flex justify-around items-center">
           <Link href="/">
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location === "/" ? "text-primary" : "text-neutral-600"}
+              className={location === "/" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
             >
               <Home className="h-6 w-6" />
               <span className="sr-only">Home</span>
@@ -34,7 +34,7 @@ export function MobileNav() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location === "/matches" ? "text-primary" : "text-neutral-600"}
+              className={location === "/matches" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
             >
               <Trophy className="h-6 w-6" />
               <span className="sr-only">Matches</span>
@@ -45,7 +45,7 @@ export function MobileNav() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location === "/reels" ? "text-primary" : "text-neutral-600"}
+              className={location === "/reels" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
             >
               <Film className="h-6 w-6" />
               <span className="sr-only">Reels</span>
@@ -55,7 +55,7 @@ export function MobileNav() {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-neutral-600"
+            className="text-white hover:text-[#FFC107]"
             onClick={handleCreatePost}
           >
             <PlusSquare className="h-6 w-6" />
@@ -66,7 +66,7 @@ export function MobileNav() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location === "/teams" ? "text-primary" : "text-neutral-600"}
+              className={location === "/teams" ? "text-[#FFC107]" : "text-white hover:text-[#FFC107]"}
             >
               <Users className="h-6 w-6" />
               <span className="sr-only">Teams</span>
@@ -77,14 +77,14 @@ export function MobileNav() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={location.startsWith(`/profile/${user?.username}`) ? "text-primary rounded-full" : "text-neutral-600 rounded-full"}
+              className={location.startsWith(`/profile/${user?.username}`) ? "text-[#FFC107] rounded-full" : "text-white hover:text-[#FFC107] rounded-full"}
             >
-              <Avatar className="h-7 w-7">
+              <Avatar className="h-7 w-7 border-2 border-[#2E8B57]">
                 <AvatarImage 
                   src={user?.profileImage || "https://github.com/shadcn.png"} 
                   alt={user?.username || "User profile"} 
                 />
-                <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                <AvatarFallback className="bg-[#2E8B57] text-white">{user?.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
               <span className="sr-only">Profile</span>
             </Button>
