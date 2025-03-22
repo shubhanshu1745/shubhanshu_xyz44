@@ -34,6 +34,8 @@ type UserProfileData = User & {
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
+  name?: string;
+  website?: string;
 };
 
 export default function ProfilePage() {
@@ -255,7 +257,7 @@ export default function ProfilePage() {
                   </div>
                   
                   <div>
-                    <p className="font-semibold">{profile.name}</p>
+                    <p className="font-semibold">{profile.name || profile.fullName}</p>
                     <p className="whitespace-pre-line">{profile.bio || "No bio yet."}</p>
                     
                     <div className="mt-2 space-y-1">

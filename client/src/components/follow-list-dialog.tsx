@@ -13,6 +13,11 @@ import { useState } from "react";
 
 type ListType = "followers" | "following";
 
+// Extended user type with additional properties for the follow list
+type FollowListUser = User & {
+  isFollowing?: boolean;
+};
+
 interface FollowListDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,7 +40,7 @@ export function FollowListDialog({
 
   const endpointSuffix = listType === "followers" ? "followers" : "following";
   
-  const { data: users, isLoading, error } = useQuery<User[]>({
+  const { data: users, isLoading, error } = useQuery<FollowListUser[]>({
     queryKey: [`/api/users/${username}/${endpointSuffix}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: open, // Only fetch when dialog is open
@@ -94,7 +99,7 @@ export function FollowListDialog({
   // Filter users based on search term
   const filteredUsers = users?.filter(user => 
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -169,7 +174,7 @@ export function FollowListDialog({
                     </Avatar>
                     <div>
                       <p className="font-semibold text-sm">{user.username}</p>
-                      {user.name && <p className="text-xs text-neutral-500">{user.name}</p>}
+                      {user.fullName && <p className="text-xs text-neutral-500">{user.fullName}</p>}
                     </div>
                   </div>
                 </Link>
