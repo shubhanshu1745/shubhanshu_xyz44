@@ -4,23 +4,23 @@ import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { PlayerStats as DbPlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
 
 // Extended interface for PlayerStats to match our UI needs
-interface PlayerStats extends DbPlayerStats {
-  matches?: number;
-  innings?: number;
-  notOuts?: number;
-  wickets?: number;
-  ballsFaced?: number;
-  oversBowled?: number;
-  runsConceded?: number;
-  bestBowlingFigures?: string;
-  fifties?: number;
-  hundreds?: number;
-  fours?: number;
-  sixes?: number;
-  catches?: number;
-  runOuts?: number;
-  playerOfMatchAwards?: number;
-  highestScoreNotOut?: boolean;
+interface PlayerStats extends Omit<DbPlayerStats, 'innings' | 'notOuts' | 'oversBowled'> {
+  matches: number;
+  innings: number;
+  notOuts: number;
+  wickets: number;
+  ballsFaced: number;
+  oversBowled: string; // Changed to string to match the DB structure
+  runsConceded: number;
+  bestBowlingFigures: string;
+  fifties: number;
+  hundreds: number;
+  fours: number;
+  sixes: number;
+  catches: number;
+  runOuts: number;
+  playerOfMatchAwards: number;
+  highestScoreNotOut: boolean;
 }
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -331,13 +331,11 @@ export default function StatsPage() {
         Promise.all([
           queryClient.refetchQueries({ 
             queryKey: ['/api/users', user?.username, 'player-stats'],
-            exact: true,
-            throwOnError: false
+            exact: true
           }), 
           queryClient.refetchQueries({ 
             queryKey: ['/api/users', user?.username, 'matches'],
-            exact: true,
-            throwOnError: false
+            exact: true
           })
         ]).then(() => {
           console.log("Data refetch completed!");
@@ -378,16 +376,16 @@ export default function StatsPage() {
       {/* Cricket field background - enhanced with realistic cricket field elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         {/* Main field gradient */}
-        <div className="w-full h-full bg-gradient-to-b from-[#2E8B57]/5 to-[#2E8B57]/20 opacity-70 rounded-lg"></div>
+        <div className="w-full h-full bg-gradient-to-b from-[#1F3A8A]/5 to-[#1F3A8A]/20 opacity-70 rounded-lg"></div>
         
         {/* Outer boundary */}
-        <div className="absolute w-[90%] h-[90%] border-[12px] border-[#2E8B57]/30 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute w-[90%] h-[90%] border-[12px] border-[#1F3A8A]/30 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
         
         {/* 30-yard circle */}
-        <div className="absolute w-[70%] h-[70%] border-[8px] border-[#2E8B57]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute w-[70%] h-[70%] border-[8px] border-[#1F3A8A]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
         
         {/* Pitch */}
-        <div className="absolute w-[20%] h-[60%] bg-[#C19A6B]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-[4px] border-[#2E8B57]/30"></div>
+        <div className="absolute w-[20%] h-[60%] bg-[#C19A6B]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-[4px] border-[#1F3A8A]/30"></div>
         
         {/* Pitch creases */}
         <div className="absolute w-[20%] h-[4px] bg-white/50 top-[35%] left-1/2 transform -translate-x-1/2"></div>
@@ -401,7 +399,7 @@ export default function StatsPage() {
         <div className="absolute w-[6%] h-[6px] bg-[#D2B48C] top-[65%] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
         
         {/* Shadow effect for depth */}
-        <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#1F3B4D]/10 opacity-40"></div>
+        <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#1F3A8A]/10 opacity-40"></div>
       </div>
       
       {/* Content */}

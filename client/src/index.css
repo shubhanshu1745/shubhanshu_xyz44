@@ -14,7 +14,7 @@
 
 /* Cricket-themed custom styling */
 .cricket-gradient {
-  background: linear-gradient(135deg, #2E8B57 0%, #4CAF50 100%);
+  background: linear-gradient(135deg, #1F3A8A 0%, #4A66C7 100%);
 }
 
 .cricket-pitch-bg {
@@ -40,8 +40,8 @@
 
 .match-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(46, 139, 87, 0.15);
-  border-color: rgba(46, 139, 87, 0.2);
+  box-shadow: 0 10px 25px rgba(31, 58, 138, 0.15);
+  border-color: rgba(31, 58, 138, 0.2);
 }
 
 .team-badge {
@@ -51,9 +51,9 @@
 }
 
 .team-badge:hover {
-  border-color: #2E8B57;
+  border-color: #1F3A8A;
   transform: scale(1.08);
-  box-shadow: 0 5px 15px rgba(46, 139, 87, 0.15);
+  box-shadow: 0 5px 15px rgba(31, 58, 138, 0.15);
 }
 
 /* Story Circle Animation */
@@ -91,85 +91,85 @@
 
 /* New Cricket Theme classes */
 .cricket-nav-bg {
-  background-color: #2E8B57;
+  background-color: #1F3A8A;
 }
 
 .cricket-primary {
-  color: #2E8B57;
+  color: #1F3A8A;
 }
 
 .cricket-primary-bg {
-  background-color: #2E8B57;
+  background-color: #1F3A8A;
 }
 
 .cricket-action {
-  color: #FF5722;
+  color: #E53935;
 }
 
 .cricket-action-bg {
-  background-color: #FF5722;
+  background-color: #E53935;
 }
 
 .cricket-accent {
-  color: #FFC107;
+  color: #F9A825;
 }
 
 .cricket-accent-bg {
-  background-color: #FFC107;
+  background-color: #F9A825;
 }
 
 .cricket-text {
-  color: #333333;
+  color: #1E293B;
 }
 
 .cricket-surface-bg {
-  background-color: #F5F5F5;
+  background-color: #F8FAFC;
 }
 
 /* Button hover effects */
 .btn-cricket-primary {
-  background-color: #2E8B57;
+  background-color: #1F3A8A;
   color: white;
   transition: all 0.3s ease;
 }
 
 .btn-cricket-primary:hover {
-  background-color: #246B45;
+  background-color: #182D6B;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(46, 139, 87, 0.3);
+  box-shadow: 0 5px 15px rgba(31, 58, 138, 0.3);
 }
 
 .btn-cricket-secondary {
-  background-color: #FF5722;
+  background-color: #E53935;
   color: white;
   transition: all 0.3s ease;
 }
 
 .btn-cricket-secondary:hover {
-  background-color: #E64A19;
+  background-color: #C62828;
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 87, 34, 0.3);
+  box-shadow: 0 5px 15px rgba(229, 57, 53, 0.3);
 }
 
 .cricket-btn {
-  background-color: #2E8B57;
+  background-color: #1F3A8A;
   color: white;
   transition: all 0.2s;
 }
 
 .cricket-btn:hover {
-  background-color: #267349;
+  background-color: #182D6B;
   transform: translateY(-1px);
 }
 
 .cricket-accent-btn {
-  background-color: #FFC107;
-  color: #1F3B4D;
+  background-color: #F9A825;
+  color: #1E293B;
   transition: all 0.2s;
 }
 
 .cricket-accent-btn:hover {
-  background-color: #E5AD06;
+  background-color: #F57F17;
   transform: translateY(-1px);
 }
 
@@ -200,11 +200,11 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #2E8B57;
+  background: #1F3A8A;
   opacity: 0.7;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #267349;
+  background: #182D6B;
 }
