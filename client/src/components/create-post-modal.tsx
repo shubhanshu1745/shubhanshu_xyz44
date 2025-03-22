@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { Upload, MapPin, Tag, ChevronRight, X, Cricket, User, Users, Trophy } from "lucide-react";
+import { Upload, MapPin, Tag, ChevronRight, X, User, Users, Trophy, Info } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,7 +24,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [content, setContent] = useState("");
   const [location, setLocation] = useState("");
-  const [category, setCategory] = useState<string>("");
+  const [category, setCategory] = useState("");
   const [matchId, setMatchId] = useState("");
   const [teamId, setTeamId] = useState("");
   const [playerId, setPlayerId] = useState("");
@@ -59,6 +59,11 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
     setImageUrl("");
     setContent("");
     setLocation("");
+    setCategory("");
+    setMatchId("");
+    setTeamId("");
+    setPlayerId("");
+    setShowCricketDetails(false);
     setStep("upload");
   };
 
@@ -68,6 +73,10 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
       content,
       imageUrl: imageUrl || undefined,
       location: location || undefined,
+      category: category || undefined as any,
+      matchId: matchId || undefined,
+      teamId: teamId || undefined,
+      playerId: playerId || undefined,
     });
   };
 
@@ -190,13 +199,94 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                     className="border-0 text-sm text-right focus-visible:ring-0 w-auto placeholder:text-neutral-400"
                   />
                 </div>
-                <div className="p-3 flex items-center justify-between">
+                <div 
+                  className="p-3 flex items-center justify-between cursor-pointer"
+                  onClick={() => setShowCricketDetails(!showCricketDetails)}
+                >
                   <div className="flex items-center">
                     <Tag className="h-5 w-5 text-neutral-500 mr-2" />
                     <span className="text-sm">Add cricket details</span>
                   </div>
-                  <ChevronRight className="h-5 w-5 text-neutral-400" />
+                  <ChevronRight className={`h-5 w-5 text-neutral-400 transition-transform ${showCricketDetails ? 'rotate-90' : ''}`} />
                 </div>
+                
+                {showCricketDetails && (
+                  <div className="p-4 border-t border-neutral-200">
+                    {/* Post Category */}
+                    <div className="mb-4">
+                      <Label htmlFor="category" className="text-sm font-medium mb-2 block">
+                        Post Category
+                      </Label>
+                      <Select 
+                        value={category} 
+                        onValueChange={(value: string) => setCategory(value)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="match_discussion">Match Discussion</SelectItem>
+                          <SelectItem value="player_highlight">Player Highlight</SelectItem>
+                          <SelectItem value="team_news">Team News</SelectItem>
+                          <SelectItem value="opinion">Opinion</SelectItem>
+                          <SelectItem value="meme">Meme</SelectItem>
+                          <SelectItem value="highlights">Highlights</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    {/* Match ID */}
+                    <div className="mb-4">
+                      <div className="flex items-center mb-2">
+                        <Trophy className="h-4 w-4 text-neutral-500 mr-2" />
+                        <Label htmlFor="matchId" className="text-sm font-medium">
+                          Match Details
+                        </Label>
+                      </div>
+                      <Input
+                        id="matchId"
+                        placeholder="Enter match details (e.g., IND vs AUS, T20 World Cup 2023)"
+                        value={matchId}
+                        onChange={(e) => setMatchId(e.target.value)}
+                        className="w-full text-sm"
+                      />
+                    </div>
+                    
+                    {/* Team ID */}
+                    <div className="mb-4">
+                      <div className="flex items-center mb-2">
+                        <Users className="h-4 w-4 text-neutral-500 mr-2" />
+                        <Label htmlFor="teamId" className="text-sm font-medium">
+                          Team Details
+                        </Label>
+                      </div>
+                      <Input
+                        id="teamId"
+                        placeholder="Enter team name (e.g., India, Royal Challengers Bangalore)"
+                        value={teamId}
+                        onChange={(e) => setTeamId(e.target.value)}
+                        className="w-full text-sm"
+                      />
+                    </div>
+                    
+                    {/* Player ID */}
+                    <div className="mb-1">
+                      <div className="flex items-center mb-2">
+                        <User className="h-4 w-4 text-neutral-500 mr-2" />
+                        <Label htmlFor="playerId" className="text-sm font-medium">
+                          Player Details
+                        </Label>
+                      </div>
+                      <Input
+                        id="playerId"
+                        placeholder="Enter player name (e.g., Virat Kohli, Jasprit Bumrah)"
+                        value={playerId}
+                        onChange={(e) => setPlayerId(e.target.value)}
+                        className="w-full text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
