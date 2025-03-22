@@ -3,15 +3,30 @@ import cryptoRandomString from 'crypto-random-string';
 import { storage } from '../storage';
 import { InsertToken } from '@shared/schema';
 
+// Check if email credentials are available
+const hasEmailCredentials = 
+  process.env.EMAIL_USER && 
+  process.env.EMAIL_PASS && 
+  process.env.EMAIL_USER.length > 0 && 
+  process.env.EMAIL_PASS.length > 0;
+
 // Configure email transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
-  port: parseInt(process.env.EMAIL_PORT || '2525'),
-  auth: {
-    user: process.env.EMAIL_USER || '',
-    pass: process.env.EMAIL_PASS || '',
-  },
-});
+let transporter: nodemailer.Transporter;
+
+if (hasEmailCredentials) {
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.mailtrap.io',
+    port: parseInt(process.env.EMAIL_PORT || '2525'),
+    auth: {
+      user: process.env.EMAIL_USER || '',
+      pass: process.env.EMAIL_PASS || '',
+    },
+  });
+} else {
+  // For development, use a test account or log to console
+  console.log('No email credentials found. Using ethereal email for testing.');
+  // We'll create test account when needed in the send methods
+}
 
 export const EmailService = {
   // Generate a unique token for verification or password reset
@@ -39,7 +54,7 @@ export const EmailService = {
   sendVerificationEmail: async (email: string, userId: number): Promise<boolean> => {
     try {
       const token = await EmailService.generateToken(userId, 'email_verification');
-      const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/verify-email?token=${token}`;
+      const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/verify-email?token=${token}`;
       
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'cricket@example.com',
@@ -54,6 +69,19 @@ export const EmailService = {
         `,
       };
       
+      if (!hasEmailCredentials) {
+        // In development or when no email credentials are available,
+        // log the verification info to console
+        console.log('===============================================');
+        console.log('VERIFICATION EMAIL (Development Mode)');
+        console.log('===============================================');
+        console.log(`To: ${email}`);
+        console.log(`Verification URL: ${verificationUrl}`);
+        console.log(`Token: ${token}`);
+        console.log('===============================================');
+        return true;
+      }
+      
       await transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
@@ -66,7 +94,7 @@ export const EmailService = {
   sendPasswordResetEmail: async (email: string, userId: number): Promise<boolean> => {
     try {
       const token = await EmailService.generateToken(userId, 'password_reset');
-      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/reset-password?token=${token}`;
+      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/?reset=true&token=${token}`;
       
       const mailOptions = {
         from: process.env.EMAIL_FROM || 'cricket@example.com',
@@ -80,6 +108,19 @@ export const EmailService = {
           <p>If you did not request a password reset, please ignore this email.</p>
         `,
       };
+      
+      if (!hasEmailCredentials) {
+        // In development or when no email credentials are available,
+        // log the password reset info to console
+        console.log('===============================================');
+        console.log('PASSWORD RESET EMAIL (Development Mode)');
+        console.log('===============================================');
+        console.log(`To: ${email}`);
+        console.log(`Reset URL: ${resetUrl}`);
+        console.log(`Token: ${token}`);
+        console.log('===============================================');
+        return true;
+      }
       
       await transporter.sendMail(mailOptions);
       return true;
