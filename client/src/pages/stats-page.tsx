@@ -48,15 +48,15 @@ const matchFormSchema = z.object({
 
 // Define a schema for the performance form
 const performanceFormSchema = z.object({
-  runs: z.string().transform((val) => parseInt(val) || 0),
-  balls: z.string().transform((val) => parseInt(val) || 0),
-  fours: z.string().transform((val) => parseInt(val) || 0),
-  sixes: z.string().transform((val) => parseInt(val) || 0),
-  wickets: z.string().transform((val) => parseInt(val) || 0),
-  oversBowled: z.string().transform((val) => parseFloat(val) || 0),
-  runsConceded: z.string().transform((val) => parseInt(val) || 0),
-  catches: z.string().transform((val) => parseInt(val) || 0),
-  runOuts: z.string().transform((val) => parseInt(val) || 0),
+  runs: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  balls: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  fours: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  sixes: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  wickets: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  oversBowled: z.union([z.string().transform((val) => parseFloat(val) || 0), z.number()]),
+  runsConceded: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  catches: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  runOuts: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
 });
 
 type MatchFormValues = z.infer<typeof matchFormSchema>;
@@ -82,10 +82,7 @@ export default function StatsPage() {
   const { data: playerData, isLoading: isPlayerLoading, error: playerError, refetch: refetchStats } = useQuery<PlayerWithStats>({
     queryKey: [`/api/users/${user?.username}/player-stats`],
     enabled: !!user?.username,
-    onError: () => {
-      // If the stats don't exist yet, we'll handle it gracefully
-      console.log("Player stats not found. You'll be able to create them by adding match performances.");
-    }
+    // Handle errors gracefully without onError/onSettled
   });
 
   // Get player matches
@@ -115,7 +112,7 @@ export default function StatsPage() {
       fours: 0,
       sixes: 0,
       wickets: 0,
-      oversBowled: "0",
+      oversBowled: 0, // This will be converted to string when sent to API
       runsConceded: 0,
       catches: 0,
       runOuts: 0,
