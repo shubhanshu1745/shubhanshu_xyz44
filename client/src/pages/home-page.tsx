@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import { Post, User } from "@shared/schema";
@@ -7,9 +8,21 @@ import { Sidebar } from "@/components/sidebar";
 import { PostCard } from "@/components/post-card";
 import { StoryCircle } from "@/components/story-circle";
 import { MatchHighlights } from "@/components/match-highlights";
-import { Loader2 } from "lucide-react";
+import { CommentsDialog } from "@/components/comments-dialog";
+import { Button } from "@/components/ui/button";
+import { PlusCircle, Loader2, AlertCircle } from "lucide-react";
+import { CreatePostModal } from "@/components/create-post-modal";
 
 export default function HomePage() {
+  const [selectedPost, setSelectedPost] = useState<Post & { 
+    user: User; 
+    likeCount: number; 
+    commentCount: number; 
+    hasLiked: boolean;
+  } | null>(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [createPostOpen, setCreatePostOpen] = useState(false);
+
   const { data: posts, isLoading, error } = useQuery<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>({
     queryKey: ["/api/posts"],
     queryFn: getQueryFn({ on401: "throw" }),
@@ -20,6 +33,11 @@ export default function HomePage() {
     new Map(posts.map(post => [post.user.id, post.user]))
       .values()
   ).slice(0, 6) : [];
+
+  const handleCommentClick = (post: Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean }) => {
+    setSelectedPost(post);
+    setCommentsOpen(true);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
@@ -61,6 +79,17 @@ export default function HomePage() {
               </div>
             </div>
             
+            {/* Create Post Button */}
+            <div className="px-4 py-3">
+              <Button 
+                className="w-full bg-[#FF5722] hover:bg-[#E64A19] text-white"
+                onClick={() => setCreatePostOpen(true)}
+              >
+                <PlusCircle className="h-5 w-5 mr-2" />
+                Create Post
+              </Button>
+            </div>
+            
             {/* Posts */}
             <div className="mt-2">
               {isLoading ? (
@@ -84,16 +113,35 @@ export default function HomePage() {
                   ))}
                 </div>
               ) : error ? (
-                <div className="p-8 text-center">
-                  <p className="text-red-500">Error loading posts. Please try again later.</p>
+                <div className="p-8 text-center flex flex-col items-center">
+                  <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+                  <p className="text-red-500 font-medium">Error loading posts</p>
+                  <p className="text-sm text-neutral-500 mt-1">Please try again later or check your connection</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => window.location.reload()}
+                  >
+                    Retry
+                  </Button>
                 </div>
               ) : posts?.length === 0 ? (
                 <div className="p-8 text-center">
                   <p className="text-neutral-500">No posts yet. Start following cricket fans to see their posts!</p>
+                  <Button 
+                    className="mt-4 bg-[#FF5722] hover:bg-[#E64A19] text-white"
+                    onClick={() => setCreatePostOpen(true)}
+                  >
+                    Create Your First Post
+                  </Button>
                 </div>
               ) : (
                 posts?.map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onCommentClick={() => handleCommentClick(post)}
+                  />
                 ))
               )}
             </div>
@@ -107,6 +155,20 @@ export default function HomePage() {
       </main>
       
       <MobileNav />
+
+      {/* Modals and Dialogs */}
+      {selectedPost && (
+        <CommentsDialog 
+          open={commentsOpen} 
+          onOpenChange={setCommentsOpen} 
+          post={selectedPost} 
+        />
+      )}
+
+      <CreatePostModal 
+        open={createPostOpen}
+        onClose={() => setCreatePostOpen(false)}
+      />
     </div>
   );
 }

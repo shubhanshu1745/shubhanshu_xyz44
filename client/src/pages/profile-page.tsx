@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
@@ -8,8 +9,25 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Grid3X3, Bookmark, Settings, Tag, Loader2 } from "lucide-react";
+import { 
+  Grid3X3, 
+  Bookmark, 
+  Settings, 
+  Tag, 
+  Loader2, 
+  MapPin,
+  Link as LinkIcon,
+  CalendarDays,
+  UserPlus,
+  MessageSquare,
+  Bell,
+  MoreHorizontal
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { EditProfileDialog } from "@/components/edit-profile-dialog";
+import { FollowListDialog } from "@/components/follow-list-dialog";
+import { CommentsDialog } from "@/components/comments-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type UserProfileData = User & {
   postCount: number;
@@ -24,6 +42,18 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, setLocation] = useLocation();
+  
+  // State for dialogs
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [followersOpen, setFollowersOpen] = useState(false);
+  const [followingOpen, setFollowingOpen] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post & { 
+    user: User; 
+    likeCount: number; 
+    commentCount: number; 
+    hasLiked: boolean;
+  } | null>(null);
+  const [commentsOpen, setCommentsOpen] = useState(false);
 
   const { 
     data: profile, 
@@ -89,6 +119,11 @@ export default function ProfilePage() {
     followMutation.mutate();
   };
 
+  const handlePostClick = (post: Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean }) => {
+    setSelectedPost(post);
+    setCommentsOpen(true);
+  };
+
   const isOwnProfile = user?.username === username;
   const isFollowing = profile?.isFollowing;
 
@@ -122,29 +157,81 @@ export default function ProfilePage() {
                     
                     {isOwnProfile ? (
                       <div className="flex gap-2">
-                        <Button variant="outline" className="text-sm font-semibold">
+                        <Button 
+                          variant="outline" 
+                          className="text-sm font-semibold"
+                          onClick={() => setEditProfileOpen(true)}
+                        >
                           Edit Profile
                         </Button>
-                        <Button variant="ghost" size="icon">
-                          <Settings className="h-5 w-5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Settings className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Settings className="h-4 w-4 mr-2" />
+                              Account Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Bell className="h-4 w-4 mr-2" />
+                              Notifications
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <LinkIcon className="h-4 w-4 mr-2" />
+                              Copy Profile Link
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     ) : (
                       <div className="flex gap-2">
                         <Button 
                           variant={isFollowing ? "outline" : "default"}
-                          className="text-sm font-semibold"
+                          className={!isFollowing ? "bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-semibold" : "text-sm font-semibold"}
                           onClick={handleFollowToggle}
                           disabled={followMutation.isPending}
                         >
-                          {followMutation.isPending ? 
-                            <Loader2 className="h-4 w-4 animate-spin mr-1" /> : 
-                            null}
-                          {isFollowing ? "Following" : "Follow"}
+                          {followMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : isFollowing ? (
+                            <>
+                              <UserPlus className="h-4 w-4 mr-1" />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-4 w-4 mr-1" />
+                              Follow
+                            </>
+                          )}
                         </Button>
-                        <Button variant="outline" className="text-sm font-semibold">
+                        <Button 
+                          variant="outline" 
+                          className="text-sm font-semibold"
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" />
                           Message
                         </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <LinkIcon className="h-4 w-4 mr-2" />
+                              Copy Profile Link
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-red-500">
+                              <Bell className="h-4 w-4 mr-2" />
+                              Block User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     )}
                   </div>
@@ -153,20 +240,51 @@ export default function ProfilePage() {
                     <div>
                       <span className="font-semibold">{profile.postCount}</span> posts
                     </div>
-                    <div className="cursor-pointer">
+                    <div 
+                      className="cursor-pointer hover:underline"
+                      onClick={() => setFollowersOpen(true)}
+                    >
                       <span className="font-semibold">{profile.followerCount}</span> followers
                     </div>
-                    <div className="cursor-pointer">
+                    <div 
+                      className="cursor-pointer hover:underline"
+                      onClick={() => setFollowingOpen(true)}
+                    >
                       <span className="font-semibold">{profile.followingCount}</span> following
                     </div>
                   </div>
                   
                   <div>
-                    <p className="font-semibold">{profile.fullName}</p>
-                    <p>{profile.bio || "No bio yet."}</p>
-                    {profile.location && (
-                      <p className="text-sm text-neutral-500 mt-1">📍 {profile.location}</p>
-                    )}
+                    <p className="font-semibold">{profile.name}</p>
+                    <p className="whitespace-pre-line">{profile.bio || "No bio yet."}</p>
+                    
+                    <div className="mt-2 space-y-1">
+                      {profile.website && (
+                        <div className="flex items-center text-sm">
+                          <LinkIcon className="h-3.5 w-3.5 mr-2 text-neutral-500" />
+                          <a 
+                            href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {profile.website}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {profile.location && (
+                        <div className="flex items-center text-sm">
+                          <MapPin className="h-3.5 w-3.5 mr-2 text-neutral-500" />
+                          <span>{profile.location}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center text-sm text-neutral-500">
+                        <CalendarDays className="h-3.5 w-3.5 mr-2" />
+                        <span>Joined {new Date(profile.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -201,21 +319,43 @@ export default function ProfilePage() {
                   ) : posts?.length === 0 ? (
                     <div className="text-center py-10">
                       <p className="text-neutral-500">No posts yet.</p>
+                      {isOwnProfile && (
+                        <Button 
+                          className="mt-4 bg-[#FF5722] hover:bg-[#E64A19] text-white"
+                          onClick={() => setLocation("/")}
+                        >
+                          Create Your First Post
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-1 md:gap-4">
                       {posts?.map(post => (
                         <div 
                           key={post.id} 
-                          className="aspect-square bg-neutral-100 overflow-hidden cursor-pointer"
-                          onClick={() => {/* Open post detail */}}
+                          className="aspect-square bg-neutral-100 overflow-hidden cursor-pointer relative group"
+                          onClick={() => handlePostClick(post)}
                         >
                           {post.imageUrl ? (
-                            <img 
-                              src={post.imageUrl} 
-                              alt="Post" 
-                              className="w-full h-full object-cover"
-                            />
+                            <>
+                              <img 
+                                src={post.imageUrl} 
+                                alt="Post" 
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="flex space-x-6 text-white font-semibold">
+                                  <div className="flex items-center">
+                                    <span className="mr-1">❤️</span>
+                                    <span>{post.likeCount}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <span className="mr-1">💬</span>
+                                    <span>{post.commentCount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-neutral-400">
                               <p className="text-sm">No image</p>
@@ -255,6 +395,41 @@ export default function ProfilePage() {
       </main>
       
       <MobileNav />
+      
+      {/* Dialogs */}
+      {profile && (
+        <>
+          <EditProfileDialog 
+            open={editProfileOpen} 
+            onOpenChange={setEditProfileOpen} 
+            profile={profile} 
+          />
+          
+          <FollowListDialog 
+            open={followersOpen} 
+            onOpenChange={setFollowersOpen} 
+            username={username}
+            listType="followers"
+            userId={profile.id}
+          />
+          
+          <FollowListDialog 
+            open={followingOpen} 
+            onOpenChange={setFollowingOpen} 
+            username={username}
+            listType="following"
+            userId={profile.id}
+          />
+          
+          {selectedPost && (
+            <CommentsDialog 
+              open={commentsOpen} 
+              onOpenChange={setCommentsOpen} 
+              post={selectedPost} 
+            />
+          )}
+        </>
+      )}
     </div>
   );
 }
