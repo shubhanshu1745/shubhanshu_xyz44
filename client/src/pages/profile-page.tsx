@@ -127,6 +127,31 @@ export default function ProfilePage() {
     setSelectedPost(post);
     setCommentsOpen(true);
   };
+  
+  const handleCopyProfileLink = async () => {
+    try {
+      const profileUrl = `${window.location.origin}/profile/${username}`;
+      await navigator.clipboard.writeText(profileUrl);
+      toast({
+        title: "Profile link copied",
+        description: "Profile link copied to clipboard"
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy profile link to clipboard",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleBlockUser = () => {
+    toast({
+      title: "User blocked",
+      description: `You have blocked ${username}`,
+    });
+    setLocation("/"); // Redirect to home page after blocking
+  };
 
   const isOwnProfile = user?.username === username;
   const isFollowing = profile?.isFollowing;
@@ -183,7 +208,7 @@ export default function ProfilePage() {
                               <Bell className="h-4 w-4 mr-2" />
                               Notifications
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleCopyProfileLink}>
                               <LinkIcon className="h-4 w-4 mr-2" />
                               Copy Profile Link
                             </DropdownMenuItem>
@@ -226,11 +251,11 @@ export default function ProfilePage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleCopyProfileLink}>
                               <LinkIcon className="h-4 w-4 mr-2" />
                               Copy Profile Link
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500">
+                            <DropdownMenuItem className="text-red-500" onClick={handleBlockUser}>
                               <Bell className="h-4 w-4 mr-2" />
                               Block User
                             </DropdownMenuItem>
