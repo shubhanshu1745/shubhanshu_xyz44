@@ -1,6 +1,15 @@
 import { storage } from "./storage";
 import { hashPassword } from "./auth";
-import { InsertPost, InsertFollow, InsertComment, InsertLike } from "@shared/schema";
+import { 
+  InsertPost, 
+  InsertFollow, 
+  InsertComment, 
+  InsertLike, 
+  InsertStory, 
+  InsertPlayerStats, 
+  InsertPlayerMatch, 
+  InsertPlayerMatchPerformance 
+} from "@shared/schema";
 
 export async function seedDatabase() {
   console.log("🌱 Seeding database with sample data...");
@@ -13,7 +22,8 @@ export async function seedDatabase() {
     fullName: "Cricket Fan",
     bio: "Cricket enthusiast | Follow for match updates and highlights",
     location: "Mumbai, India",
-    profileImage: "https://i.pravatar.cc/150?img=1"
+    profileImage: "https://i.pravatar.cc/150?img=1",
+    isPlayer: false
   });
   
   const demoUser2 = await storage.createUser({
@@ -23,7 +33,8 @@ export async function seedDatabase() {
     fullName: "Team India Fans",
     bio: "Official fan page for Team India | Cricket news and updates",
     location: "Delhi, India",
-    profileImage: "https://i.pravatar.cc/150?img=2"
+    profileImage: "https://i.pravatar.cc/150?img=2",
+    isPlayer: false
   });
 
   const demoUser3 = await storage.createUser({
@@ -33,7 +44,8 @@ export async function seedDatabase() {
     fullName: "Cricket Legend",
     bio: "Former international cricket player | Coach | Analyst",
     location: "London, UK",
-    profileImage: "https://i.pravatar.cc/150?img=3"
+    profileImage: "https://i.pravatar.cc/150?img=3",
+    isPlayer: true
   });
   
   const demoUser4 = await storage.createUser({
@@ -43,17 +55,19 @@ export async function seedDatabase() {
     fullName: "Cricket News Network",
     bio: "Breaking cricket news | Live match updates | Player interviews",
     location: "Melbourne, Australia",
-    profileImage: "https://i.pravatar.cc/150?img=4"
+    profileImage: "https://i.pravatar.cc/150?img=4",
+    isPlayer: false
   });
 
   const demoUser5 = await storage.createUser({
-    username: "testUser",
-    email: "test@example.com",
+    username: "playerOne",
+    email: "player1@example.com",
     password: await hashPassword("password123"),
-    fullName: "Test User",
-    bio: "This is a test account",
-    location: "Bangalore, India",
-    profileImage: "https://i.pravatar.cc/150?img=5"
+    fullName: "Professional Player",
+    bio: "Professional cricket player | Batsman | Current national team player",
+    location: "Chennai, India",
+    profileImage: "https://i.pravatar.cc/150?img=5",
+    isPlayer: true
   });
 
   console.log("👤 Created demo users");
@@ -186,5 +200,215 @@ export async function seedDatabase() {
   }
 
   console.log("💬 Created comments");
+
+  // Create reels (video posts)
+  const reels: InsertPost[] = [
+    {
+      userId: demoUser3.id,
+      content: "My analysis of the perfect bowling technique. Watch and learn!",
+      category: "reel",
+      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
+      thumbnailUrl: "https://picsum.photos/seed/reel1/640/1280",
+      duration: 30
+    },
+    {
+      userId: demoUser5.id,
+      content: "Practicing my cover drive. What do you think of the technique?",
+      category: "reel",
+      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
+      thumbnailUrl: "https://picsum.photos/seed/reel2/640/1280",
+      duration: 15
+    },
+    {
+      userId: demoUser2.id,
+      content: "Highlights from yesterday's match. What a game!",
+      category: "reel",
+      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
+      thumbnailUrl: "https://picsum.photos/seed/reel3/640/1280",
+      duration: 45,
+      matchId: "ind-vs-aus-2025"
+    }
+  ];
+
+  for (const reel of reels) {
+    await storage.createPost(reel);
+  }
+
+  console.log("🎬 Created reels");
+
+  // Create stories 
+  const stories: InsertStory[] = [
+    {
+      userId: demoUser1.id,
+      imageUrl: "https://picsum.photos/seed/story1/1080/1920",
+      caption: "At the stadium for the big match today!"
+    },
+    {
+      userId: demoUser2.id,
+      imageUrl: "https://picsum.photos/seed/story2/1080/1920",
+      caption: "Team India jerseys for the new season just dropped!"
+    },
+    {
+      userId: demoUser3.id,
+      imageUrl: "https://picsum.photos/seed/story3/1080/1920",
+      caption: "Morning practice session. Rise and grind!"
+    },
+    {
+      userId: demoUser5.id,
+      imageUrl: "https://picsum.photos/seed/story4/1080/1920",
+      caption: "Match day! Ready to give it my all."
+    }
+  ];
+
+  for (const story of stories) {
+    await storage.createStory(story);
+  }
+
+  console.log("📸 Created stories");
+
+  // Create player stats
+  const playerStats: InsertPlayerStats[] = [
+    {
+      userId: demoUser3.id,
+      position: "All-rounder",
+      battingStyle: "Right-handed",
+      bowlingStyle: "Right-arm medium",
+      totalMatches: 245,
+      totalRuns: 8432,
+      totalWickets: 293,
+      totalCatches: 87,
+      totalSixes: 142,
+      totalFours: 756,
+      highestScore: 156,
+      bestBowling: "6/42",
+      battingAverage: "38.62",
+      bowlingAverage: "26.34"
+    },
+    {
+      userId: demoUser5.id,
+      position: "Batsman",
+      battingStyle: "Right-handed",
+      bowlingStyle: "Right-arm off-spin",
+      totalMatches: 76,
+      totalRuns: 3428,
+      totalWickets: 12,
+      totalCatches: 32,
+      totalSixes: 65,
+      totalFours: 321,
+      highestScore: 183,
+      bestBowling: "2/17",
+      battingAverage: "45.12",
+      bowlingAverage: "42.75"
+    }
+  ];
+
+  for (const stats of playerStats) {
+    await storage.createPlayerStats(stats);
+  }
+
+  console.log("📊 Created player stats");
+
+  // Create player matches
+  const playerMatches: InsertPlayerMatch[] = [
+    {
+      userId: demoUser3.id,
+      matchName: "India vs Australia, 3rd Test",
+      matchDate: new Date("2025-01-15"),
+      venue: "Melbourne Cricket Ground",
+      opponent: "Australia",
+      matchType: "Test",
+      teamScore: "342/8 & 285/5",
+      opponentScore: "298 & 215",
+      result: "Won by 114 runs"
+    },
+    {
+      userId: demoUser3.id,
+      matchName: "IPL 2024: Chennai vs Mumbai",
+      matchDate: new Date("2024-04-18"),
+      venue: "Wankhede Stadium",
+      opponent: "Mumbai",
+      matchType: "T20",
+      teamScore: "187/5",
+      opponentScore: "184/8",
+      result: "Won by 3 runs"
+    },
+    {
+      userId: demoUser5.id,
+      matchName: "India vs England, 2nd ODI",
+      matchDate: new Date("2025-02-24"),
+      venue: "Lords Cricket Ground",
+      opponent: "England",
+      matchType: "ODI",
+      teamScore: "324/6",
+      opponentScore: "276",
+      result: "Won by 48 runs"
+    }
+  ];
+
+  const createdMatches = [];
+  for (const match of playerMatches) {
+    const createdMatch = await storage.createPlayerMatch(match);
+    createdMatches.push(createdMatch);
+  }
+
+  console.log("🏏 Created player matches");
+
+  // Create player match performances
+  const matchPerformances: InsertPlayerMatchPerformance[] = [
+    {
+      userId: demoUser3.id,
+      matchId: createdMatches[0].id,
+      runsScored: 87,
+      ballsFaced: 142,
+      fours: 9,
+      sixes: 2,
+      battingStatus: "Caught",
+      oversBowled: "22.4",
+      runsConceded: 78,
+      wicketsTaken: 4,
+      maidens: 3,
+      catches: 1,
+      runOuts: 0,
+      stumpings: 0
+    },
+    {
+      userId: demoUser3.id,
+      matchId: createdMatches[1].id,
+      runsScored: 42,
+      ballsFaced: 28,
+      fours: 5,
+      sixes: 3,
+      battingStatus: "Not Out",
+      oversBowled: "4",
+      runsConceded: 32,
+      wicketsTaken: 2,
+      maidens: 0,
+      catches: 1,
+      runOuts: 1,
+      stumpings: 0
+    },
+    {
+      userId: demoUser5.id,
+      matchId: createdMatches[2].id,
+      runsScored: 124,
+      ballsFaced: 118,
+      fours: 14,
+      sixes: 3,
+      battingStatus: "Not Out",
+      oversBowled: "5",
+      runsConceded: 28,
+      wicketsTaken: 0,
+      maidens: 0,
+      catches: 1,
+      runOuts: 0,
+      stumpings: 0
+    }
+  ];
+
+  for (const performance of matchPerformances) {
+    await storage.createPlayerMatchPerformance(performance);
+  }
+
+  console.log("📝 Created match performances");
   console.log("✅ Database seeding complete!");
 }

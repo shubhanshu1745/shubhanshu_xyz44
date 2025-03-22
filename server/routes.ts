@@ -698,6 +698,342 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to mark messages as read" });
     }
   });
+  
+  // Reels endpoints
+  app.get("/api/reels", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const reels = await storage.getReels(userId, limit);
+      
+      res.json(reels);
+    } catch (error) {
+      console.error("Error fetching reels:", error);
+      res.status(500).json({ message: "Failed to fetch reels" });
+    }
+  });
+  
+  // Stories endpoints
+  app.get("/api/stories", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const stories = await storage.getStoriesForFeed(userId);
+      
+      res.json(stories);
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+      res.status(500).json({ message: "Failed to fetch stories" });
+    }
+  });
+  
+  app.post("/api/stories", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const storyData = insertStorySchema.parse({ ...req.body, userId });
+      
+      const story = await storage.createStory(storyData);
+      const user = await storage.getUser(userId);
+      
+      res.status(201).json({ ...story, user });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating story:", error);
+      res.status(500).json({ message: "Failed to create story" });
+    }
+  });
+  
+  app.get("/api/users/:username/stories", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const username = req.params.username;
+      const targetUser = await storage.getUserByUsername(username);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only return stories if the current user follows the target user
+      // or if the target user is the current user
+      if (targetUser.id !== req.user.id) {
+        const isFollowing = await storage.isFollowing(req.user.id, targetUser.id);
+        if (!isFollowing) {
+          return res.status(403).json({ message: "You must follow this user to see their stories" });
+        }
+      }
+      
+      const stories = await storage.getUserStories(targetUser.id);
+      
+      // Add user info to stories
+      const storiesWithUser = stories.map(story => ({
+        ...story,
+        user: {
+          id: targetUser.id,
+          username: targetUser.username,
+          fullName: targetUser.fullName,
+          profileImage: targetUser.profileImage
+        }
+      }));
+      
+      res.json(storiesWithUser);
+    } catch (error) {
+      console.error("Error fetching user stories:", error);
+      res.status(500).json({ message: "Failed to fetch user stories" });
+    }
+  });
+  
+  // Player Stats endpoints
+  app.get("/api/users/:username/player-stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const username = req.params.username;
+      const targetUser = await storage.getUserByUsername(username);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only player accounts should have stats
+      if (!targetUser.isPlayer) {
+        return res.status(400).json({ message: "This user is not a player" });
+      }
+      
+      const stats = await storage.getPlayerStats(targetUser.id);
+      
+      if (!stats) {
+        return res.status(404).json({ message: "Player stats not found" });
+      }
+      
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching player stats:", error);
+      res.status(500).json({ message: "Failed to fetch player stats" });
+    }
+  });
+  
+  app.post("/api/player-stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isPlayer) {
+        return res.status(403).json({ message: "Only player accounts can create stats" });
+      }
+      
+      // Check if stats already exist for this user
+      const existingStats = await storage.getPlayerStats(userId);
+      if (existingStats) {
+        return res.status(400).json({ message: "Player stats already exist for this user" });
+      }
+      
+      const statsData = insertPlayerStatsSchema.parse({ ...req.body, userId });
+      const stats = await storage.createPlayerStats(statsData);
+      
+      res.status(201).json(stats);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating player stats:", error);
+      res.status(500).json({ message: "Failed to create player stats" });
+    }
+  });
+  
+  app.patch("/api/player-stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isPlayer) {
+        return res.status(403).json({ message: "Only player accounts can update stats" });
+      }
+      
+      // Ensure stats exist for this user
+      const existingStats = await storage.getPlayerStats(userId);
+      if (!existingStats) {
+        return res.status(404).json({ message: "Player stats not found for this user" });
+      }
+      
+      const updatedStats = await storage.updatePlayerStats(userId, req.body);
+      
+      if (!updatedStats) {
+        return res.status(404).json({ message: "Failed to update player stats" });
+      }
+      
+      res.json(updatedStats);
+    } catch (error) {
+      console.error("Error updating player stats:", error);
+      res.status(500).json({ message: "Failed to update player stats" });
+    }
+  });
+  
+  // Player Match endpoints
+  app.get("/api/users/:username/matches", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const username = req.params.username;
+      const targetUser = await storage.getUserByUsername(username);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Only player accounts should have matches
+      if (!targetUser.isPlayer) {
+        return res.status(400).json({ message: "This user is not a player" });
+      }
+      
+      const matches = await storage.getUserMatches(targetUser.id);
+      
+      res.json(matches);
+    } catch (error) {
+      console.error("Error fetching player matches:", error);
+      res.status(500).json({ message: "Failed to fetch player matches" });
+    }
+  });
+  
+  app.post("/api/player-matches", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isPlayer) {
+        return res.status(403).json({ message: "Only player accounts can create matches" });
+      }
+      
+      const matchData = insertPlayerMatchSchema.parse({ ...req.body, userId });
+      const match = await storage.createPlayerMatch(matchData);
+      
+      res.status(201).json(match);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating player match:", error);
+      res.status(500).json({ message: "Failed to create player match" });
+    }
+  });
+  
+  app.get("/api/player-matches/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const matchId = parseInt(req.params.id);
+      const match = await storage.getPlayerMatch(matchId);
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      res.json(match);
+    } catch (error) {
+      console.error("Error fetching player match:", error);
+      res.status(500).json({ message: "Failed to fetch player match" });
+    }
+  });
+  
+  // Player Match Performance endpoints
+  app.get("/api/player-matches/:id/performances", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const matchId = parseInt(req.params.id);
+      const match = await storage.getPlayerMatch(matchId);
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      const performances = await storage.getMatchPerformances(matchId);
+      
+      res.json(performances);
+    } catch (error) {
+      console.error("Error fetching match performances:", error);
+      res.status(500).json({ message: "Failed to fetch match performances" });
+    }
+  });
+  
+  app.post("/api/player-match-performances", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.isPlayer) {
+        return res.status(403).json({ message: "Only player accounts can record performances" });
+      }
+      
+      const { matchId } = req.body;
+      
+      // Check if match exists
+      if (matchId) {
+        const match = await storage.getPlayerMatch(parseInt(matchId));
+        if (!match) {
+          return res.status(404).json({ message: "Match not found" });
+        }
+      }
+      
+      // Check if performance for this match already exists
+      if (matchId) {
+        const existingPerformance = await storage.getPlayerMatchPerformance(userId, parseInt(matchId));
+        if (existingPerformance) {
+          return res.status(400).json({ message: "Performance record already exists for this match" });
+        }
+      }
+      
+      const performanceData = insertPlayerMatchPerformanceSchema.parse({ ...req.body, userId });
+      const performance = await storage.createPlayerMatchPerformance(performanceData);
+      
+      res.status(201).json(performance);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating match performance:", error);
+      res.status(500).json({ message: "Failed to create match performance" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

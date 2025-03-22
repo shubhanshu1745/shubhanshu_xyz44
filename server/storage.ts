@@ -579,7 +579,7 @@ export class MemStorage implements IStorage {
     const story: Story = {
       id,
       userId: insertStory.userId,
-      imageUrl: insertStory.imageUrl,
+      imageUrl: insertStory.imageUrl || "",
       caption: insertStory.caption || null,
       createdAt: new Date(),
       expiresAt
