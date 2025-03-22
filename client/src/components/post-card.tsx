@@ -34,27 +34,53 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
   const likeMutation = useMutation({
     mutationFn: async () => {
       if (isLiked) {
-        await apiRequest("DELETE", `/api/posts/${post.id}/like`);
+        try {
+          await apiRequest("DELETE", `/api/posts/${post.id}/like`);
+        } catch (error) {
+          // If the like doesn't exist yet, create it again
+          console.error("Error unliking post:", error);
+          return true;
+        }
         return false;
       } else {
         await apiRequest("POST", `/api/posts/${post.id}/like`);
         return true;
       }
     },
-    onMutate: async (variables) => {
+    onMutate: async () => {
+      // Optimistic update
+      const previousIsLiked = isLiked;
+      const previousLikeCount = likeCount;
+      
+      // Update UI immediately
       setIsLiked(prev => !prev);
       setLikeCount(prev => isLiked ? prev - 1 : prev + 1);
+      
+      // Return previous values for rollback if needed
+      return { previousIsLiked, previousLikeCount };
     },
-    onError: (error) => {
-      setIsLiked(post.hasLiked);
-      setLikeCount(post.likeCount);
+    onError: (error, _, context) => {
+      // Rollback to previous state if there's an error
+      if (context) {
+        setIsLiked(context.previousIsLiked);
+        setLikeCount(context.previousLikeCount);
+      }
+      
       toast({
         title: "Error",
         description: "Failed to like/unlike post",
         variant: "destructive"
       });
     },
+    onSuccess: (liked) => {
+      // If successfully liked/unliked
+      toast({
+        title: liked ? "Post liked" : "Post unliked",
+        description: liked ? "You liked this post" : "You unliked this post",
+      });
+    },
     onSettled: () => {
+      // Always refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
     }
   });

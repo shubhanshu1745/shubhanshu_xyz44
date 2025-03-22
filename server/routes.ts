@@ -194,6 +194,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Followers and Following endpoints
+  app.get("/api/users/:username/followers", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const username = req.params.username;
+      const targetUser = await storage.getUserByUsername(username);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentUserId = req.user.id;
+      const followers = await storage.getFollowers(targetUser.id);
+      
+      // Enrich followers with isFollowing property
+      const enrichedFollowers = await Promise.all(
+        followers.map(async follower => {
+          // Don't include passwords
+          const { password, ...followerWithoutPassword } = follower;
+          
+          // Check if the current user is following this follower
+          const isFollowing = await storage.isFollowing(currentUserId, follower.id);
+          
+          return {
+            ...followerWithoutPassword,
+            isFollowing
+          };
+        })
+      );
+      
+      res.json(enrichedFollowers);
+    } catch (error) {
+      console.error("Error fetching followers:", error);
+      res.status(500).json({ message: "Failed to fetch followers" });
+    }
+  });
+  
+  app.get("/api/users/:username/following", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const username = req.params.username;
+      const targetUser = await storage.getUserByUsername(username);
+      
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const currentUserId = req.user.id;
+      const following = await storage.getFollowing(targetUser.id);
+      
+      // Enrich following users with isFollowing property
+      const enrichedFollowing = await Promise.all(
+        following.map(async followedUser => {
+          // Don't include passwords
+          const { password, ...userWithoutPassword } = followedUser;
+          
+          // The current user is always following users in this list if it's the current user's list
+          // Otherwise, check if the current user is following each user
+          const isFollowing = targetUser.id === currentUserId ? 
+            true : 
+            await storage.isFollowing(currentUserId, followedUser.id);
+          
+          return {
+            ...userWithoutPassword,
+            isFollowing
+          };
+        })
+      );
+      
+      res.json(enrichedFollowing);
+    } catch (error) {
+      console.error("Error fetching following:", error);
+      res.status(500).json({ message: "Failed to fetch following users" });
+    }
+  });
+
   // Like endpoints
   app.post("/api/posts/:id/like", async (req, res) => {
     try {
