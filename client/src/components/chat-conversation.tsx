@@ -32,19 +32,17 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<ConversationData>({
     queryKey: [`/api/conversations/${conversationId}`],
     enabled: !!conversationId && !!user,
-    refetchInterval: 5000, // Poll for new messages every 5 seconds
-    select: (data: any) => data as ConversationData
+    refetchInterval: 5000 // Poll for new messages every 5 seconds
   });
   
-  const sendMessageMutation = useMutation({
+  const sendMessageMutation = useMutation<MessageWithSender, Error, string>({
     mutationFn: async (content: string) => {
-      const response = await apiRequest("POST", `/api/conversations/${conversationId}/messages`, {
+      return apiRequest<MessageWithSender>("POST", `/api/conversations/${conversationId}/messages`, {
         content
       });
-      return response as MessageWithSender;
     },
     onSuccess: () => {
       // Reset input
@@ -75,7 +73,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     if (conversationId && user) {
       const markAsRead = async () => {
         try {
-          await apiRequest("POST", `/api/conversations/${conversationId}/read`);
+          await apiRequest<{ success: boolean }>("POST", `/api/conversations/${conversationId}/read`);
           // Invalidate conversations list to update unread counts
           queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
         } catch (error) {

@@ -30,12 +30,11 @@ export function ChatList() {
     enabled: !!user
   });
   
-  const createConversationMutation = useMutation({
+  const createConversationMutation = useMutation<ConversationWithMeta, Error, string>({
     mutationFn: async (username: string) => {
-      const response = await apiRequest("POST", "/api/conversations", {
+      return apiRequest<ConversationWithMeta>("POST", "/api/conversations", {
         username
       });
-      return response as ConversationWithMeta;
     },
     onSuccess: (newConversation) => {
       // Reset search input
