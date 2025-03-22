@@ -294,7 +294,28 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
                     </>
                   )}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onClick={() => {
+                    try {
+                      // Use the web share API if available (for mobile)
+                      if (navigator.share) {
+                        navigator.share({
+                          title: `${post.user.username}'s post on CricSocial`,
+                          text: post.content || "Check out this cricket post!",
+                          url: `${window.location.origin}/post/${post.id}`,
+                        });
+                      } else {
+                        // Fallback to copy link
+                        handleCopyLink();
+                      }
+                    } catch (err) {
+                      console.error("Error sharing:", err);
+                      handleCopyLink();
+                    }
+                    setIsShareMenuOpen(false);
+                  }}
+                >
                   <LinkIcon className="h-4 w-4 mr-2" />
                   <span>Share via...</span>
                 </DropdownMenuItem>

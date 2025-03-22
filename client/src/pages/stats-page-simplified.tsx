@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { PlayerStats as DbPlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
 
 // Extended interface for PlayerStats to match our UI needs
@@ -51,14 +51,53 @@ type PlayerWithStats = {
   stats: PlayerStats;
 };
 
+type MatchFormValues = z.infer<typeof matchFormSchema>;
+
 type MatchWithPerformances = PlayerMatch & {
-  performance?: PlayerMatchPerformance;
+  performance?: PlayerMatchPerformance & {
+    runs?: number;
+    notOut?: boolean;
+    wickets?: number;
+  };
+  date?: string;
+  matchTitle?: string;
+  overs?: string;
+  format?: string;
 };
 
 export default function StatsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isAddMatchDialogOpen, setIsAddMatchDialogOpen] = useState(false);
+  
+  // Form for adding a new match
+  const matchForm = useForm<MatchFormValues>({
+    resolver: zodResolver(matchFormSchema),
+    defaultValues: {
+      opponent: "",
+      venue: "",
+      matchDate: format(new Date(), "yyyy-MM-dd"),
+      matchType: "T20",
+      result: "",
+    },
+  });
+  
+  // Handle match form submission
+  function onMatchSubmit(values: MatchFormValues) {
+    if (!user) return;
+    
+    const matchData = {
+      userId: user.id,
+      opponent: values.opponent,
+      venue: values.venue,
+      matchDate: values.matchDate,
+      matchType: values.matchType,
+      result: values.result,
+      matchName: `${user.username} vs ${values.opponent}`,
+    };
+    
+    addMatchMutation.mutate(matchData);
+  }
 
   // Fetch player stats
   const { data: dbPlayerStats, isLoading: isStatsLoading } = useQuery<DbPlayerStats>({
@@ -98,7 +137,7 @@ export default function StatsPage() {
   // Create enhanced matches with the fields we need for UI
   const matches: MatchWithPerformances[] = dbMatches ? dbMatches.map(match => ({
     ...match,
-    date: match.matchDate,
+    date: match.matchDate ? match.matchDate.toString() : "",
     matchTitle: match.matchName,
     overs: match.matchType?.includes('T20') ? '20' : match.matchType?.includes('ODI') ? '50' : 'Full',
     format: match.matchType || 'T20',
@@ -136,7 +175,26 @@ export default function StatsPage() {
         title: "Match added",
         description: "Your match has been added successfully"
       });
+      
+      // Reset form
+      matchForm.reset({
+        opponent: "",
+        venue: "",
+        matchDate: format(new Date(), "yyyy-MM-dd"),
+        matchType: "T20",
+        result: "",
+      });
+      
+      // Close dialog
       setIsAddMatchDialogOpen(false);
+      
+      // Invalidate queries to reload data
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'matches']
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'player-stats']
+      });
     },
     onError: (error) => {
       toast({
@@ -561,17 +619,115 @@ export default function StatsPage() {
           <DialogHeader>
             <DialogTitle>Add New Match</DialogTitle>
             <DialogDescription>
-              This feature will be available soon. You'll be able to track your cricket match performance.
+              Add details about your cricket match to track your performance stats.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button 
-              onClick={() => setIsAddMatchDialogOpen(false)}
-              className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-            >
-              Close
-            </Button>
-          </DialogFooter>
+          
+          {/* Match Form */}
+          <Form {...matchForm}>
+            <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
+              <FormField
+                control={matchForm.control}
+                name="opponent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Opponent Team</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter opponent team name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
+                name="venue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Venue</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter match venue" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
+                name="matchDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
+                name="matchType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Type</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select match type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="T20">T20</SelectItem>
+                        <SelectItem value="ODI">ODI</SelectItem>
+                        <SelectItem value="Test">Test</SelectItem>
+                        <SelectItem value="One Day">One Day</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={matchForm.control}
+                name="result"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Result (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E.g., 'Won by 5 wickets'" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsAddMatchDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                  disabled={addMatchMutation.isPending}
+                >
+                  {addMatchMutation.isPending ? "Adding..." : "Add Match"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
