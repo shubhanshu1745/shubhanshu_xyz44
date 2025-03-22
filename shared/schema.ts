@@ -382,7 +382,7 @@ export const createPlayerStatsSchema = insertPlayerStatsSchema.extend({
 
 export const createPlayerMatchSchema = insertPlayerMatchSchema.extend({
   matchName: z.string().min(1, "Match name is required"),
-  matchDate: z.coerce.date(),
+  matchDate: z.string().min(1, "Match date is required"),
   venue: z.string().optional(),
   opponent: z.string().min(1, "Opponent is required"),
   matchType: z.string().optional(),

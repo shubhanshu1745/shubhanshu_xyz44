@@ -90,12 +90,12 @@ export default function StatsPage() {
   function onMatchSubmit(values: MatchFormValues) {
     if (!user) return;
     
-    // Convert matchDate string to a proper Date object for the API
+    // Send the matchDate directly as a string in ISO format, which the server can parse
     const matchData = {
       userId: user.id,
       opponent: values.opponent,
       venue: values.venue,
-      matchDate: new Date(values.matchDate), // Convert to Date for API
+      matchDate: values.matchDate, // Send as string for the API to handle
       matchType: values.matchType,
       result: values.result,
       matchName: `${user.username} vs ${values.opponent}`,
