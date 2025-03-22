@@ -9,6 +9,7 @@ import TeamsPage from "@/pages/teams-page";
 import ChatPage from "@/pages/chat-page";
 import ReelsPage from "@/pages/reels-page";
 import PlayerStatsPage from "@/pages/player-stats-page";
+import SuggestionsPage from "@/pages/suggestions-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -23,7 +24,9 @@ function Router() {
       <ProtectedRoute path="/matches" component={MatchesPage} />
       <ProtectedRoute path="/teams" component={TeamsPage} />
       <ProtectedRoute path="/reels" component={ReelsPage} />
+      <ProtectedRoute path="/stats" component={PlayerStatsPage} />
       <ProtectedRoute path="/player-stats/:username" component={PlayerStatsPage} />
+      <ProtectedRoute path="/suggestions" component={SuggestionsPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <Route path="/auth" component={AuthPage} />

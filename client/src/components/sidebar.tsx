@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,12 +6,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, MessageCircle } from "lucide-react";
+import { ExternalLink, MessageCircle, Film, BarChart2 } from "lucide-react";
 
 export function Sidebar() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location] = useLocation();
 
   const { data: suggestedUsers, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users/suggested"],
@@ -74,13 +75,59 @@ export function Sidebar() {
         </div>
       </div>
       
+      {/* Main Navigation */}
+      <div className="mb-6 space-y-2">
+        <Link href="/">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/" ? "font-semibold" : ""}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-[#1F3B4D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span className="cricket-primary">Home</span>
+          </div>
+        </Link>
+        
+        <Link href="/reels">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/reels" ? "font-semibold" : ""}`}>
+            <Film className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Reels</span>
+          </div>
+        </Link>
+        
+        <Link href="/stats">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/stats" ? "font-semibold" : ""}`}>
+            <BarChart2 className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Stats</span>
+          </div>
+        </Link>
+        
+        <Link href="/matches">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/matches" ? "font-semibold" : ""}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-[#1F3B4D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span className="cricket-primary">Matches</span>
+          </div>
+        </Link>
+        
+        <Link href="/teams">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/teams" ? "font-semibold" : ""}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-[#1F3B4D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span className="cricket-primary">Teams</span>
+          </div>
+        </Link>
+      </div>
+      
       {/* Suggestions */}
       <div className="mb-4">
         <div className="flex justify-between items-center mb-3">
           <span className="text-neutral-500 font-semibold text-sm">Suggestions For You</span>
-          <Button variant="link" size="sm" className="text-xs p-0 text-[#2E8B57] hover:text-[#1F3B4D]">
-            See All
-          </Button>
+          <Link href="/suggestions">
+            <Button variant="link" size="sm" className="text-xs p-0 text-[#2E8B57] hover:text-[#1F3B4D]">
+              See All
+            </Button>
+          </Link>
         </div>
         
         {/* Suggestion List */}
