@@ -92,7 +92,7 @@ export const EmailService = {
       const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/verify-email?token=${token}`;
       
       const mailOptions = {
-        from: process.env.EMAIL_FROM || 'cricket@example.com',
+        from: process.env.EMAIL_FROM || 'cricsocial@example.com',
         to: email,
         subject: 'Verify your CricSocial account',
         html: `
@@ -105,15 +105,42 @@ export const EmailService = {
       };
       
       if (!hasEmailCredentials) {
-        // In development or when no email credentials are available,
-        // log the verification info to console
-        console.log('===============================================');
-        console.log('VERIFICATION EMAIL (Development Mode)');
-        console.log('===============================================');
-        console.log(`To: ${email}`);
-        console.log(`Verification URL: ${verificationUrl}`);
-        console.log(`Token: ${token}`);
-        console.log('===============================================');
+        // In development, try to use Ethereal email for testing
+        try {
+          const testTransporter = await getTestTransporter();
+          if (testTransporter) {
+            const info = await testTransporter.sendMail(mailOptions);
+            
+            // Log the verification info to console
+            console.log('===============================================');
+            console.log('VERIFICATION EMAIL (Ethereal Test Mode)');
+            console.log('===============================================');
+            console.log(`To: ${email}`);
+            console.log(`Verification URL: ${verificationUrl}`);
+            console.log(`Token: ${token}`);
+            console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+            console.log('===============================================');
+          } else {
+            // If creating test transporter failed, just log to console
+            console.log('===============================================');
+            console.log('VERIFICATION EMAIL (Development Mode)');
+            console.log('===============================================');
+            console.log(`To: ${email}`);
+            console.log(`Verification URL: ${verificationUrl}`);
+            console.log(`Token: ${token}`);
+            console.log('===============================================');
+          }
+        } catch (etherealError) {
+          console.error('Error using Ethereal email:', etherealError);
+          // Fallback to console logging
+          console.log('===============================================');
+          console.log('VERIFICATION EMAIL (Development Mode)');
+          console.log('===============================================');
+          console.log(`To: ${email}`);
+          console.log(`Verification URL: ${verificationUrl}`);
+          console.log(`Token: ${token}`);
+          console.log('===============================================');
+        }
         return true;
       }
       
@@ -129,10 +156,10 @@ export const EmailService = {
   sendPasswordResetEmail: async (email: string, userId: number): Promise<boolean> => {
     try {
       const token = await EmailService.generateToken(userId, 'password_reset');
-      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/?reset=true&token=${token}`;
+      const resetUrl = `${process.env.APP_URL || 'http://localhost:5000'}/?token=${token}`;
       
       const mailOptions = {
-        from: process.env.EMAIL_FROM || 'cricket@example.com',
+        from: process.env.EMAIL_FROM || 'cricsocial@example.com',
         to: email,
         subject: 'Reset your CricSocial password',
         html: `
@@ -145,15 +172,42 @@ export const EmailService = {
       };
       
       if (!hasEmailCredentials) {
-        // In development or when no email credentials are available,
-        // log the password reset info to console
-        console.log('===============================================');
-        console.log('PASSWORD RESET EMAIL (Development Mode)');
-        console.log('===============================================');
-        console.log(`To: ${email}`);
-        console.log(`Reset URL: ${resetUrl}`);
-        console.log(`Token: ${token}`);
-        console.log('===============================================');
+        // In development, try to use Ethereal email for testing
+        try {
+          const testTransporter = await getTestTransporter();
+          if (testTransporter) {
+            const info = await testTransporter.sendMail(mailOptions);
+            
+            // Log the reset info to console with Ethereal preview URL
+            console.log('===============================================');
+            console.log('PASSWORD RESET EMAIL (Ethereal Test Mode)');
+            console.log('===============================================');
+            console.log(`To: ${email}`);
+            console.log(`Reset URL: ${resetUrl}`);
+            console.log(`Token: ${token}`);
+            console.log(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+            console.log('===============================================');
+          } else {
+            // If creating test transporter failed, just log to console
+            console.log('===============================================');
+            console.log('PASSWORD RESET EMAIL (Development Mode)');
+            console.log('===============================================');
+            console.log(`To: ${email}`);
+            console.log(`Reset URL: ${resetUrl}`);
+            console.log(`Token: ${token}`);
+            console.log('===============================================');
+          }
+        } catch (etherealError) {
+          console.error('Error using Ethereal email:', etherealError);
+          // Fallback to console logging
+          console.log('===============================================');
+          console.log('PASSWORD RESET EMAIL (Development Mode)');
+          console.log('===============================================');
+          console.log(`To: ${email}`);
+          console.log(`Reset URL: ${resetUrl}`);
+          console.log(`Token: ${token}`);
+          console.log('===============================================');
+        }
         return true;
       }
       

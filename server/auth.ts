@@ -102,10 +102,10 @@ export function setupAuth(app: Express) {
         password: await hashPassword(validatedUser.password)
       });
 
-      // Still send verification email for demo purposes
+      // Send verification email
       try {
         await EmailService.sendVerificationEmail(user.email, user.id);
-        console.log("Verification email would be sent (verification bypass is active)");
+        console.log(`Verification email sent to ${user.email} for user ID: ${user.id}`);
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
         // Continue with login even if email sending fails

@@ -101,8 +101,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Delete token (consume it)
       await EmailService.consumeToken(token);
       
+      // Log success in development
+      console.log(`Email verified successfully for user ID: ${userId}`);
+      
       // Redirect to frontend with success message
-      res.redirect(`${process.env.APP_URL || 'http://localhost:5000'}?verified=true`);
+      const clientUrl = process.env.APP_URL || 'http://localhost:5000';
+      res.redirect(`${clientUrl}?verified=true`);
     } catch (error) {
       console.error("Email verification error:", error);
       res.status(500).json({ message: "Failed to verify email" });
