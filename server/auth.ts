@@ -113,19 +113,36 @@ export function setupAuth(app: Express) {
       
       // Login the newly registered user
       req.login(user, (err) => {
-        if (err) return next(err);
-        // Don't send password to client
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json({
-          ...userWithoutPassword,
-          message: "Registration successful! You can now use all features of the application."
-        });
+        if (err) {
+          console.error("Login error after registration:", err);
+          return next(err);
+        }
+        
+        try {
+          // Don't send password to client
+          const { password, ...userWithoutPassword } = user;
+          return res.status(201).json({
+            ...userWithoutPassword,
+            message: "Registration successful! You can now use all features of the application."
+          });
+        } catch (jsonError) {
+          console.error("Error sending registration response:", jsonError);
+          return res.status(201).send("Registration successful!");
+        }
       });
     } catch (error) {
+      console.error("Registration error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
-      next(error);
+      
+      // Handle any other errors
+      try {
+        return res.status(500).json({ message: "Registration failed", error: error.message });
+      } catch (jsonError) {
+        console.error("Error sending error response:", jsonError);
+        return res.status(500).send("Registration failed. Please try again.");
+      }
     }
   });
 
