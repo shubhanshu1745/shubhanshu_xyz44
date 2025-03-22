@@ -1397,15 +1397,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Only player accounts should have stats
       if (!targetUser.isPlayer) {
-        return res.status(400).json({ message: "This user is not a player" });
+        // Allow non-player accounts too, simply for better UI experience
+        // Just log a warning instead of returning an error
+        console.log(`Warning: Fetching stats for non-player account: ${username}`);
       }
       
       const stats = await storage.getPlayerStats(targetUser.id);
       
       if (!stats) {
-        return res.status(404).json({ message: "Player stats not found" });
+        // Create empty stats object for users that don't have stats yet
+        console.log(`No stats found for user ${username}, returning empty stats`);
+        return res.json({
+          userId: targetUser.id,
+          totalMatches: 0,
+          totalRuns: 0,
+          battingAverage: "0",
+          totalWickets: 0,
+          totalCatches: 0,
+          totalSixes: 0,
+          totalFours: 0,
+          highestScore: 0,
+          bestBowling: "0/0",
+          // Extra fields for UI display
+          innings: 0,
+          notOuts: 0,
+          ballsFaced: 0,
+          oversBowled: "0",
+          runsConceded: 0,
+          maidens: 0,
+          fifties: 0,
+          hundreds: 0,
+          totalRunOuts: 0
+        });
       }
       
+      console.log("Found player stats for user", username, ":", stats);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching player stats:", error);
