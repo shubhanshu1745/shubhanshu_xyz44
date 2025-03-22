@@ -1527,6 +1527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create the match
       const matchData = {
         userId: user.id,
+        matchName: `vs ${req.body.opponent}`,
         opponent: req.body.opponent,
         venue: req.body.venue,
         matchDate: new Date(req.body.matchDate),
@@ -1569,11 +1570,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const performanceData = {
         userId: user.id,
         matchId: matchId,
-        runs: parseInt(req.body.runs) || 0,
-        balls: parseInt(req.body.balls) || 0,
+        runsScored: parseInt(req.body.runs) || 0,
+        ballsFaced: parseInt(req.body.balls) || 0,
         fours: parseInt(req.body.fours) || 0,
         sixes: parseInt(req.body.sixes) || 0,
-        wickets: parseInt(req.body.wickets) || 0,
+        wicketsTaken: parseInt(req.body.wickets) || 0,
         oversBowled: req.body.oversBowled?.toString() || "0",
         runsConceded: parseInt(req.body.runsConceded) || 0,
         catches: parseInt(req.body.catches) || 0,
@@ -1606,26 +1607,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           battingStyle: null,
           bowlingStyle: null,
           totalMatches: 1,
-          totalRuns: performance.runs,
-          battingAverage: performance.runs.toString(), // Initially just the runs from first match
-          strikeRate: performance.balls > 0 ? ((performance.runs / performance.balls) * 100).toString() : "0",
-          totalWickets: performance.wickets,
-          economy: performance.oversBowled && parseFloat(performance.oversBowled) > 0 
-            ? (performance.runsConceded / parseFloat(performance.oversBowled)).toString() 
-            : "0",
-          bowlingAverage: performance.wickets > 0 
-            ? (performance.runsConceded / performance.wickets).toString() 
-            : "0",
-          bestBowlingFigures: performance.wickets > 0 
-            ? `${performance.wickets}/${performance.runsConceded}` 
-            : "0/0",
-          highestScore: performance.runs,
-          fifties: performance.runs >= 50 && performance.runs < 100 ? 1 : 0,
-          hundreds: performance.runs >= 100 ? 1 : 0,
-          fours: performance.fours,
-          sixes: performance.sixes,
-          catches: performance.catches,
-          runOuts: performance.runOuts
+          totalRuns: performance.runsScored,
+          battingAverage: performance.runsScored.toString(), // Initially just the runs from first match
+          totalWickets: performance.wicketsTaken,
+          totalCatches: performance.catches,
+          totalSixes: performance.sixes,
+          totalFours: performance.fours,
+          highestScore: performance.runsScored,
+          bestBowling: performance.wicketsTaken > 0 
+            ? `${performance.wicketsTaken}/${performance.runsConceded}` 
+            : "0/0"
         };
         
         await storage.createPlayerStats(newStats);
@@ -1633,22 +1624,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing stats
         const updatedStats = {
           totalMatches: (currentStats.totalMatches || 0) + 1,
-          totalRuns: (currentStats.totalRuns || 0) + performance.runs,
+          totalRuns: (currentStats.totalRuns || 0) + performance.runsScored,
           // Calculate new batting average
-          battingAverage: (((currentStats.totalRuns || 0) + performance.runs) / ((currentStats.totalMatches || 0) + 1)).toString(),
-          // Update strike rate
-          strikeRate: ((currentStats.strikeRate ? parseFloat(currentStats.strikeRate) : 0) * (currentStats.totalMatches || 1) / ((currentStats.totalMatches || 0) + 1)
-            + (performance.balls > 0 ? (performance.runs / performance.balls) * 100 : 0) / ((currentStats.totalMatches || 0) + 1)).toString(),
-          totalWickets: (currentStats.totalWickets || 0) + performance.wickets,
-          // Update bowling figures
-          fifties: (currentStats.fifties || 0) + (performance.runs >= 50 && performance.runs < 100 ? 1 : 0),
-          hundreds: (currentStats.hundreds || 0) + (performance.runs >= 100 ? 1 : 0),
-          fours: (currentStats.fours || 0) + performance.fours,
-          sixes: (currentStats.sixes || 0) + performance.sixes,
-          catches: (currentStats.catches || 0) + performance.catches,
-          runOuts: (currentStats.runOuts || 0) + performance.runOuts,
+          battingAverage: (((currentStats.totalRuns || 0) + performance.runsScored) / ((currentStats.totalMatches || 0) + 1)).toString(),
+          totalWickets: (currentStats.totalWickets || 0) + performance.wicketsTaken,
+          totalCatches: (currentStats.totalCatches || 0) + performance.catches,
+          totalSixes: (currentStats.totalSixes || 0) + performance.sixes,
+          totalFours: (currentStats.totalFours || 0) + performance.fours,
           // Update highest score if needed
-          highestScore: Math.max(currentStats.highestScore || 0, performance.runs)
+          highestScore: Math.max(currentStats.highestScore || 0, performance.runsScored)
         };
         
         await storage.updatePlayerStats(userId, updatedStats);

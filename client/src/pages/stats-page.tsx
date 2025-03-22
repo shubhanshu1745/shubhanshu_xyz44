@@ -79,9 +79,13 @@ export default function StatsPage() {
   const [isPerformanceDialogOpen, setIsPerformanceDialogOpen] = useState(false);
 
   // Get player stats
-  const { data: playerData, isLoading: isPlayerLoading, error: playerError } = useQuery<PlayerWithStats>({
+  const { data: playerData, isLoading: isPlayerLoading, error: playerError, refetch: refetchStats } = useQuery<PlayerWithStats>({
     queryKey: [`/api/users/${user?.username}/player-stats`],
     enabled: !!user?.username,
+    onError: () => {
+      // If the stats don't exist yet, we'll handle it gracefully
+      console.log("Player stats not found. You'll be able to create them by adding match performances.");
+    }
   });
 
   // Get player matches
@@ -106,15 +110,15 @@ export default function StatsPage() {
   const performanceForm = useForm<PerformanceFormValues>({
     resolver: zodResolver(performanceFormSchema),
     defaultValues: {
-      runs: "0",
-      balls: "0",
-      fours: "0",
-      sixes: "0",
-      wickets: "0",
+      runs: 0,
+      balls: 0,
+      fours: 0,
+      sixes: 0,
+      wickets: 0,
       oversBowled: "0",
-      runsConceded: "0",
-      catches: "0",
-      runOuts: "0",
+      runsConceded: 0,
+      catches: 0,
+      runOuts: 0,
     },
   });
 
