@@ -1,0 +1,394 @@
+Develop an Instagram-like social platform focused on cricket that allows users to register, authenticate, post content, follow other users, like and comment on posts, and interact via chat. The platform is built initially as a monolithic application using Spring Boot for the backend and Angular for the frontend, with a plan for future modularization.
+
+Core Features:
+
+    User authentication and email verification
+
+    Creating and viewing posts (text and images)
+
+    Liking, commenting, and following functionality
+
+    Basic profile management and social feed
+
+    Simple real-time communication (chat)
+
+2. Architecture Overview
+
+Backend:
+
+    Framework: Spring Boot
+
+    Modules:
+
+        Entities & Repositories: Data modeling and persistence with a relational database (MySQL/PostgreSQL)
+
+        Services: Business logic and integration between repositories and controllers
+
+        Controllers: RESTful endpoints exposing APIs
+
+        Configuration: Security (JWT and Spring Security), email service (JavaMail), logging, and environment-specific settings
+
+    Supporting Tools:
+
+        Logging: Logback or SLF4J for audit and debugging
+
+        Email: JavaMail integrated with given credentials for sending authentication/notification emails
+
+Frontend:
+
+    Framework: Angular
+
+    Modules:
+
+        Components & Pages: Login, Registration, Feed, Profile, Post Creation, Chat, and Notification components
+
+        Services & Models: Communication with backend APIs, data modeling for users, posts, comments, and follows
+
+        Routing: SPA navigation between pages using Angular Router
+
+        State Management: Optionally use a library like NgRx or RxJS for managing app-wide state
+
+        Styling & UI: Angular Material for consistency and responsiveness
+
+3. Backend Design
+3.1. Entities
+
+    User:
+
+        Contains basic attributes: username, email, password (hashed), created date, and role (e.g., PLAYER, FAN, COACH).
+
+        Represents a user profile and is used for authentication and authorization.
+
+    Post:
+
+        Represents content created by a user (text, optional image URL, timestamp).
+
+        Links to the user entity to record ownership.
+
+    Like:
+
+        Captures the relation between a user and a post they like.
+
+        Facilitates counting likes and ensuring a user can only like once per post.
+
+    Comment:
+
+        Contains text and metadata about a comment on a post.
+
+        Links to both user and post for relational integrity.
+
+    Follow:
+
+        Models the relationship between two users (follower and following).
+
+        Aids in building a personalized feed.
+
+3.2. Repositories
+
+    Purpose:
+
+        Interface with the database using ORM (e.g., JPA/Hibernate) to perform CRUD operations.
+
+    Design Considerations:
+
+        Separate repositories for each entity (UserRepository, PostRepository, LikeRepository, CommentRepository, FollowRepository).
+
+        Ensure proper indexing (e.g., on user ID, post ID) for fast lookups.
+
+3.3. Services
+
+    Core Responsibilities:
+
+        Encapsulate business logic and coordinate between the controllers and repositories.
+
+    Key Services:
+
+        User Service: Handles registration, login, profile retrieval, and user updates.
+
+        Post Service: Manages post creation, retrieval (including feed aggregation), and deletion.
+
+        Interaction Service: Processes likes, comments, and follow actions.
+
+        Notification/Email Service: Manages sending emails for account verification, password resets, and activity notifications using the provided email credentials.
+
+        Chat Service (Optional): Manages real-time messaging (can be introduced as a separate module later).
+
+3.4. Configuration
+
+    Security:
+
+        Set up Spring Security with JWT to protect endpoints.
+
+        Define public endpoints (login, registration) and secure others.
+
+    Email:
+
+        Configure JavaMail properties using the provided email and password.
+
+        Use environment variables or a secure configuration server for credentials.
+
+    Logging:
+
+        Configure a centralized logging framework (e.g., Logback) for error and activity logs.
+
+    Application Properties:
+
+        Separate profiles for development, testing, and production.
+
+        Database connection strings, server ports, and other environment-specific settings.
+
+3.5. Controllers
+
+    Responsibility:
+
+        Expose RESTful endpoints to the frontend.
+
+    Components:
+
+        Auth Controller:
+
+            Endpoints for registration and login.
+
+            Handles user authentication, token issuance, and email verification processes.
+
+        User Controller:
+
+            Endpoints for profile management (retrieval, updating profiles, following/unfollowing users).
+
+        Post Controller:
+
+            Endpoints for creating, updating, deleting posts.
+
+            Endpoints to retrieve posts (personalized feed, user-specific posts).
+
+        Interaction Controller:
+
+            Endpoints for liking posts and adding comments.
+
+        Chat Controller (if applicable):
+
+            Manages WebSocket endpoints for real-time messaging.
+
+3.6. Business Logic
+
+    User Registration & Authentication:
+
+        Validate user input, hash passwords, issue JWT tokens upon successful login.
+
+        Trigger email verification process upon registration.
+
+    Post Management:
+
+        Validate content before saving posts.
+
+        Integrate with caching mechanisms (e.g., Redis) if needed for feed performance.
+
+    Interactions:
+
+        Ensure data consistency (a user can’t like the same post twice).
+
+        Handle edge cases (e.g., error when following an already-followed user).
+
+    Notifications:
+
+        Generate and dispatch notifications based on user activity (new follower, like, comment).
+
+3.7. Additional Considerations
+
+    Validation & Exception Handling:
+
+        Incorporate global exception handlers to return meaningful error responses.
+
+        Use validation annotations to ensure data integrity.
+
+    Testing:
+
+        Unit test service methods, repository operations, and controllers.
+
+        Consider integration tests to simulate end-to-end scenarios.
+
+4. Frontend Design
+4.1. Overall Structure
+
+    Modular Design:
+
+        Organize the Angular project into modules (e.g., AuthModule, FeedModule, ProfileModule, ChatModule).
+
+        Use lazy-loading for feature modules to improve performance.
+
+4.2. Components & Pages
+
+    Authentication Pages:
+
+        Login Page:
+
+            Simple form for email and password.
+
+            Communicates with the backend for token-based authentication.
+
+        Registration Page:
+
+            Form for username, email, and password.
+
+            Integrates with email verification flow.
+
+    Home/Feed Page:
+
+        Displays posts from users the current user follows.
+
+        Each post displayed via a reusable “post component” that includes like and comment buttons.
+
+    Profile Page:
+
+        Displays user information, their posts, and interaction options (e.g., follow/unfollow).
+
+        May include tabs or sections for posts, stats, and connections.
+
+    Post Creation Page/Component:
+
+        Form for creating a new post (text input, optional image upload).
+
+        Immediate feedback upon successful post creation.
+
+    Chat/Notifications (Optional):
+
+        Dedicated component for real-time chat or notifications, accessible via a side panel or a separate route.
+
+4.3. Services & Models
+
+    API Services:
+
+        Auth Service: Manages login, registration, token storage, and user session.
+
+        User Service: Retrieves and updates profile data.
+
+        Post Service: Handles post creation, fetching feeds, and post interactions (like/comment).
+
+        Interaction Service: Dedicated service for following users, liking posts, and commenting.
+
+    Models:
+
+        Define interfaces for User, Post, Comment, Like, and Follow to ensure consistency in data handling across components.
+
+4.4. Routing & State Management
+
+    Routing:
+
+        Define routes for each page (e.g., /login, /register, /feed, /profile/:id).
+
+        Protect routes that require authentication using route guards.
+
+    State Management:
+
+        Use Angular’s built-in services and RxJS observables for basic state management.
+
+        Optionally, integrate NgRx for complex state handling as the application grows.
+
+4.5. UI & Styling
+
+    Angular Material:
+
+        Leverage Angular Material components (buttons, cards, forms) to create a consistent and responsive design.
+
+    Responsive Design:
+
+        Ensure the application works well on mobile devices and desktops.
+
+    Component Layout:
+
+        Use a common layout for header, footer, and sidebar/navigation for a unified user experience.
+
+    Feedback & Interactions:
+
+        Implement spinners, modals, and snack bars for loading states, error messages, and success notifications.
+
+4.6. Integration with Backend
+
+    API Communication:
+
+        Use Angular’s HttpClient for all API calls.
+
+        Secure requests by attaching the JWT token (if available) in headers.
+
+    Error Handling:
+
+        Implement a global HTTP interceptor to manage API errors and redirect unauthorized users to the login page.
+
+5. Development Process
+5.1. Setup & Environment
+
+    Local Development:
+
+        Set up a local development environment for both Spring Boot and Angular.
+
+        Use Docker for containerizing the application if desired.
+
+    Environment Variables:
+
+        Securely store sensitive data (e.g., email credentials, database passwords) in environment files or a secure vault.
+
+5.2. Version Control & Branching
+
+    Repository:
+
+        Use Git for version control.
+
+    Branching Strategy:
+
+        Create feature branches for new functionalities.
+
+        Merge to a development branch for integration testing before pushing to main/master.
+
+5.3. Testing & Quality Assurance
+
+    Unit Testing:
+
+        Write unit tests for backend services and controllers.
+
+        Use Jasmine/Karma for Angular unit tests.
+
+    Integration Testing:
+
+        Simulate user flows through API testing tools (e.g., Postman) and end-to-end tests for the Angular app.
+
+    Code Reviews:
+
+        Establish peer reviews and continuous integration checks to maintain code quality.
+
+5.4. Continuous Integration / Continuous Deployment (CI/CD)
+
+    Automation:
+
+        Set up a CI/CD pipeline to automatically run tests and deploy code to staging or production environments.
+
+    Monitoring:
+
+        Integrate logging and monitoring tools to track errors and performance metrics in production.
+
+6. Future Enhancements & Scalability
+
+    Microservices Transition:
+
+        As the platform grows, break down the monolithic backend into microservices.
+
+    Real-Time Features:
+
+        Enhance the chat functionality using WebSockets.
+
+    Advanced Caching & Feeds:
+
+        Introduce caching mechanisms (e.g., Redis) for improved feed performance.
+
+    Analytics & Insights:
+
+        Develop dashboards to track user engagement, post performance, and cricket stats trends.
+
+    Mobile Integration:
+
+        Consider developing mobile applications (native or hybrid) to complement the web platform.
+
+7. Conclusion
+
+This document provides a detailed blueprint for building a cricket-oriented social platform from scratch. By outlining every component—from backend entities and business logic to frontend components and state management—you have a clear roadmap that simplifies the development process. Each section can be expanded with further technical specifications as the project evolves, ensuring a scalable, maintainable, and feature-rich platform.
+
+Use this document as a living guide, iterating on details as you progress through development and as new requirements emerge.
