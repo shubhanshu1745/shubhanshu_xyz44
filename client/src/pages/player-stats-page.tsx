@@ -157,197 +157,197 @@ export default function PlayerStatsPage() {
       
       <main className="flex-grow pt-16 pb-16 md:pb-0">
         <div className="container max-w-5xl mx-auto px-4">
-      {/* Player Info Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Avatar className="h-16 w-16">
-          <AvatarImage src={user.profileImage || ""} alt={user.username} />
-          <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-2xl font-bold">{user.fullName || user.username}</h1>
-          <p className="text-muted-foreground">@{user.username} • {stats.position || "Cricket Player"}</p>
-        </div>
-      </div>
+          {/* Player Info Header */}
+          <div className="flex items-center gap-4 mb-6">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={user.profileImage || ""} alt={user.username} />
+              <AvatarFallback>{user.username.substring(0, 2).toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold">{user.fullName || user.username}</h1>
+              <p className="text-muted-foreground">@{user.username} • {stats.position || "Cricket Player"}</p>
+            </div>
+          </div>
 
-      {/* Stats Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-              <Trophy className="mr-2 h-4 w-4" /> Career
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalMatches} Matches</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Batting Avg: {stats.battingAverage} | Bowling Avg: {stats.bowlingAverage}
-            </p>
-          </CardContent>
-        </Card>
+          {/* Stats Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                  <Trophy className="mr-2 h-4 w-4" /> Career
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalMatches} Matches</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Batting Avg: {stats.battingAverage} | Bowling Avg: {stats.bowlingAverage}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-              <Award className="mr-2 h-4 w-4" /> Batting
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalRuns} Runs</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Highest Score: {stats.highestScore} | Style: {stats.battingStyle || "N/A"}
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                  <Award className="mr-2 h-4 w-4" /> Batting
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalRuns} Runs</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Highest Score: {stats.highestScore} | Style: {stats.battingStyle || "N/A"}
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-              <TrendingUp className="mr-2 h-4 w-4" /> Bowling
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalWickets} Wickets</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Best Bowling: {stats.bestBowling || "N/A"} | Style: {stats.bowlingStyle || "N/A"}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                  <TrendingUp className="mr-2 h-4 w-4" /> Bowling
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.totalWickets} Wickets</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Best Bowling: {stats.bestBowling || "N/A"} | Style: {stats.bowlingStyle || "N/A"}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-      {/* Tabs for different stat categories */}
-      <Tabs defaultValue={defaultTab} className="mb-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="batting">Batting</TabsTrigger>
-          <TabsTrigger value="bowling">Bowling</TabsTrigger>
-          <TabsTrigger value="matches">Recent Matches</TabsTrigger>
-        </TabsList>
+          {/* Tabs for different stat categories */}
+          <Tabs defaultValue={defaultTab} className="mb-8">
+            <TabsList className="mb-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="batting">Batting</TabsTrigger>
+              <TabsTrigger value="bowling">Bowling</TabsTrigger>
+              <TabsTrigger value="matches">Recent Matches</TabsTrigger>
+            </TabsList>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Career Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold mb-2">Performance Summary</h3>
-                  <div className="space-y-2">
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Matches</span>
-                      <span className="font-medium">{stats.totalMatches}</span>
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Career Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="font-semibold mb-2">Performance Summary</h3>
+                      <div className="space-y-2">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Matches</span>
+                          <span className="font-medium">{stats.totalMatches}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Runs</span>
+                          <span className="font-medium">{stats.totalRuns}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Wickets</span>
+                          <span className="font-medium">{stats.totalWickets}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Highest Score</span>
+                          <span className="font-medium">{stats.highestScore}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Best Bowling</span>
+                          <span className="font-medium">{stats.bestBowling || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Catches</span>
+                          <span className="font-medium">{stats.totalCatches}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Runs</span>
-                      <span className="font-medium">{stats.totalRuns}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Wickets</span>
-                      <span className="font-medium">{stats.totalWickets}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Highest Score</span>
-                      <span className="font-medium">{stats.highestScore}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Best Bowling</span>
-                      <span className="font-medium">{stats.bestBowling || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Catches</span>
-                      <span className="font-medium">{stats.totalCatches}</span>
+                    <div>
+                      <h3 className="font-semibold mb-2">Batting & Bowling Summary</h3>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={battingData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {battingData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [`${value}`, ""]} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Batting & Bowling Summary</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={battingData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {battingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value}`, ""]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        {/* Batting Tab */}
-        <TabsContent value="batting">
-          <Card>
-            <CardHeader>
-              <CardTitle>Batting Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Batting Style</span>
-                      <span className="font-medium">{stats.battingStyle || "N/A"}</span>
+            {/* Batting Tab */}
+            <TabsContent value="batting">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Batting Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Batting Style</span>
+                          <span className="font-medium">{stats.battingStyle || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Runs</span>
+                          <span className="font-medium">{stats.totalRuns}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Batting Average</span>
+                          <span className="font-medium">{stats.battingAverage}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Highest Score</span>
+                          <span className="font-medium">{stats.highestScore}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">4s</span>
+                          <span className="font-medium">{stats.totalFours}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">6s</span>
+                          <span className="font-medium">{stats.totalSixes}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Runs</span>
-                      <span className="font-medium">{stats.totalRuns}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Batting Average</span>
-                      <span className="font-medium">{stats.battingAverage}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Highest Score</span>
-                      <span className="font-medium">{stats.highestScore}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">4s</span>
-                      <span className="font-medium">{stats.totalFours}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">6s</span>
-                      <span className="font-medium">{stats.totalSixes}</span>
+                    <div>
+                      <h3 className="font-semibold mb-4">Batting Performance</h3>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart
+                          data={battingData}
+                          margin={{
+                            top: 5,
+                            right: 30,
+                            left: 20,
+                            bottom: 5,
+                          }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="value" fill="#8884d8" />
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-4">Batting Performance</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart
-                      data={battingData}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
         {/* Bowling Tab */}
         <TabsContent value="bowling">
