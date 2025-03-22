@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Header } from "@/components/header";
+import { MobileNav } from "@/components/mobile-nav";
 import { 
   Table, 
   TableBody, 
@@ -61,44 +63,60 @@ export default function PlayerStatsPage() {
 
   if (!currentUser) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Please log in to view player statistics</p>
+      <div className="flex flex-col min-h-screen bg-neutral-50">
+        <Header />
+        <main className="flex-grow pt-16 pb-16 md:pb-0 flex items-center justify-center">
+          <p>Please log in to view player statistics</p>
+        </main>
+        <MobileNav />
       </div>
     );
   }
 
   if (isPlayerLoading || isMatchesLoading) {
     return (
-      <div className="container max-w-5xl mx-auto py-8 px-4">
-        <div className="flex items-center gap-4 mb-6">
-          <Skeleton className="h-16 w-16 rounded-full" />
-          <div>
-            <Skeleton className="h-6 w-40 mb-2" />
-            <Skeleton className="h-4 w-60" />
+      <div className="flex flex-col min-h-screen bg-neutral-50">
+        <Header />
+        <main className="flex-grow pt-16 pb-16 md:pb-0">
+          <div className="container max-w-5xl mx-auto px-4">
+            <div className="flex items-center gap-4 mb-6">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div>
+                <Skeleton className="h-6 w-40 mb-2" />
+                <Skeleton className="h-4 w-60" />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </div>
+            
+            <Skeleton className="h-[400px] mb-6" />
+            <Skeleton className="h-[300px]" />
           </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-        
-        <Skeleton className="h-[400px] mb-6" />
-        <Skeleton className="h-[300px]" />
+        </main>
+        <MobileNav />
       </div>
     );
   }
 
   if (!playerData || !playerData.stats) {
     return (
-      <div className="container max-w-5xl mx-auto py-8 px-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-lg">Player statistics not available</p>
-            <p className="text-muted-foreground">This user does not have cricket player statistics available.</p>
+      <div className="flex flex-col min-h-screen bg-neutral-50">
+        <Header />
+        <main className="flex-grow pt-16 pb-16 md:pb-0">
+          <div className="container max-w-5xl mx-auto px-4">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-lg">Player statistics not available</p>
+                <p className="text-muted-foreground">This user does not have cricket player statistics available.</p>
+              </div>
+            </div>
           </div>
-        </div>
+        </main>
+        <MobileNav />
       </div>
     );
   }
@@ -134,7 +152,11 @@ export default function PlayerStatsPage() {
   ];
 
   return (
-    <div className="container max-w-5xl mx-auto py-8 px-4">
+    <div className="flex flex-col min-h-screen bg-neutral-50">
+      <Header />
+      
+      <main className="flex-grow pt-16 pb-16 md:pb-0">
+        <div className="container max-w-5xl mx-auto px-4">
       {/* Player Info Header */}
       <div className="flex items-center gap-4 mb-6">
         <Avatar className="h-16 w-16">
@@ -450,6 +472,10 @@ export default function PlayerStatsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+        </div>
+      </main>
+      
+      <MobileNav />
     </div>
   );
 }
