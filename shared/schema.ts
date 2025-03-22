@@ -63,6 +63,13 @@ export const follows = pgTable("follows", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const blockedUsers = pgTable("blocked_users", {
+  id: serial("id").primaryKey(),
+  blockerId: integer("blocker_id").notNull(), // User who blocked
+  blockedId: integer("blocked_id").notNull(), // User who was blocked
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   user1Id: integer("user1_id").notNull(),
@@ -189,6 +196,11 @@ export const insertFollowSchema = createInsertSchema(follows).pick({
   followingId: true,
 });
 
+export const insertBlockedUserSchema = createInsertSchema(blockedUsers).pick({
+  blockerId: true,
+  blockedId: true,
+});
+
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   user1Id: true,
   user2Id: true,
@@ -272,6 +284,9 @@ export type Comment = typeof comments.$inferSelect;
 
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type Follow = typeof follows.$inferSelect;
+
+export type InsertBlockedUser = z.infer<typeof insertBlockedUserSchema>;
+export type BlockedUser = typeof blockedUsers.$inferSelect;
 
 export type InsertConversation = z.infer<typeof insertConversationSchema>;
 export type Conversation = typeof conversations.$inferSelect;

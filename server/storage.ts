@@ -4,6 +4,7 @@ import {
   likes, type Like, type InsertLike,
   comments, type Comment, type InsertComment,
   follows, type Follow, type InsertFollow,
+  blockedUsers, type BlockedUser, type InsertBlockedUser,
   conversations, type Conversation, type InsertConversation,
   messages, type Message, type InsertMessage,
   stories, type Story, type InsertStory,
@@ -60,6 +61,12 @@ export interface IStorage {
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
   getSuggestedUsers(userId: number, limit?: number): Promise<User[]>;
 
+  // Block methods
+  blockUser(block: InsertBlockedUser): Promise<BlockedUser>;
+  unblockUser(blockerId: number, blockedId: number): Promise<boolean>;
+  isBlocked(blockerId: number, blockedId: number): Promise<boolean>;
+  getBlockedUsers(userId: number): Promise<User[]>;
+
   // Chat methods
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   getConversation(user1Id: number, user2Id: number): Promise<Conversation | undefined>;
@@ -107,6 +114,7 @@ export class MemStorage implements IStorage {
   private likes: Map<number, Like>;
   private comments: Map<number, Comment>;
   private follows: Map<number, Follow>;
+  private blockedUsers: Map<number, BlockedUser>;
   private conversations: Map<number, Conversation>;
   private messages: Map<number, Message>;
   private stories: Map<number, Story>;
@@ -120,6 +128,7 @@ export class MemStorage implements IStorage {
   likeCurrentId: number;
   commentCurrentId: number;
   followCurrentId: number;
+  blockedUserCurrentId: number;
   conversationCurrentId: number;
   messageCurrentId: number;
   storyCurrentId: number;
@@ -135,6 +144,7 @@ export class MemStorage implements IStorage {
     this.likes = new Map();
     this.comments = new Map();
     this.follows = new Map();
+    this.blockedUsers = new Map();
     this.conversations = new Map();
     this.messages = new Map();
     this.stories = new Map();
@@ -148,6 +158,7 @@ export class MemStorage implements IStorage {
     this.likeCurrentId = 1;
     this.commentCurrentId = 1;
     this.followCurrentId = 1;
+    this.blockedUserCurrentId = 1;
     this.conversationCurrentId = 1;
     this.messageCurrentId = 1;
     this.storyCurrentId = 1;
