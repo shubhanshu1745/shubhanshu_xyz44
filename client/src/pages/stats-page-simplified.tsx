@@ -86,14 +86,17 @@ export default function StatsPage() {
   function onMatchSubmit(values: MatchFormValues) {
     if (!user) return;
     
+    // Convert matchDate string to a proper Date object for the API
     const matchData = {
       userId: user.id,
       opponent: values.opponent,
       venue: values.venue,
-      matchDate: values.matchDate,
+      matchDate: new Date(values.matchDate), // Convert to Date for API
       matchType: values.matchType,
-      result: values.result,
+      result: values.result || 'N/A', // Provide default if empty
       matchName: `${user.username} vs ${values.opponent}`,
+      teamScore: '0', // Add default required fields
+      opponentScore: '0', // Add default required fields
     };
     
     addMatchMutation.mutate(matchData);
