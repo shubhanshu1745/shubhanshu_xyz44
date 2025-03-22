@@ -879,6 +879,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Message delete endpoint
+  app.delete("/api/messages/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const messageId = parseInt(req.params.id);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid message ID" });
+      }
+      
+      const result = await storage.deleteMessage(messageId, userId);
+      
+      if (!result) {
+        return res.status(404).json({ 
+          message: "Message not found or you don't have permission to delete it" 
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+  
   // Reels endpoints
   app.get("/api/reels", async (req, res) => {
     try {
@@ -1371,6 +1400,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } catch (error) {
         console.error("Error marking messages as read:", error);
+      }
+    });
+    
+    // Handle message deletion
+    socket.on("delete_message", async ({ messageId, userId, conversationId }) => {
+      try {
+        // Delete the message
+        const result = await storage.deleteMessage(parseInt(messageId), parseInt(userId));
+        
+        if (!result) {
+          return socket.emit("error", { 
+            message: "Failed to delete message. Message not found or you don't have permission" 
+          });
+        }
+        
+        // First notify the user who deleted the message (for immediate feedback)
+        socket.emit("message_deleted", { messageId: parseInt(messageId) });
+        
+        // Get conversation to find the other user
+        const conversation = await storage.getConversationById(parseInt(conversationId));
+        if (!conversation) return;
+        
+        // Determine the other user's ID
+        const otherUserId = conversation.user1Id === parseInt(userId) 
+          ? conversation.user2Id 
+          : conversation.user1Id;
+        
+        // Notify the other user that a message was deleted if they're online
+        const otherUserSocketId = onlineUsers.get(otherUserId);
+        if (otherUserSocketId) {
+          io.to(otherUserSocketId).emit("message_deleted", { 
+            messageId: parseInt(messageId)
+          });
+        }
+      } catch (error) {
+        console.error("Error deleting message:", error);
+        socket.emit("error", { message: "Failed to delete message" });
       }
     });
     
