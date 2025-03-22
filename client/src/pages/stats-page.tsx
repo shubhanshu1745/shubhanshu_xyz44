@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, apiRequest } from "@/lib/queryClient";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { PlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -173,8 +173,20 @@ export default function StatsPage() {
         title: "Success",
         description: "Performance added successfully",
       });
+      // Refetch both matches and stats to update all data
       refetchMatches();
+      refetchStats();
       setIsPerformanceDialogOpen(false);
+      
+      // Force invalidate the cache for both queries
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
+      
+      // Add a small delay then refresh again to ensure updates
+      setTimeout(() => {
+        refetchMatches();
+        refetchStats();
+      }, 500);
     },
     onError: (error) => {
       toast({
