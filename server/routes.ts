@@ -1662,6 +1662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(match);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", JSON.stringify(error.errors));
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
       console.error("Error creating player match:", error);
