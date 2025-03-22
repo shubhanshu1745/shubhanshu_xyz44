@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter, Loader2, AlertCircle } from "lucide-react";
+import { Search, Calendar, Trophy, MapPin, Users, User, Star, Filter, Loader2, AlertCircle, Check } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getQueryFn } from "@/lib/queryClient";
 
@@ -99,6 +99,32 @@ export default function TeamsPage() {
             <div className="flex justify-center items-center py-16">
               <Loader2 className="h-12 w-12 animate-spin text-[#FF5722]" />
             </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-red-100 bg-red-50 rounded-md">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <h3 className="text-xl font-bold text-red-700 mb-2">Unable to load team data</h3>
+              <p className="text-red-600 max-w-md">We're experiencing issues retrieving the team information. Please check your connection and try again later.</p>
+              <Button onClick={() => window.location.reload()} variant="outline" className="mt-6">
+                Retry
+              </Button>
+            </div>
+          ) : filteredTeams.length === 0 && !searchQuery && teamType === "all" ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
+              <Users className="h-12 w-12 text-neutral-300 mb-4" />
+              <h3 className="text-xl font-medium text-neutral-700 mb-2">No teams available</h3>
+              <p className="text-neutral-500 max-w-md">We don't have any cricket teams to display at the moment. Please check back later for updates.</p>
+            </div>
+          ) : filteredTeams.length === 0 ? (
+            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
+              <Search className="h-12 w-12 text-neutral-300 mb-4" />
+              <h3 className="text-xl font-medium text-neutral-700 mb-2">No teams found</h3>
+              <p className="text-neutral-500 max-w-md">We couldn't find any teams matching your search criteria. Try adjusting your filters or search terms.</p>
+              <div className="flex gap-3 mt-6">
+                <Button onClick={() => {setSearchQuery(""); setTeamType("all");}} variant="outline">
+                  Clear all filters
+                </Button>
+              </div>
+            </div>
           ) : (
             <Tabs defaultValue="grid" className="w-full">
               <TabsList className="mb-6 w-48 justify-start bg-white border border-neutral-200 rounded-md p-1">
@@ -132,6 +158,20 @@ export default function TeamsPage() {
 }
 
 function TeamGridCard({ team }: { team: Team }) {
+  const [following, setFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleFollowClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setFollowing(!following);
+      setIsLoading(false);
+    }, 500);
+  };
+  
   return (
     <Card className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer">
       <div className="h-32 flex items-center justify-center p-4 bg-neutral-50">
@@ -163,15 +203,49 @@ function TeamGridCard({ team }: { team: Team }) {
           )}
         </div>
         
-        <Button variant="outline" className="w-full">Follow Team</Button>
+        <Button 
+          variant={following ? "default" : "outline"} 
+          className="w-full"
+          onClick={handleFollowClick}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : following ? (
+            <>
+              Following
+              <Check className="ml-2 h-4 w-4" />
+            </>
+          ) : (
+            "Follow Team"
+          )}
+        </Button>
       </CardContent>
     </Card>
   );
 }
 
 function TeamListCard({ team }: { team: Team }) {
+  const [following, setFollowing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  
+  const handleFollowClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      setFollowing(!following);
+      setIsLoading(false);
+    }, 500);
+  };
+  
   return (
-    <Card className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer">
+    <Card 
+      className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
+    >
       <div className="flex flex-col md:flex-row">
         <div className="w-full md:w-1/4 flex items-center justify-center p-4 bg-neutral-50">
           <Avatar className="h-20 w-20 rounded-md">
@@ -214,7 +288,23 @@ function TeamListCard({ team }: { team: Team }) {
                 <Trophy className="h-4 w-4 mr-2 text-[#FFC107]" />
                 <span className="font-medium">Key Achievements</span>
               </div>
-              <p className="text-xs text-neutral-600 pl-6">{team.achievements.slice(0, 2).join(", ")}{team.achievements.length > 2 ? "..." : ""}</p>
+              <p className="text-xs text-neutral-600 pl-6">
+                {expanded 
+                  ? team.achievements.join(", ") 
+                  : team.achievements.slice(0, 2).join(", ") + (team.achievements.length > 2 ? "..." : "")}
+              </p>
+            </div>
+          )}
+          
+          {expanded && team.players.length > 0 && (
+            <div className="mb-3">
+              <div className="flex items-center text-sm mb-1">
+                <Users className="h-4 w-4 mr-2 text-blue-500" />
+                <span className="font-medium">Key Players</span>
+              </div>
+              <p className="text-xs text-neutral-600 pl-6">
+                {team.players.join(", ")}
+              </p>
             </div>
           )}
           
@@ -236,7 +326,22 @@ function TeamListCard({ team }: { team: Team }) {
                 </Badge>
               )}
             </div>
-            <Button variant="outline">Follow Team</Button>
+            <Button 
+              variant={following ? "default" : "outline"}
+              onClick={handleFollowClick}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : following ? (
+                <>
+                  Following
+                  <Check className="ml-2 h-4 w-4" />
+                </>
+              ) : (
+                "Follow Team"
+              )}
+            </Button>
           </div>
         </div>
       </div>

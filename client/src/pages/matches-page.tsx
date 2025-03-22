@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle } from "lucide-react";
+import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle, Check, Bell, Play, Video } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getQueryFn } from "@/lib/queryClient";
 
@@ -178,8 +178,33 @@ export default function MatchesPage() {
 }
 
 function MatchCard({ match }: { match: Match }) {
+  const [expanded, setExpanded] = useState(false);
+  const [reminderSet, setReminderSet] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoading(true);
+    
+    if (match.status === "upcoming") {
+      // Simulate setting a reminder
+      setTimeout(() => {
+        setReminderSet(!reminderSet);
+        setLoading(false);
+      }, 500);
+    } else {
+      // Simulate opening a modal or starting a live stream
+      setTimeout(() => {
+        setLoading(false);
+      }, 500);
+    }
+  };
+  
   return (
-    <Card className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer">
+    <Card 
+      className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer"
+      onClick={() => setExpanded(!expanded)}
+    >
       <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
         <div>
           <CardTitle className="text-sm font-medium">{match.title}</CardTitle>
@@ -192,7 +217,7 @@ function MatchCard({ match }: { match: Match }) {
           </div>
         </div>
         {match.status === "live" ? (
-          <Badge className="bg-red-500">LIVE</Badge>
+          <Badge className="bg-red-500 animate-pulse">LIVE</Badge>
         ) : match.status === "upcoming" ? (
           <Badge variant="outline" className="text-neutral-500">Upcoming</Badge>
         ) : (
@@ -239,6 +264,35 @@ function MatchCard({ match }: { match: Match }) {
           <p className="text-sm text-center text-[#FF5722] font-medium mb-3">{match.result}</p>
         )}
         
+        {expanded && match.status === "upcoming" && (
+          <div className="my-3 p-3 bg-blue-50 rounded-md border border-blue-100">
+            <h4 className="text-sm font-medium text-blue-700 mb-1">Match Details</h4>
+            <p className="text-xs text-blue-600">
+              Don't miss the exciting cricket action between {match.teams.team1.name} and {match.teams.team2.name}. 
+              Set a reminder to get notified when the match starts.
+            </p>
+          </div>
+        )}
+        
+        {expanded && match.status === "live" && (
+          <div className="my-3 p-3 bg-red-50 rounded-md border border-red-100">
+            <h4 className="text-sm font-medium text-red-700 mb-1">Live Match</h4>
+            <p className="text-xs text-red-600">
+              The match is currently in progress. Click "Watch Live" to stream the match and follow ball-by-ball updates.
+            </p>
+          </div>
+        )}
+        
+        {expanded && match.status === "completed" && match.imageUrl && (
+          <div className="my-3 flex justify-center">
+            <img 
+              src={match.imageUrl} 
+              alt={match.title} 
+              className="max-h-36 rounded-md object-cover"
+            />
+          </div>
+        )}
+        
         <div className="flex items-center justify-between mt-3 border-t border-neutral-100 pt-3">
           <div className="flex items-center text-xs text-neutral-500">
             <MapPin className="h-3 w-3 mr-1" />
@@ -247,8 +301,25 @@ function MatchCard({ match }: { match: Match }) {
           <Badge variant="outline" className="text-xs">{match.type}</Badge>
         </div>
         
-        <Button className="w-full mt-3" variant="outline">
-          {match.status === "live" ? "Watch Live" : match.status === "upcoming" ? "Set Reminder" : "View Highlights"}
+        <Button 
+          className="w-full mt-3" 
+          variant={match.status === "upcoming" && reminderSet ? "default" : "outline"}
+          onClick={handleButtonClick}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : match.status === "live" ? (
+            <><Play className="h-4 w-4 mr-2" /> Watch Live</>
+          ) : match.status === "upcoming" ? (
+            reminderSet ? (
+              <><Check className="h-4 w-4 mr-2" /> Reminder Set</>
+            ) : (
+              <><Bell className="h-4 w-4 mr-2" /> Set Reminder</>
+            )
+          ) : (
+            <><Video className="h-4 w-4 mr-2" /> View Highlights</>
+          )}
         </Button>
       </CardContent>
     </Card>
