@@ -182,19 +182,19 @@ export default function StatsPage() {
   const playerStats: PlayerStats | undefined = dbPlayerStats ? {
     ...dbPlayerStats,
     matches: dbPlayerStats.totalMatches || 0,
-    innings: 0, // We'll need to add this to the database later
-    notOuts: 0, // We'll need to add this to the database later
+    innings: dbPlayerStats.innings || 0,
+    notOuts: dbPlayerStats.notOuts || 0,
     wickets: dbPlayerStats.totalWickets || 0,
-    ballsFaced: 0, // We'll need to add this to the database later
-    oversBowled: 0, // We'll need to add this to the database later
-    runsConceded: 0, // We'll need to add this to the database later
+    ballsFaced: dbPlayerStats.ballsFaced || 0,
+    oversBowled: dbPlayerStats.oversBowled || "0",
+    runsConceded: dbPlayerStats.runsConceded || 0,
     bestBowlingFigures: dbPlayerStats.bestBowling || "0/0",
-    fifties: 0, // We'll need to add this to the database later
-    hundreds: 0, // We'll need to add this to the database later
+    fifties: dbPlayerStats.fifties || 0,
+    hundreds: dbPlayerStats.hundreds || 0,
     fours: dbPlayerStats.totalFours || 0,
     sixes: dbPlayerStats.totalSixes || 0,
     catches: dbPlayerStats.totalCatches || 0,
-    runOuts: 0, // We'll need to add this to the database later
+    runOuts: dbPlayerStats.totalRunOuts || 0,
     playerOfMatchAwards: 0, // We'll need to add this to the database later
     highestScoreNotOut: false // We'll need to add this to the database later
   } : undefined;
