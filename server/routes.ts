@@ -34,6 +34,70 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+
+  // Current user endpoint
+  app.get("/api/user", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't send password to client
+      const { password, ...userWithoutPassword } = user;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      res.status(500).json({ message: "Failed to fetch user data" });
+    }
+  });
+  
+  // Update current user
+  app.patch("/api/user", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const userData = req.body;
+      
+      // Validate and sanitize user data
+      const allowedFields = ['fullName', 'bio', 'location', 'profileImage', 'website'];
+      const sanitizedData: Partial<any> = {};
+      
+      allowedFields.forEach(field => {
+        if (userData[field] !== undefined) {
+          sanitizedData[field] = userData[field];
+        }
+      });
+      
+      if (Object.keys(sanitizedData).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, sanitizedData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't send password to client
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
   
   // Email verification and password reset endpoints
   app.post("/api/forgot-password", async (req, res) => {
