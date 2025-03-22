@@ -76,6 +76,8 @@ export const messages = pgTable("messages", {
   conversationId: integer("conversation_id").notNull(),
   senderId: integer("sender_id").notNull(),
   content: text("content").notNull(),
+  messageType: text("message_type").default("text").notNull(), // "text", "image", "document", "location"
+  mediaUrl: text("media_url"), // URL to image or document
   read: boolean("read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
