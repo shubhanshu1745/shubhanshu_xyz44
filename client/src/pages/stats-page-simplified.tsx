@@ -515,7 +515,7 @@ export default function StatsPage() {
             </CardContent>
           </Card>
           
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Bowling</CardTitle>
             </CardHeader>
@@ -562,7 +562,7 @@ export default function StatsPage() {
             </CardContent>
           </Card>
           
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Batting Milestones</CardTitle>
             </CardHeader>
@@ -599,7 +599,7 @@ export default function StatsPage() {
             </CardContent>
           </Card>
           
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Fielding & More</CardTitle>
             </CardHeader>
@@ -642,13 +642,13 @@ export default function StatsPage() {
           <TabsList className="w-full border-b p-0 h-auto">
             <TabsTrigger 
               value="recent-matches" 
-              className="flex-1 py-3 rounded-none rounded-tl-lg data-[state=active]:border-b-2 data-[state=active]:border-[#2E8B57]"
+              className="flex-1 py-3 rounded-none rounded-tl-lg data-[state=active]:border-b-2 data-[state=active]:border-[#1F3A8A]"
             >
               Recent Matches
             </TabsTrigger>
             <TabsTrigger 
               value="performance-trends" 
-              className="flex-1 py-3 rounded-none rounded-tr-lg data-[state=active]:border-b-2 data-[state=active]:border-[#2E8B57]"
+              className="flex-1 py-3 rounded-none rounded-tr-lg data-[state=active]:border-b-2 data-[state=active]:border-[#1F3A8A]"
             >
               Performance Trends
             </TabsTrigger>
@@ -670,14 +670,14 @@ export default function StatsPage() {
                 {matches && matches.length > 0 ? (
                   <div className="space-y-4">
                     {matches.map((match) => (
-                      <Card key={match.id} className="overflow-hidden border-[#2E8B57]/20">
-                        <div className="flex bg-[#2E8B57]/10 p-2 items-center">
-                          <Calendar className="h-4 w-4 text-[#2E8B57] mr-2" />
+                      <Card key={match.id} className="overflow-hidden border-[#1F3A8A]/20">
+                        <div className="flex bg-[#1F3A8A]/10 p-2 items-center">
+                          <Calendar className="h-4 w-4 text-[#1F3A8A] mr-2" />
                           <span className="text-sm font-medium">
                             {match.date ? format(new Date(match.date), 'PPP') : 'Date not available'}
                           </span>
                           <div className="mx-2 text-gray-400">•</div>
-                          <MapPin className="h-4 w-4 text-[#2E8B57] mr-2" />
+                          <MapPin className="h-4 w-4 text-[#1F3A8A] mr-2" />
                           <span className="text-sm">{match.venue || 'Venue not specified'}</span>
                         </div>
                         
@@ -697,7 +697,7 @@ export default function StatsPage() {
                           {match.performance && (
                             <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
                               <div>
-                                <h4 className="font-medium mb-1 text-[#2E8B57]">Batting</h4>
+                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Batting</h4>
                                 <p className="grid grid-cols-2 gap-1">
                                   <span className="text-muted-foreground">Runs:</span>
                                   <span className="font-medium">{match.performance.runs || 0} 
@@ -715,7 +715,7 @@ export default function StatsPage() {
                               </div>
                               
                               <div>
-                                <h4 className="font-medium mb-1 text-[#2E8B57]">Bowling</h4>
+                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Bowling</h4>
                                 <p className="grid grid-cols-2 gap-1">
                                   <span className="text-muted-foreground">Wickets:</span>
                                   <span className="font-medium">{match.performance.wickets || 0}</span>
@@ -734,9 +734,9 @@ export default function StatsPage() {
                         </div>
                         
                         {match.result && (
-                          <div className="border-t p-3 bg-[#2E8B57]/5">
+                          <div className="border-t p-3 bg-[#1F3A8A]/5">
                             <p className="text-sm">
-                              <span className="font-medium text-[#2E8B57]">Result:</span> {match.result}
+                              <span className="font-medium text-[#1F3A8A]">Result:</span> {match.result}
                             </p>
                           </div>
                         )}
@@ -762,26 +762,26 @@ export default function StatsPage() {
           
           <TabsContent value="performance-trends" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-4 border-[#2E8B57]/20">
+              <Card className="p-4 border-[#1F3A8A]/20">
                 <CardTitle className="text-lg cricket-primary mb-4">Batting Performance</CardTitle>
                 <CardDescription className="mb-4">
                   Your batting performance will be tracked across all your matches
                 </CardDescription>
                 
-                <div className="h-64 flex items-center justify-center bg-[#2E8B57]/5 rounded-md">
+                <div className="h-64 flex items-center justify-center bg-[#1F3A8A]/5 rounded-md">
                   <p className="text-center text-muted-foreground">
                     Batting performance chart will appear here as you add matches
                   </p>
                 </div>
               </Card>
               
-              <Card className="p-4 border-[#2E8B57]/20">
+              <Card className="p-4 border-[#1F3A8A]/20">
                 <CardTitle className="text-lg cricket-primary mb-4">Bowling Analysis</CardTitle>
                 <CardDescription className="mb-4">
                   Your bowling statistics and economy rate across matches
                 </CardDescription>
                 
-                <div className="h-64 flex items-center justify-center bg-[#2E8B57]/5 rounded-md">
+                <div className="h-64 flex items-center justify-center bg-[#1F3A8A]/5 rounded-md">
                   <p className="text-center text-muted-foreground">
                     Bowling analysis chart will appear here as you add matches
                   </p>
