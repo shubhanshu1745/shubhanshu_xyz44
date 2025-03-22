@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, insertUserSchema, loginSchema } from "@shared/schema";
+import { User as SelectUser, insertUserSchema, registerSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { EmailService } from "./services/email-service";
@@ -79,8 +79,11 @@ export function setupAuth(app: Express) {
   // Registration endpoint
   app.post("/api/register", async (req, res, next) => {
     try {
-      // Validate request body
-      const validatedUser = insertUserSchema.parse(req.body);
+      // Validate request body using the registerSchema, which includes confirmPassword
+      const { confirmPassword, ...validationData } = registerSchema.parse(req.body);
+      
+      // At this point, validation has passed including password matching
+      const validatedUser = validationData;
       
       // Check if username or email already exists
       const existingUsername = await storage.getUserByUsername(validatedUser.username);

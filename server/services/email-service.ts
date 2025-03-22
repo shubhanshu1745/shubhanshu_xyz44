@@ -12,6 +12,41 @@ const hasEmailCredentials =
 
 // Configure email transporter
 let transporter: nodemailer.Transporter;
+let testAccount: nodemailer.TestAccount | null = null;
+
+// Initialize Ethereal test account for development if no credentials provided
+async function getTestTransporter() {
+  if (!testAccount) {
+    try {
+      // Create a test account on Ethereal.email (fake SMTP service)
+      testAccount = await nodemailer.createTestAccount();
+      
+      // Create reusable transporter using the test account
+      return nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false, // true for 465, false for other ports
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to create test account:', error);
+      return null;
+    }
+  } else {
+    return nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+  }
+}
 
 if (hasEmailCredentials) {
   transporter = nodemailer.createTransport({
