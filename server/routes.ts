@@ -784,6 +784,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // File upload for messages
+  app.post("/api/upload/message", upload.single('file'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const result = await saveFile(req.file, 'uploads/messages');
+      
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
   app.post("/api/conversations/:id/messages", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -1238,10 +1258,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Handle real-time messaging
     socket.on("send_message", async (messageData) => {
       try {
-        const { conversationId, senderId, text } = messageData;
+        const { conversationId, senderId, content, messageType = "text", mediaUrl } = messageData;
         
         // Validate required fields
-        if (!conversationId || !senderId || !text) {
+        if (!conversationId || !senderId || !content) {
           return socket.emit("error", { message: "Missing required fields" });
         }
         
@@ -1249,7 +1269,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = await storage.createMessage({
           conversationId: parseInt(conversationId),
           senderId: parseInt(senderId),
-          content: text,
+          content: content,
+          messageType: messageType,
+          mediaUrl: mediaUrl,
           read: false,
           createdAt: new Date()
         });

@@ -7,11 +7,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useSocket } from "@/hooks/use-socket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Send, ArrowLeft, Image, Paperclip, MapPin, Mic, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { ChatInput } from "@/components/chat-input";
 import type { User, Conversation, Message } from "@shared/schema";
 
 type MessageWithSender = Message & {
