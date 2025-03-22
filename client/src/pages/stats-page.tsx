@@ -171,9 +171,15 @@ export default function StatsPage() {
         runsConceded: data.runsConceded,
         catches: data.catches,
         runOuts: data.runOuts,
+        battingStatus: data.notOut ? "Not Out" : "Out",
+        notOut: data.notOut,
+        maidens: 0,
+        stumpings: 0
       });
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      console.log("Performance added successfully, server response:", response);
+      
       toast({
         title: "Success",
         description: "Performance added successfully",
@@ -182,27 +188,38 @@ export default function StatsPage() {
       // Close the dialog first
       setIsPerformanceDialogOpen(false);
       
-      // Clear the query cache properly
+      // Clear all cache related to this user - more aggressive approach
       queryClient.invalidateQueries({
-        queryKey: ['/api/users', user?.username, 'matches']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['/api/users', user?.username, 'player-stats']
+        predicate: (query) => {
+          const queryKey = Array.isArray(query.queryKey) ? query.queryKey : [query.queryKey];
+          return queryKey.some(key => 
+            (typeof key === 'string' && key.includes(`/api/users`)) || 
+            (typeof key === 'string' && key.includes(user?.username || ''))
+          );
+        }
       });
       
-      // Also invalidate with legacy format for backward compatibility
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${user?.username}/matches`] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${user?.username}/player-stats`] 
-      });
+      // Force immediate refetch of data without waiting for React Query's automatic refresh
+      console.log("Forcing immediate refetch of player stats and matches...");
       
-      // Manually trigger refetches to guarantee updates
-      setTimeout(() => {
+      Promise.all([
+        queryClient.fetchQuery({
+          queryKey: ['/api/users', user?.username, 'player-stats']
+        }), 
+        queryClient.fetchQuery({
+          queryKey: ['/api/users', user?.username, 'matches']
+        })
+      ]).then(() => {
+        console.log("Data refetch completed!");
+        // Manually trigger the refetch hooks as an extra guarantee
         refetchMatches();
         refetchStats();
-      }, 300);
+      }).catch(err => {
+        console.error("Error refetching data:", err);
+        // Even if Promise.all fails, try the individual refetches
+        refetchMatches();
+        refetchStats();
+      });
     },
     onError: (error) => {
       toast({
