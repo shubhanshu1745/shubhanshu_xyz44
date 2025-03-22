@@ -248,6 +248,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Search
+  app.get("/api/search", async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query) {
+        return res.status(400).json({ message: "Query parameter 'q' is required" });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      // Search users
+      const users = await storage.searchUsers(query, limit);
+      const safeUsers = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      // In a real app, we would also search for posts, hashtags, etc.
+      // For now, we'll just return users
+      
+      res.json({
+        users: safeUsers,
+        // posts: [],
+        // hashtags: []
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to search" });
+    }
+  });
+  
   // User profile endpoints
   app.get("/api/users/:username", async (req, res) => {
     try {

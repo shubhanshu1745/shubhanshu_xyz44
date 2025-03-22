@@ -26,6 +26,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<User>): Promise<User | undefined>;
+  searchUsers(query: string, limit?: number): Promise<User[]>;
   
   // Token methods
   createToken(token: InsertToken): Promise<Token>;
@@ -465,6 +466,21 @@ export class MemStorage implements IStorage {
       .slice(0, limit);
     
     return suggestedUsers;
+  }
+  
+  async searchUsers(query: string, limit: number = 10): Promise<User[]> {
+    if (!query) return [];
+    
+    const lowerCaseQuery = query.toLowerCase();
+    
+    return Array.from(this.users.values())
+      .filter(user => 
+        user.username.toLowerCase().includes(lowerCaseQuery) || 
+        (user.fullName && user.fullName.toLowerCase().includes(lowerCaseQuery)) ||
+        (user.bio && user.bio.toLowerCase().includes(lowerCaseQuery)) ||
+        (user.location && user.location.toLowerCase().includes(lowerCaseQuery))
+      )
+      .slice(0, limit);
   }
 
   // Chat methods
