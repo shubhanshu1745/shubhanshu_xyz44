@@ -1182,5 +1182,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Initialize Socket.IO server
+  const io = new SocketServer(httpServer, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"]
+    }
+  });
+  
+  // Store online users
+  const onlineUsers = new Map(); // userId -> socketId
+  
+  // Socket.IO connection handling
+  io.on("connection", (socket) => {
+    console.log(`Socket connected: ${socket.id}`);
+    
+    // Authenticate socket connection
+    socket.on("authenticate", async (userId) => {
+      // Store user's socket for real-time communication
+      onlineUsers.set(parseInt(userId), socket.id);
+      console.log(`User ${userId} authenticated with socket ${socket.id}`);
+      
+      // Emit user's online status to their followers
+      try {
+        const user = await storage.getUser(parseInt(userId));
+        if (user) {
+          const followers = await storage.getFollowers(user.id);
+          followers.forEach((follower) => {
+            const followerSocketId = onlineUsers.get(follower.id);
+            if (followerSocketId) {
+              io.to(followerSocketId).emit("user_online", { userId: user.id, username: user.username });
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Error handling socket authentication:", error);
+      }
+    });
+    
+    // Handle real-time messaging
+    socket.on("send_message", async (messageData) => {
+      try {
+        const { conversationId, senderId, text } = messageData;
+        
+        // Validate required fields
+        if (!conversationId || !senderId || !text) {
+          return socket.emit("error", { message: "Missing required fields" });
+        }
+        
+        // Create message in database
+        const message = await storage.createMessage({
+          conversationId: parseInt(conversationId),
+          senderId: parseInt(senderId),
+          content: text,
+          read: false,
+          createdAt: new Date()
+        });
+        
+        // Get conversation to find receiver
+        const conversation = await storage.getConversationById(parseInt(conversationId));
+        if (!conversation) {
+          return socket.emit("error", { message: "Conversation not found" });
+        }
+        
+        // Determine the receiver ID
+        const receiverId = conversation.user1Id === parseInt(senderId) 
+          ? conversation.user2Id 
+          : conversation.user1Id;
+        
+        // Get sender information for the response
+        const sender = await storage.getUser(parseInt(senderId));
+        if (!sender) {
+          return socket.emit("error", { message: "Sender not found" });
+        }
+        
+        // Prepare message with sender information
+        const messageWithSender = {
+          ...message,
+          sender: {
+            id: sender.id,
+            username: sender.username,
+            profileImage: sender.profileImage
+          }
+        };
+        
+        // Send to the message sender for instant feedback
+        socket.emit("receive_message", messageWithSender);
+        
+        // Check if receiver is online and send message
+        const receiverSocketId = onlineUsers.get(receiverId);
+        if (receiverSocketId) {
+          io.to(receiverSocketId).emit("receive_message", messageWithSender);
+        }
+      } catch (error) {
+        console.error("Error handling message:", error);
+        socket.emit("error", { message: "Failed to send message" });
+      }
+    });
+    
+    // Handle typing indicators
+    socket.on("typing", ({ conversationId, userId }) => {
+      try {
+        // Get conversation to find receiver
+        storage.getConversationById(parseInt(conversationId))
+          .then(conversation => {
+            if (!conversation) return;
+            
+            // Determine the receiver ID
+            const receiverId = conversation.user1Id === parseInt(userId) 
+              ? conversation.user2Id 
+              : conversation.user1Id;
+            
+            // Send typing indicator to receiver if online
+            const receiverSocketId = onlineUsers.get(receiverId);
+            if (receiverSocketId) {
+              io.to(receiverSocketId).emit("user_typing", { 
+                conversationId: parseInt(conversationId), 
+                userId: parseInt(userId) 
+              });
+            }
+          })
+          .catch(error => {
+            console.error("Error handling typing indicator:", error);
+          });
+      } catch (error) {
+        console.error("Error in typing event:", error);
+      }
+    });
+    
+    // Handle read receipts
+    socket.on("mark_read", async ({ conversationId, userId }) => {
+      try {
+        await storage.markMessagesAsRead(parseInt(conversationId), parseInt(userId));
+        
+        // Get conversation to find sender
+        const conversation = await storage.getConversationById(parseInt(conversationId));
+        if (!conversation) return;
+        
+        // Determine the sender ID (the other user in the conversation)
+        const senderId = conversation.user1Id === parseInt(userId) 
+          ? conversation.user2Id 
+          : conversation.user1Id;
+        
+        // Notify sender that messages were read if they're online
+        const senderSocketId = onlineUsers.get(senderId);
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messages_read", { 
+            conversationId: parseInt(conversationId),
+            userId: parseInt(userId)
+          });
+        }
+      } catch (error) {
+        console.error("Error marking messages as read:", error);
+      }
+    });
+    
+    // Handle disconnection
+    socket.on("disconnect", () => {
+      console.log(`Socket disconnected: ${socket.id}`);
+      
+      // Find and remove the user from onlineUsers
+      Array.from(onlineUsers.entries()).forEach(([userId, socketId]) => {
+        if (socketId === socket.id) {
+          onlineUsers.delete(userId);
+          
+          // Notify followers that user is offline
+          storage.getUser(userId)
+            .then(user => {
+              if (!user) return;
+              
+              return storage.getFollowers(user.id)
+                .then(followers => {
+                  followers.forEach(follower => {
+                    const followerSocketId = onlineUsers.get(follower.id);
+                    if (followerSocketId) {
+                      io.to(followerSocketId).emit("user_offline", { 
+                        userId: user.id, 
+                        username: user.username 
+                      });
+                    }
+                  });
+                });
+            })
+            .catch(error => {
+              console.error("Error handling disconnect notification:", error);
+            });
+        }
+      });
+    });
+  });
+  
   return httpServer;
 }

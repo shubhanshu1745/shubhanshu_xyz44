@@ -196,6 +196,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   conversationId: true,
   senderId: true,
   content: true,
+  read: true,
+  createdAt: true,
 });
 
 export const insertStorySchema = createInsertSchema(stories).pick({
