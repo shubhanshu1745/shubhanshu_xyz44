@@ -1,0 +1,116 @@
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import { seedDatabase } from "./seed";
+import dotenv from 'dotenv';
+import cors from 'cors';
+import session from 'express-session';
+import { MemoryStore } from 'memorystore';
+import MySQLStore from 'express-mysql-session';
+import { initializeDatabase } from './db-config';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize database connection
+const db = initializeDatabase();
+
+const app = express();
+
+// Setup CORS
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Configure session store
+const sessionStore = process.env.USE_MYSQL === 'true' 
+  ? new (MySQLStore as any)(session)({
+      host: process.env.DB_HOST || 'localhost',
+      port: 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'cricsocial',
+    })
+  : new MemoryStore();
+
+// Configure session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 1 day
+  }
+}));
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  
+  // Simpler approach to logging response without overriding res.json
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      log(logLine);
+    }
+  });
+
+  next();
+});
+
+(async () => {
+  const server = await registerRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    // Make sure we don't crash if res.json fails
+    try {
+      res.status(status).json({ message });
+    } catch (jsonError) {
+      console.error("Error sending error response:", jsonError);
+      // Fallback to a simple text response
+      res.status(status).send(`Error: ${message}`);
+    }
+    
+    // Log the error but don't throw it
+    console.error("Application error:", err);
+  });
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client.
+  // It is the only port that is not firewalled.
+  const port = process.env.PORT || 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, async () => {
+    log(`serving on port ${port}`);
+    
+    // Seed the database with demo data
+    try {
+      await seedDatabase();
+    } catch (error) {
+      console.error("Error seeding database:", error);
+    }
+  });
+})();
