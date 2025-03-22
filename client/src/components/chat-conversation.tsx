@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useSocket } from "@/hooks/use-socket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,11 +30,11 @@ interface ChatConversationProps {
 
 export function ChatConversation({ conversationId, onBack }: ChatConversationProps) {
   const { user } = useAuth();
+  const { socket, isConnected } = useSocket();
   const [newMessage, setNewMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const socketRef = useRef<Socket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
   
@@ -43,22 +44,12 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     enabled: !!conversationId && !!user
   });
   
-  // Initialize Socket.IO connection and handle events
+  // Set up event listeners for socket events
   useEffect(() => {
-    if (!user || !conversationId) return;
-    
-    // Connect to socket server
-    socketRef.current = io(window.location.origin, {
-      transports: ["websocket", "polling"]
-    });
-    
-    const socket = socketRef.current;
-    
-    // Authenticate socket with user ID
-    socket.emit("authenticate", user.id);
+    if (!user || !conversationId || !socket || !isConnected) return;
     
     // Listen for new messages
-    socket.on("receive_message", (message: MessageWithSender) => {
+    const handleNewMessage = (message: MessageWithSender) => {
       // If message is for this conversation, update the query cache
       if (message.conversationId === conversationId) {
         queryClient.setQueryData<ConversationData>(
@@ -88,10 +79,10 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
       
       // Update the conversations list to show latest message
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
-    });
+    };
     
     // Listen for typing indicators
-    socket.on("user_typing", (data: { conversationId: number, userId: number }) => {
+    const handleTypingIndicator = (data: { conversationId: number, userId: number }) => {
       if (data.conversationId === conversationId && data.userId !== user.id) {
         setOtherUserTyping(true);
         
@@ -104,36 +95,43 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
           setOtherUserTyping(false);
         }, 3000);
       }
-    });
+    };
     
     // Listen for read receipts
-    socket.on("messages_read", (data: { conversationId: number, userId: number }) => {
+    const handleReadReceipts = (data: { conversationId: number, userId: number }) => {
       if (data.conversationId === conversationId) {
         // This would update the UI to show read receipts
         // For now, just invalidate the query to refresh
         queryClient.invalidateQueries({ queryKey: [`/api/conversations/${conversationId}`] });
       }
-    });
+    };
     
-    // Clean up socket connection
+    // Register event listeners
+    socket.on("receive_message", handleNewMessage);
+    socket.on("user_typing", handleTypingIndicator);
+    socket.on("messages_read", handleReadReceipts);
+    
+    // Mark messages as read when first viewing conversation
+    socket.emit("mark_read", { conversationId, userId: user.id });
+    
+    // Clean up event listeners
     return () => {
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      socket.off("receive_message");
-      socket.off("user_typing");
-      socket.off("messages_read");
-      socket.disconnect();
+      socket.off("receive_message", handleNewMessage);
+      socket.off("user_typing", handleTypingIndicator);
+      socket.off("messages_read", handleReadReceipts);
     };
-  }, [conversationId, user, queryClient]);
+  }, [conversationId, user, queryClient, socket, isConnected]);
   
   // Handle typing indicator on input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewMessage(e.target.value);
     
-    if (!isTyping && e.target.value.trim() !== "") {
+    if (!isTyping && e.target.value.trim() !== "" && socket && isConnected) {
       setIsTyping(true);
-      socketRef.current?.emit("typing", { conversationId, userId: user?.id });
+      socket.emit("typing", { conversationId, userId: user?.id });
       
       // Reset typing status after 2 seconds
       setTimeout(() => {
@@ -146,9 +144,9 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (newMessage.trim() && socketRef.current && user) {
+    if (newMessage.trim() && socket && isConnected && user) {
       // Send message through socket
-      socketRef.current.emit("send_message", {
+      socket.emit("send_message", {
         conversationId,
         senderId: user.id,
         text: newMessage.trim()
@@ -164,12 +162,9 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [data?.messages, otherUserTyping]);
   
-  // Mark messages as read when viewing conversation
+  // Mark messages as read through REST API as a backup
   useEffect(() => {
-    if (conversationId && user && socketRef.current) {
-      socketRef.current.emit("mark_read", { conversationId, userId: user.id });
-      
-      // Also update the UI through API for initial load
+    if (conversationId && user) {
       const markAsRead = async () => {
         try {
           await apiRequest<{ success: boolean }>("POST", `/api/conversations/${conversationId}/read`);
