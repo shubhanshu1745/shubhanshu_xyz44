@@ -1497,7 +1497,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const matches = await storage.getUserMatches(targetUser.id);
       
-      res.json(matches);
+      // Fetch performances for each match and add them to the match object
+      const matchesWithPerformances = await Promise.all(matches.map(async (match) => {
+        const performance = await storage.getPlayerMatchPerformance(targetUser.id, match.id);
+        return {
+          ...match,
+          performance: performance || undefined
+        };
+      }));
+      
+      res.json(matchesWithPerformances);
     } catch (error) {
       console.error("Error fetching player matches:", error);
       res.status(500).json({ message: "Failed to fetch player matches" });

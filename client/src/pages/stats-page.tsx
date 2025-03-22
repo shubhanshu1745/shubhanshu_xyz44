@@ -740,11 +740,11 @@ export default function StatsPage() {
                             <h4 className="font-medium text-[#2E8B57]">Batting</h4>
                             <div className="flex justify-between">
                               <span className="text-sm">Runs</span>
-                              <span className="font-medium">{match.performance.runs}</span>
+                              <span className="font-medium">{match.performance.runsScored}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm">Balls</span>
-                              <span className="font-medium">{match.performance.balls}</span>
+                              <span className="font-medium">{match.performance.ballsFaced}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm">4s / 6s</span>
@@ -753,8 +753,8 @@ export default function StatsPage() {
                             <div className="flex justify-between">
                               <span className="text-sm">Strike Rate</span>
                               <span className="font-medium">
-                                {match.performance.balls > 0 
-                                  ? ((match.performance.runs / match.performance.balls) * 100).toFixed(2) 
+                                {match.performance.ballsFaced > 0 
+                                  ? ((match.performance.runsScored / match.performance.ballsFaced) * 100).toFixed(2) 
                                   : "0.00"}
                               </span>
                             </div>
@@ -764,7 +764,7 @@ export default function StatsPage() {
                             <h4 className="font-medium text-[#2E8B57]">Bowling</h4>
                             <div className="flex justify-between">
                               <span className="text-sm">Wickets</span>
-                              <span className="font-medium">{match.performance.wickets}</span>
+                              <span className="font-medium">{match.performance.wicketsTaken}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-sm">Overs</span>
@@ -777,8 +777,8 @@ export default function StatsPage() {
                             <div className="flex justify-between">
                               <span className="text-sm">Economy</span>
                               <span className="font-medium">
-                                {match.performance.oversBowled > 0 
-                                  ? (match.performance.runsConceded / match.performance.oversBowled).toFixed(2) 
+                                {parseFloat(match.performance.oversBowled) > 0 
+                                  ? (match.performance.runsConceded / parseFloat(match.performance.oversBowled)).toFixed(2) 
                                   : "0.00"}
                               </span>
                             </div>
