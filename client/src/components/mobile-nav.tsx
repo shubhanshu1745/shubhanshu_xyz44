@@ -7,7 +7,8 @@ import {
   Film, 
   UserPlus, 
   TrendingUp, 
-  MoreHorizontal 
+  MoreHorizontal,
+  Search as SearchIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

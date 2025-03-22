@@ -1737,8 +1737,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.isPlayer) {
-        return res.status(403).json({ message: "Only player accounts can record performances" });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Make all users players for demo purposes
+      if (!user.isPlayer) {
+        await storage.updateUser(userId, { isPlayer: true });
       }
       
       const { matchId } = req.body;
