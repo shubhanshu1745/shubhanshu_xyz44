@@ -36,6 +36,7 @@ type UserProfileData = User & {
   followerCount: number;
   followingCount: number;
   isFollowing: boolean;
+  isBlocked: boolean;
   name?: string;
   website?: string;
 };
@@ -145,12 +146,53 @@ export default function ProfilePage() {
     }
   };
   
+  const blockMutation = useMutation({
+    mutationFn: async () => {
+      if (profile?.isBlocked) {
+        await apiRequest("DELETE", `/api/users/${username}/block`);
+        return false;
+      } else {
+        await apiRequest("POST", `/api/users/${username}/block`);
+        return true;
+      }
+    },
+    onMutate: async () => {
+      // Optimistic update
+      if (profile) {
+        const updatedProfile = {
+          ...profile,
+          isBlocked: !profile.isBlocked,
+        };
+        queryClient.setQueryData([`/api/users/${username}`], updatedProfile);
+      }
+    },
+    onSuccess: (isBlocked) => {
+      toast({
+        title: isBlocked ? "User Blocked" : "User Unblocked",
+        description: isBlocked
+          ? `You have blocked ${username}`
+          : `You have unblocked ${username}`,
+      });
+      if (isBlocked) {
+        setLocation("/"); // Redirect to home page after blocking
+      }
+    },
+    onError: (error) => {
+      // Revert optimistic update
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
+      toast({
+        title: "Error",
+        description: "Failed to update block status",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+    }
+  });
+
   const handleBlockUser = () => {
-    toast({
-      title: "User blocked",
-      description: `You have blocked ${username}`,
-    });
-    setLocation("/"); // Redirect to home page after blocking
+    blockMutation.mutate();
   };
 
   const isOwnProfile = user?.username === username;
@@ -255,9 +297,13 @@ export default function ProfilePage() {
                               <LinkIcon className="h-4 w-4 mr-2" />
                               Copy Profile Link
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-500" onClick={handleBlockUser}>
-                              <Bell className="h-4 w-4 mr-2" />
-                              Block User
+                            <DropdownMenuItem className="text-red-500" onClick={handleBlockUser} disabled={blockMutation.isPending}>
+                              {blockMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Bell className="h-4 w-4 mr-2" />
+                              )}
+                              {profile?.isBlocked ? "Unblock User" : "Block User"}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
