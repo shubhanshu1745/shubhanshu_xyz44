@@ -1,0 +1,124 @@
+7355-f54b126bdc47d8c9.js:1 Replit version 74c43fd4, pid2 version 0.0.1127
+_app-286b2d1e8a476383.js:13 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+_app-286b2d1e8a476383.js:13 [LaunchDarkly] LaunchDarkly client initialized
+_app-286b2d1e8a476383.js:13 [TikTok Pixel] - Invalid pixel ID
+Issue: The pixel ID is invalid. This could prevent your pixel from receiving data.
+Suggestion: Please go to Events Manager and find the correct pixel ID.
+push.14970.e8 @ _app-286b2d1e8a476383.js:13
+recaptcha__en.js:417 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v18/KFOmCnqEu92Fr1Mu4mxK.woff2
+recaptcha__en.js:417 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.gstatic.com/s/roboto/v18/KFOlCnqEu92Fr1MmEU9fBBc4.woff2
+CricStagram:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+framework-3289f954de9b0bc6.js:1 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'ambient-light-sensor'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'battery'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'execution-while-not-rendered'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'execution-while-out-of-viewport'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'layout-animations'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'legacy-image-formats'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'navigation-override'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'oversized-images'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'publickey-credentials'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'speaker-selection'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'unoptimized-images'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'unsized-media'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Unrecognized feature: 'pointer-lock'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Allow attribute will take precedence over 'allowfullscreen'.
+_ @ framework-3289f954de9b0bc6.js:1
+framework-3289f954de9b0bc6.js:1 Allow attribute will take precedence over 'allowpaymentrequest'.
+_ @ framework-3289f954de9b0bc6.js:1
+_app-286b2d1e8a476383.js:13 Invalid href 'https://a76eac61-fbd9-4f60-a588-2ac6d03f273e-00-1kngn6jnq00ka.pike.replit.dev//' passed to next/router in page: '/replEnvironmentDesktop'. Repeated forward-slashes (//) or backslashes \ are not valid in the href.
+push.14970.e8 @ _app-286b2d1e8a476383.js:13
+workspace_iframe.html:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+workspace_iframe.html:32 Unrecognized feature: 'ambient-light-sensor'.
+workspace_iframe.html:32 Unrecognized feature: 'battery'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-not-rendered'.
+workspace_iframe.html:32 Unrecognized feature: 'execution-while-out-of-viewport'.
+workspace_iframe.html:32 Unrecognized feature: 'layout-animations'.
+workspace_iframe.html:32 Unrecognized feature: 'legacy-image-formats'.
+workspace_iframe.html:32 Unrecognized feature: 'navigation-override'.
+workspace_iframe.html:32 Unrecognized feature: 'oversized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'publickey-credentials'.
+workspace_iframe.html:32 Unrecognized feature: 'speaker-selection'.
+workspace_iframe.html:32 Unrecognized feature: 'unoptimized-images'.
+workspace_iframe.html:32 Unrecognized feature: 'unsized-media'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowfullscreen'.
+workspace_iframe.html:32 Allow attribute will take precedence over 'allowpaymentrequest'.
+a76eac61-fbd9-4f60-a588-2ac6d03f273e-00-1kngn6jnq00ka.pike.replit.dev/api/user:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 (Unauthorized)
+_app-286b2d1e8a476383.js:13 Invalid href 'https://a76eac61-fbd9-4f60-a588-2ac6d03f273e-00-1kngn6jnq00ka.pike.replit.dev//auth' passed to next/router in page: '/replEnvironmentDesktop'. Repeated forward-slashes (//) or backslashes \ are not valid in the href.
+push.14970.e8 @ _app-286b2d1e8a476383.js:13
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+stallwart.build.js:1 stallwart: failed ping 1
+queryClient.ts:15 
+            
+            
+           POST https://a76eac61-fbd9-4f60-a588-2ac6d03f273e-00-1kngn6jnq00ka.pike.replit.dev/api/register 400 (Bad Request)
+window.fetch @ Network.js:219
+apiRequest @ queryClient.ts:15
+mutationFn @ use-auth.tsx:56
+fn @ @tanstack_react-query.js?v=8ee547ea:1189
+run @ @tanstack_react-query.js?v=8ee547ea:494
+start @ @tanstack_react-query.js?v=8ee547ea:536
+execute @ @tanstack_react-query.js?v=8ee547ea:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=8ee547ea:2630
+(anonymous) @ @tanstack_react-query.js?v=8ee547ea:3295
+onRegisterSubmit @ auth-page.tsx:125
+(anonymous) @ chunk-YABUFNLM.js?v=8ee547ea:1675
+await in (anonymous)
+callCallback2 @ chunk-RPCDYKBN.js?v=8ee547ea:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=8ee547ea:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=8ee547ea:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=8ee547ea:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=8ee547ea:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=8ee547ea:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=8ee547ea:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=8ee547ea:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=8ee547ea:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=8ee547ea:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=8ee547ea:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=8ee547ea:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=8ee547ea:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=8ee547ea:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=8ee547ea:5449
