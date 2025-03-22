@@ -282,7 +282,17 @@ export async function seedDatabase() {
       highestScore: 156,
       bestBowling: "6/42",
       battingAverage: "38.62",
-      bowlingAverage: "26.34"
+      bowlingAverage: "26.34",
+      // Extended stats for UI display
+      innings: 240,
+      notOuts: 22,
+      ballsFaced: 9856,
+      oversBowled: "2156.3",
+      runsConceded: 7823,
+      maidens: 89,
+      fifties: 42,
+      hundreds: 18,
+      totalRunOuts: 15
     },
     {
       userId: demoUser5.id,
@@ -298,7 +308,17 @@ export async function seedDatabase() {
       highestScore: 183,
       bestBowling: "2/17",
       battingAverage: "45.12",
-      bowlingAverage: "42.75"
+      bowlingAverage: "42.75",
+      // Extended stats for UI display
+      innings: 72,
+      notOuts: 10,
+      ballsFaced: 3984,
+      oversBowled: "44.0",
+      runsConceded: 513,
+      maidens: 2,
+      fifties: 16,
+      hundreds: 8,
+      totalRunOuts: 7
     }
   ];
 

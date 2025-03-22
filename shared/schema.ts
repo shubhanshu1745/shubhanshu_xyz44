@@ -114,6 +114,16 @@ export const playerStats = pgTable("player_stats", {
   bestBowling: text("best_bowling"), // e.g., "5/20"
   battingAverage: numeric("batting_average").default("0"),
   bowlingAverage: numeric("bowling_average").default("0"),
+  // Extended stats for UI display
+  innings: integer("innings").default(0),
+  notOuts: integer("not_outs").default(0),
+  ballsFaced: integer("balls_faced").default(0),
+  oversBowled: text("overs_bowled").default("0"),
+  runsConceded: integer("runs_conceded").default(0),
+  maidens: integer("maidens").default(0),
+  fifties: integer("fifties").default(0),
+  hundreds: integer("hundreds").default(0),
+  totalRunOuts: integer("total_run_outs").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -238,6 +248,16 @@ export const insertPlayerStatsSchema = createInsertSchema(playerStats).pick({
   bestBowling: true,
   battingAverage: true,
   bowlingAverage: true,
+  // Extended stats for UI display
+  innings: true,
+  notOuts: true,
+  ballsFaced: true,
+  oversBowled: true,
+  runsConceded: true,
+  maidens: true,
+  fifties: true,
+  hundreds: true,
+  totalRunOuts: true,
 });
 
 export const insertPlayerMatchSchema = createInsertSchema(playerMatches).pick({
