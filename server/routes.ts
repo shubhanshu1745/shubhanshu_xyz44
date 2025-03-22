@@ -18,6 +18,8 @@ import {
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
+import { Server as SocketServer } from "socket.io";
+import session from "express-session";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
