@@ -8,8 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, Trophy, MapPin, Filter, Search } from "lucide-react";
+import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getQueryFn } from "@/lib/queryClient";
 
 type Match = {
   id: string;
@@ -27,8 +28,8 @@ type Match = {
   imageUrl?: string;
 };
 
-// Demo matches data
-const demoMatches: Match[] = [
+// Fallback matches data in case API fails
+const fallbackMatches: Match[] = [
   {
     id: "m1",
     title: "T20 World Cup 2023",
@@ -139,8 +140,17 @@ export default function MatchesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [matchType, setMatchType] = useState("all");
   
+  // Fetch matches data from API
+  const { data: matches, isLoading, error } = useQuery<Match[]>({
+    queryKey: ["/api/cricket/matches"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+  
+  // Use API data or fallback to demo data if loading failed
+  const matchData = matches || fallbackMatches;
+  
   // Filter matches based on search query and match type
-  const filteredMatches = demoMatches.filter(match => {
+  const filteredMatches = matchData.filter(match => {
     const matchesSearch = 
       match.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       match.teams.team1.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -192,52 +202,58 @@ export default function MatchesPage() {
           </div>
           
           {/* Matches */}
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="mb-6 w-full justify-start bg-white border border-neutral-200 rounded-md p-1">
-              <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
-              <TabsTrigger value="live" className="flex-1">Live</TabsTrigger>
-              <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
-              <TabsTrigger value="completed" className="flex-1">Results</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches.map(match => (
-                  <MatchCard key={match.id} match={match} />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="live">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches
-                  .filter(match => match.status === "live")
-                  .map(match => (
+          {isLoading ? (
+            <div className="flex justify-center items-center py-16">
+              <Loader2 className="h-12 w-12 animate-spin text-[#FF5722]" />
+            </div>
+          ) : (
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList className="mb-6 w-full justify-start bg-white border border-neutral-200 rounded-md p-1">
+                <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
+                <TabsTrigger value="live" className="flex-1">Live</TabsTrigger>
+                <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
+                <TabsTrigger value="completed" className="flex-1">Results</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="all">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredMatches.map(match => (
                     <MatchCard key={match.id} match={match} />
                   ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="upcoming">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches
-                  .filter(match => match.status === "upcoming")
-                  .map(match => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="completed">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches
-                  .filter(match => match.status === "completed")
-                  .map(match => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-              </div>
-            </TabsContent>
-          </Tabs>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="live">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredMatches
+                    .filter(match => match.status === "live")
+                    .map(match => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="upcoming">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredMatches
+                    .filter(match => match.status === "upcoming")
+                    .map(match => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="completed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredMatches
+                    .filter(match => match.status === "completed")
+                    .map(match => (
+                      <MatchCard key={match.id} match={match} />
+                    ))}
+                </div>
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
       </main>
       
