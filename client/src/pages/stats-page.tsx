@@ -80,15 +80,15 @@ export default function StatsPage() {
 
   // Get player stats
   const { data: playerData, isLoading: isPlayerLoading, error: playerError, refetch: refetchStats } = useQuery<PlayerWithStats>({
-    queryKey: [`/api/users/${user?.username}/player-stats`],
-    enabled: !!user?.username,
+    queryKey: ['/api/player-stats', user?.id],
+    enabled: !!user?.id,
     // Handle errors gracefully without onError/onSettled
   });
 
   // Get player matches
   const { data: matches, isLoading: isMatchesLoading, error: matchesError, refetch: refetchMatches } = useQuery<MatchWithPerformances[]>({
-    queryKey: [`/api/users/${user?.username}/matches`],
-    enabled: !!user?.username,
+    queryKey: ['/api/player-matches', user?.id],
+    enabled: !!user?.id,
   });
 
   // Form for adding a new match
@@ -123,7 +123,8 @@ export default function StatsPage() {
   const createMatchMutation = useMutation({
     mutationFn: async (data: MatchFormValues) => {
       console.log("Creating match with date:", data.matchDate);
-      const response = await apiRequest("POST", `/api/users/${user?.username}/matches`, {
+      const response = await apiRequest("POST", `/api/player-matches`, {
+        userId: user?.id,
         opponent: data.opponent,
         venue: data.venue,
         matchDate: data.matchDate, // This is already a string from the form
@@ -156,7 +157,9 @@ export default function StatsPage() {
     mutationFn: async (data: PerformanceFormValues) => {
       if (!createdMatchId) throw new Error("No match selected");
       
-      return await apiRequest("POST", `/api/users/${user?.username}/matches/${createdMatchId}/performance`, {
+      return await apiRequest("POST", `/api/player-match-performances`, {
+        userId: user?.id,
+        matchId: createdMatchId,
         runs: data.runs,
         balls: data.balls,
         fours: data.fours,
@@ -179,8 +182,8 @@ export default function StatsPage() {
       setIsPerformanceDialogOpen(false);
       
       // Force invalidate the cache for both queries
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-matches', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-stats', user?.id] });
       
       // Add a small delay then refresh again to ensure updates
       setTimeout(() => {
