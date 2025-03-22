@@ -181,14 +181,55 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
               <span className="sr-only">More options</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={handleCopyLink} className="cursor-pointer">
               <Copy className="h-4 w-4 mr-2" />
               <span>Copy link</span>
             </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              className="cursor-pointer"
+              onClick={() => {
+                try {
+                  // Use the web share API if available
+                  if (navigator.share) {
+                    navigator.share({
+                      title: `${post.user.username}'s post on CricSocial`,
+                      text: post.content || "Check out this cricket post!",
+                      url: `${window.location.origin}/post/${post.id}`,
+                    });
+                  } else {
+                    // Fallback to copy link
+                    handleCopyLink();
+                  }
+                } catch (err) {
+                  console.error("Error sharing:", err);
+                  handleCopyLink();
+                }
+              }}
+            >
+              <Share className="h-4 w-4 mr-2" />
+              <span>Share to...</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              className="cursor-pointer"
+              onClick={() => {
+                const embedCode = `<iframe src="${window.location.origin}/embed/post/${post.id}" width="500" height="600" frameborder="0"></iframe>`;
+                navigator.clipboard.writeText(embedCode);
+                toast({
+                  title: "Embed code copied",
+                  description: "Embed code copied to clipboard"
+                });
+              }}
+            >
+              <LinkIcon className="h-4 w-4 mr-2" />
+              <span>Embed</span>
+            </DropdownMenuItem>
+            
             {user?.id === post.userId && (
               <DropdownMenuItem className="text-red-600 cursor-pointer">
-                <Share className="h-4 w-4 mr-2" />
+                <Trash2 className="h-4 w-4 mr-2" />
                 <span>Delete</span>
               </DropdownMenuItem>
             )}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { Heart, Trash2, MoreHorizontal, AlertCircle, Loader2 } from "lucide-react";
+import { Heart, Trash2, MoreHorizontal, AlertCircle, Loader2, Reply, MessageSquare } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface CommentsDialogProps {
@@ -27,6 +27,9 @@ interface CommentsDialogProps {
 export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps) {
   const { user } = useAuth();
   const [comment, setComment] = useState("");
+  const [replyTo, setReplyTo] = useState<Comment & { user: User } | null>(null);
+  const [likedComments, setLikedComments] = useState<number[]>([]);
+  const commentInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -79,11 +82,57 @@ export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps
     }
   });
 
+  const likeCommentMutation = useMutation({
+    mutationFn: async (commentId: number) => {
+      // In a real app this would call the API to like the comment
+      return commentId;
+    },
+    onSuccess: (commentId) => {
+      // Toggle like status
+      setLikedComments(prev => 
+        prev.includes(commentId) 
+          ? prev.filter(id => id !== commentId) 
+          : [...prev, commentId]
+      );
+      toast({
+        title: "Success",
+        description: likedComments.includes(commentId) 
+          ? "Comment unliked" 
+          : "Comment liked"
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to like comment",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim()) {
+      // If replying to a comment, include that info in the comment
+      let finalComment = comment;
+      if (replyTo) {
+        finalComment = `@${replyTo.user.username} ${comment}`;
+      }
+      
+      setComment(finalComment);
       commentMutation.mutate();
+      setReplyTo(null);
     }
+  };
+
+  const handleReply = (comment: Comment & { user: User }) => {
+    setReplyTo(comment);
+    setComment(`@${comment.user.username} `);
+    commentInputRef.current?.focus();
+  };
+
+  const handleLikeComment = (commentId: number) => {
+    likeCommentMutation.mutate(commentId);
   };
 
   return (
@@ -167,12 +216,19 @@ export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-4 p-0 text-xs flex items-center gap-1 hover:text-primary"
+                      className={`h-4 p-0 text-xs flex items-center gap-1 hover:text-primary ${likedComments.includes(comment.id) ? 'text-red-500' : ''}`}
+                      onClick={() => handleLikeComment(comment.id)}
                     >
-                      <Heart className="h-3 w-3" />
-                      Like
+                      <Heart className={`h-3 w-3 ${likedComments.includes(comment.id) ? 'fill-red-500' : ''}`} />
+                      {likedComments.includes(comment.id) ? 'Liked' : 'Like'}
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-4 p-0 text-xs text-neutral-500">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-4 p-0 text-xs text-neutral-500 hover:text-primary"
+                      onClick={() => handleReply(comment)}
+                    >
+                      <Reply className="h-3 w-3 mr-1" />
                       Reply
                     </Button>
                   </div>
@@ -181,6 +237,25 @@ export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps
             ))
           )}
         </div>
+        
+        {replyTo && (
+          <div className="px-4 py-2 border-t flex items-center bg-neutral-50">
+            <p className="text-sm text-neutral-600 flex-1">
+              Replying to <span className="font-semibold text-primary">@{replyTo.user.username}</span>
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-0 h-6 w-6"
+              onClick={() => {
+                setReplyTo(null);
+                setComment("");
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         
         <form 
           className="flex items-center w-full p-3 border-t mt-auto"
@@ -194,8 +269,9 @@ export function CommentsDialog({ open, onOpenChange, post }: CommentsDialogProps
             <AvatarFallback>{user?.username?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
           <Input 
+            ref={commentInputRef}
             type="text" 
-            placeholder="Add a comment..." 
+            placeholder={replyTo ? `Reply to ${replyTo.user.username}...` : "Add a comment..."} 
             className="flex-grow bg-transparent text-sm border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
