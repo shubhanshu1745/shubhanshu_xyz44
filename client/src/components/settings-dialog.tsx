@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +21,27 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
+// User settings interface
+interface UserSettings {
+  id?: number;
+  username?: string;
+  email?: string;
+  privateAccount?: boolean;
+  activityStatus?: boolean;
+  tagSettings?: string;
+  mentionSettings?: string;
+  postNotifications?: boolean;
+  commentNotifications?: boolean;
+  followNotifications?: boolean;
+  messageNotifications?: boolean;
+  cricketUpdates?: boolean;
+  language?: string;
+  profileImage?: string;
+  bio?: string;
+  isVerified?: boolean;
+  isPlayer?: boolean;
+}
+
 interface SettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +51,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { toast } = useToast();
   const { logoutMutation } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Account settings
+  // Fetch current user data
+  const { data: currentUser, isLoading } = useQuery<UserSettings>({
+    queryKey: ["/api/user"],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
   
   // Account settings
   const [username, setUsername] = useState("");
@@ -53,6 +81,30 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   
   // Language settings
   const [language, setLanguage] = useState("english");
+  
+  // Update form fields when user data is loaded
+  useEffect(() => {
+    if (currentUser) {
+      setUsername(currentUser.username || "");
+      setEmail(currentUser.email || "");
+      
+      // Set privacy settings (these would normally come from the user object)
+      setPrivateAccount(currentUser.privateAccount || false);
+      setActivityStatus(currentUser.activityStatus !== false); // Default to true
+      setTagSettings(currentUser.tagSettings || "everyone");
+      setMentionSettings(currentUser.mentionSettings || "everyone");
+      
+      // Set notification settings
+      setPostNotifications(currentUser.postNotifications !== false); // Default to true
+      setCommentNotifications(currentUser.commentNotifications !== false);
+      setFollowNotifications(currentUser.followNotifications !== false);
+      setMessageNotifications(currentUser.messageNotifications !== false);
+      setCricketUpdates(currentUser.cricketUpdates !== false);
+      
+      // Set language preference
+      setLanguage(currentUser.language || "english");
+    }
+  }, [currentUser]);
   
   const updatePasswordMutation = useMutation({
     mutationFn: async () => {
@@ -173,6 +225,36 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     updateNotificationsMutation.mutate();
   };
   
+  const updateAccountMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("PATCH", "/api/user", {
+        username,
+        email
+      });
+    },
+    onSuccess: () => {
+      // Invalidate queries that might use this data
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      toast({
+        title: "Account updated",
+        description: "Your account information has been updated successfully."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update account information. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const handleAccountSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateAccountMutation.mutate();
+  };
+
   const handleLanguageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateLanguageMutation.mutate();
@@ -245,7 +327,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <div className="w-2/3 p-4">
               <TabsContent value="account" className="m-0">
                 <h3 className="text-lg font-medium mb-4">Account Information</h3>
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={handleAccountSubmit}>
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input 
@@ -304,7 +386,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     <Button 
                       type="submit"
                       className="bg-[#FF5722] hover:bg-[#E64A19] text-white"
+                      disabled={updateAccountMutation.isPending}
                     >
+                      {updateAccountMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
                       Save Changes
                     </Button>
                   </div>
