@@ -7,10 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { loginSchema, registerSchema } from "@shared/schema";
-import { useEffect } from "react";
+import { 
+  loginSchema, 
+  registerSchema, 
+  forgotPasswordSchema,
+  resetPasswordSchema
+} from "@shared/schema";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();

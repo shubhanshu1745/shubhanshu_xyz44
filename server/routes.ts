@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import { z } from "zod";
 import { 
   insertCommentSchema, 
@@ -12,13 +12,127 @@ import {
   insertStorySchema,
   insertPlayerStatsSchema,
   insertPlayerMatchSchema,
-  insertPlayerMatchPerformanceSchema
+  insertPlayerMatchPerformanceSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema
 } from "@shared/schema";
+import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
   setupAuth(app);
+  
+  // Email verification and password reset endpoints
+  app.post("/api/forgot-password", async (req, res) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+      const user = await storage.getUserByEmail(email);
+      
+      if (user) {
+        // Send password reset email
+        await EmailService.sendPasswordResetEmail(email, user.id);
+      }
+      
+      // Always return success even if email doesn't exist for security reasons
+      res.status(200).json({ 
+        message: "If an account with that email exists, we've sent a password reset link" 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Password reset error:", error);
+      res.status(500).json({ message: "Failed to process request" });
+    }
+  });
+  
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      
+      // Verify token
+      const userId = await EmailService.verifyToken(token, 'password_reset');
+      if (!userId) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      // Get user
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Hash new password and update user
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      // Delete token (consume it)
+      await EmailService.consumeToken(token);
+      
+      res.status(200).json({ message: "Password reset successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+  
+  app.get("/api/verify-email", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      
+      // Verify token
+      const userId = await EmailService.verifyToken(token, 'email_verification');
+      if (!userId) {
+        return res.status(400).json({ message: "Invalid or expired token" });
+      }
+      
+      // Update user's email verification status
+      await storage.updateUser(userId, { emailVerified: true });
+      
+      // Delete token (consume it)
+      await EmailService.consumeToken(token);
+      
+      // Redirect to frontend with success message
+      res.redirect(`${process.env.APP_URL || 'http://localhost:5000'}?verified=true`);
+    } catch (error) {
+      console.error("Email verification error:", error);
+      res.status(500).json({ message: "Failed to verify email" });
+    }
+  });
+  
+  app.post("/api/resend-verification", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (user.emailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+      
+      // Send verification email
+      await EmailService.sendVerificationEmail(user.email, userId);
+      
+      res.status(200).json({ message: "Verification email sent" });
+    } catch (error) {
+      console.error("Resend verification error:", error);
+      res.status(500).json({ message: "Failed to send verification email" });
+    }
+  });
 
   // Posts endpoints
   app.get("/api/posts", async (req, res) => {

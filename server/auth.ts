@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema, loginSchema } from "@shared/schema";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { EmailService } from "./services/email-service";
 
 declare global {
   namespace Express {
@@ -98,12 +99,23 @@ export function setupAuth(app: Express) {
         password: await hashPassword(validatedUser.password),
       });
 
+      // Send verification email
+      try {
+        await EmailService.sendVerificationEmail(user.email, user.id);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+        // Continue with login even if email sending fails
+      }
+      
       // Login the newly registered user
       req.login(user, (err) => {
         if (err) return next(err);
         // Don't send password to client
         const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
+        res.status(201).json({
+          ...userWithoutPassword,
+          message: "Please check your email to verify your account"
+        });
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
