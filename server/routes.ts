@@ -99,6 +99,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Suggested users
+  app.get("/api/users/suggested", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      const suggestedUsers = await storage.getSuggestedUsers(userId, limit);
+      
+      // Remove passwords from response
+      const safeUsers = suggestedUsers.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch suggested users" });
+    }
+  });
+  
   // User profile endpoints
   app.get("/api/users/:username", async (req, res) => {
     try {
@@ -320,30 +344,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "User unfollowed successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to unfollow user" });
-    }
-  });
-
-  // Suggested users
-  app.get("/api/users/suggested", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const userId = req.user.id;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-      
-      const suggestedUsers = await storage.getSuggestedUsers(userId, limit);
-      
-      // Remove passwords from response
-      const safeUsers = suggestedUsers.map(user => {
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword;
-      });
-      
-      res.json(safeUsers);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch suggested users" });
     }
   });
 

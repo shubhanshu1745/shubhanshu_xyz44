@@ -102,8 +102,14 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userCurrentId++;
     const user: User = { 
-      ...insertUser, 
       id,
+      username: insertUser.username,
+      email: insertUser.email,
+      password: insertUser.password,
+      fullName: insertUser.fullName || null,
+      bio: insertUser.bio || null,
+      location: insertUser.location || null,
+      profileImage: insertUser.profileImage || null,
       createdAt: new Date() 
     };
     this.users.set(id, user);
@@ -123,8 +129,11 @@ export class MemStorage implements IStorage {
   async createPost(insertPost: InsertPost): Promise<Post> {
     const id = this.postCurrentId++;
     const post: Post = {
-      ...insertPost,
       id,
+      userId: insertPost.userId,
+      content: insertPost.content || null,
+      imageUrl: insertPost.imageUrl || null,
+      location: insertPost.location || null,
       createdAt: new Date()
     };
     this.posts.set(id, post);
@@ -214,8 +223,10 @@ export class MemStorage implements IStorage {
   async createComment(insertComment: InsertComment): Promise<Comment> {
     const id = this.commentCurrentId++;
     const comment: Comment = {
-      ...insertComment,
       id,
+      userId: insertComment.userId,
+      postId: insertComment.postId,
+      content: insertComment.content || null,
       createdAt: new Date()
     };
     this.comments.set(id, comment);
@@ -253,8 +264,9 @@ export class MemStorage implements IStorage {
     
     const id = this.followCurrentId++;
     const follow: Follow = {
-      ...insertFollow,
       id,
+      followerId: insertFollow.followerId,
+      followingId: insertFollow.followingId,
       createdAt: new Date()
     };
     this.follows.set(id, follow);
