@@ -57,6 +57,7 @@ const performanceFormSchema = z.object({
   runsConceded: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
   catches: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
   runOuts: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
+  battingStatus: z.string().default("Out"),
 });
 
 type MatchFormValues = z.infer<typeof matchFormSchema>;
@@ -116,6 +117,7 @@ export default function StatsPage() {
       runsConceded: 0,
       catches: 0,
       runOuts: 0,
+      battingStatus: "Out", // Default to "Out"
     },
   });
 
@@ -171,7 +173,7 @@ export default function StatsPage() {
         runsConceded: data.runsConceded,
         catches: data.catches,
         runOuts: data.runOuts,
-        battingStatus: data.notOut ? "Not Out" : "Out",
+        battingStatus: data.battingStatus,
         maidens: 0,
         stumpings: 0
       });
