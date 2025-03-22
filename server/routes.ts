@@ -7,6 +7,7 @@ import {
   insertCommentSchema, 
   insertPostSchema, 
   insertFollowSchema,
+  insertBlockedUserSchema,
   insertConversationSchema,
   insertMessageSchema,
   insertStorySchema,
@@ -376,6 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const followers = await storage.getFollowers(user.id);
       const following = await storage.getFollowing(user.id);
       const isFollowing = await storage.isFollowing(req.user.id, user.id);
+      const isBlocked = await storage.isBlocked(req.user.id, user.id);
       
       // Don't send password to client
       const { password, ...userWithoutPassword } = user;
@@ -385,7 +387,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         postCount: posts.length,
         followerCount: followers.length,
         followingCount: following.length,
-        isFollowing
+        isFollowing,
+        isBlocked
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user profile" });
@@ -661,6 +664,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "User unfollowed successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  // Block/Unblock endpoints
+  app.post("/api/users/:username/block", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const blockerId = req.user.id;
+      const username = req.params.username;
+      
+      const userToBlock = await storage.getUserByUsername(username);
+      if (!userToBlock) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (blockerId === userToBlock.id) {
+        return res.status(400).json({ message: "You cannot block yourself" });
+      }
+      
+      const blockData = insertBlockedUserSchema.parse({
+        blockerId,
+        blockedId: userToBlock.id
+      });
+      
+      const block = await storage.blockUser(blockData);
+      res.status(201).json({ message: "User blocked successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  app.delete("/api/users/:username/block", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const blockerId = req.user.id;
+      const username = req.params.username;
+      
+      const userToUnblock = await storage.getUserByUsername(username);
+      if (!userToUnblock) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const result = await storage.unblockUser(blockerId, userToUnblock.id);
+      if (!result) {
+        return res.status(404).json({ message: "Block relationship not found" });
+      }
+      
+      res.status(200).json({ message: "User unblocked successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unblock user" });
+    }
+  });
+  
+  app.get("/api/users/blocked", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const blockedUsers = await storage.getBlockedUsers(userId);
+      
+      // Remove passwords from response
+      const safeUsers = blockedUsers.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blocked users" });
     }
   });
 

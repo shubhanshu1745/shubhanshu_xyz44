@@ -494,6 +494,61 @@ export class MemStorage implements IStorage {
       )
       .slice(0, limit);
   }
+  
+  // Block methods
+  async blockUser(insertBlock: InsertBlockedUser): Promise<BlockedUser> {
+    // Check if already blocked
+    const isAlreadyBlocked = await this.isBlocked(
+      insertBlock.blockerId, 
+      insertBlock.blockedId
+    );
+    
+    if (isAlreadyBlocked) {
+      return Array.from(this.blockedUsers.values()).find(
+        b => b.blockerId === insertBlock.blockerId && b.blockedId === insertBlock.blockedId
+      ) as BlockedUser;
+    }
+    
+    const id = this.blockedUserCurrentId++;
+    const block: BlockedUser = {
+      id,
+      blockerId: insertBlock.blockerId,
+      blockedId: insertBlock.blockedId,
+      createdAt: new Date()
+    };
+    this.blockedUsers.set(id, block);
+    
+    // When a user blocks someone, they should automatically unfollow them
+    this.unfollowUser(insertBlock.blockerId, insertBlock.blockedId);
+    
+    // And the blocked user should be unfollowed from the blocker
+    this.unfollowUser(insertBlock.blockedId, insertBlock.blockerId);
+    
+    return block;
+  }
+  
+  async unblockUser(blockerId: number, blockedId: number): Promise<boolean> {
+    const block = Array.from(this.blockedUsers.values()).find(
+      b => b.blockerId === blockerId && b.blockedId === blockedId
+    );
+    
+    if (!block) return false;
+    return this.blockedUsers.delete(block.id);
+  }
+  
+  async isBlocked(blockerId: number, blockedId: number): Promise<boolean> {
+    return !!Array.from(this.blockedUsers.values()).find(
+      block => block.blockerId === blockerId && block.blockedId === blockedId
+    );
+  }
+  
+  async getBlockedUsers(userId: number): Promise<User[]> {
+    const blockedIds = Array.from(this.blockedUsers.values())
+      .filter(block => block.blockerId === userId)
+      .map(block => block.blockedId);
+    
+    return Promise.all(blockedIds.map(id => this.getUser(id))) as Promise<User[]>;
+  }
 
   // Chat methods
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
@@ -580,7 +635,9 @@ export class MemStorage implements IStorage {
       conversationId: insertMessage.conversationId,
       senderId: insertMessage.senderId,
       content: insertMessage.content,
-      read: false,
+      messageType: insertMessage.messageType || "text",
+      mediaUrl: insertMessage.mediaUrl || null,
+      read: insertMessage.read || false,
       createdAt: new Date()
     };
     
