@@ -188,39 +188,30 @@ export default function StatsPage() {
       
       // Close the dialog first
       setIsPerformanceDialogOpen(false);
+      setCreatedMatchId(null); // Reset the match ID to prevent duplicate performances
       
-      // Clear all cache related to this user - more aggressive approach
-      queryClient.invalidateQueries({
-        predicate: (query) => {
-          const queryKey = Array.isArray(query.queryKey) ? query.queryKey : [query.queryKey];
-          return queryKey.some(key => 
-            (typeof key === 'string' && key.includes(`/api/users`)) || 
-            (typeof key === 'string' && key.includes(user?.username || ''))
-          );
-        }
-      });
+      // First invalidate all queries to clear the cache
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
       
-      // Force immediate refetch of data without waiting for React Query's automatic refresh
-      console.log("Forcing immediate refetch of player stats and matches...");
-      
-      Promise.all([
-        queryClient.fetchQuery({
-          queryKey: ['/api/users', user?.username, 'player-stats']
-        }), 
-        queryClient.fetchQuery({
-          queryKey: ['/api/users', user?.username, 'matches']
-        })
-      ]).then(() => {
-        console.log("Data refetch completed!");
-        // Manually trigger the refetch hooks as an extra guarantee
-        refetchMatches();
-        refetchStats();
-      }).catch(err => {
-        console.error("Error refetching data:", err);
-        // Even if Promise.all fails, try the individual refetches
-        refetchMatches();
-        refetchStats();
-      });
+      // Small delay to make sure invalidation completes before refetching
+      setTimeout(() => {
+        // Then force immediate refetch to update UI
+        Promise.all([
+          queryClient.refetchQueries({ queryKey: [`/api/users/${user?.username}/player-stats`], exact: true }),
+          queryClient.refetchQueries({ queryKey: [`/api/users/${user?.username}/matches`], exact: true })
+        ]).then(() => {
+          console.log("Data refetch completed!");
+          // Manually trigger the refetch hooks as a final guarantee
+          refetchMatches();
+          refetchStats();
+        }).catch(err => {
+          console.error("Error refetching data:", err);
+          // Even if Promise.all fails, try the individual refetches
+          refetchMatches();
+          refetchStats();
+        });
+      }, 100);
     },
     onError: (error) => {
       toast({

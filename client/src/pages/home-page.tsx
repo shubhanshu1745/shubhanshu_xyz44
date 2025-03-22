@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
-import { Post, User } from "@shared/schema";
+import { Post, User, Story } from "@shared/schema";
 import { Header } from "@/components/header";
 import { MobileNav } from "@/components/mobile-nav";
 import { Sidebar } from "@/components/sidebar";
@@ -10,10 +10,14 @@ import { StoryCircle } from "@/components/story-circle";
 import { MatchHighlights } from "@/components/match-highlights";
 import { CommentsDialog } from "@/components/comments-dialog";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Loader2, AlertCircle } from "lucide-react";
+import { PlusCircle, Loader2, AlertCircle, Plus } from "lucide-react";
 import { CreatePostModal } from "@/components/create-post-modal";
+import { CreateStoryDialog } from "@/components/create-story-dialog";
+import { StoryViewer } from "@/components/story-viewer";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [selectedPost, setSelectedPost] = useState<Post & { 
     user: User; 
     likeCount: number; 
@@ -22,21 +26,56 @@ export default function HomePage() {
   } | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [createPostOpen, setCreatePostOpen] = useState(false);
+  const [createStoryOpen, setCreateStoryOpen] = useState(false);
+  const [storyViewerOpen, setStoryViewerOpen] = useState(false);
+  const [selectedStoryUserIndex, setSelectedStoryUserIndex] = useState(0);
 
+  // Query posts
   const { data: posts, isLoading, error } = useQuery<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>({
     queryKey: ["/api/posts"],
     queryFn: getQueryFn({ on401: "throw" }),
   });
 
-  // For stories, we'll just use the users from posts for this demo
-  const storyUsers = posts ? Array.from(
-    new Map(posts.map(post => [post.user.id, post.user]))
-      .values()
-  ).slice(0, 6) : [];
+  // Query stories
+  const { data: stories, isLoading: isStoriesLoading } = useQuery<(Story & { user: User })[]>({
+    queryKey: ["/api/stories"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user,
+  });
+
+  // Group stories by user
+  const storyUserMap = new Map<number, (Story & { user: User })[]>();
+  const storyUsers: User[] = [];
+  
+  if (stories?.length) {
+    stories.forEach(story => {
+      if (!storyUserMap.has(story.user.id)) {
+        storyUserMap.set(story.user.id, []);
+        storyUsers.push(story.user);
+      }
+      storyUserMap.get(story.user.id)?.push(story);
+    });
+  }
+  
+  // Get flat array of all stories for viewer
+  const allStories = stories || [];
+
+  // If no stories, we'll just show some users from posts for the UI
+  const displayedStoryUsers = storyUsers.length > 0 
+    ? storyUsers 
+    : (posts ? Array.from(
+        new Map(posts.map(post => [post.user.id, post.user]))
+          .values()
+      ).slice(0, 6) : []);
 
   const handleCommentClick = (post: Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean }) => {
     setSelectedPost(post);
     setCommentsOpen(true);
+  };
+  
+  const handleStoryClick = (index: number) => {
+    setSelectedStoryUserIndex(index);
+    setStoryViewerOpen(true);
   };
 
   return (
@@ -55,7 +94,7 @@ export default function HomePage() {
             {/* Stories */}
             <div className="px-4 py-4 bg-white border-b border-neutral-200 md:rounded-lg md:border overflow-x-auto custom-scrollbar">
               <div className="flex space-x-4">
-                {isLoading ? (
+                {isLoading || isStoriesLoading ? (
                   // Loading skeletons for stories
                   Array(6).fill(0).map((_, index) => (
                     <div key={index} className="flex flex-col items-center">
@@ -65,15 +104,25 @@ export default function HomePage() {
                   ))
                 ) : (
                   <>
-                    {storyUsers.map((user) => (
-                      <StoryCircle key={user.id} user={user} hasStory={true} />
-                    ))}
-                    <div className="flex flex-col items-center cursor-pointer">
-                      <div className="mb-1 bg-neutral-100 w-16 h-16 rounded-full flex items-center justify-center">
-                        <span className="text-2xl text-neutral-500">+</span>
+                    {/* Create Story */}
+                    <div 
+                      className="flex flex-col items-center cursor-pointer"
+                      onClick={() => setCreateStoryOpen(true)}
+                    >
+                      <div className="mb-1 bg-gradient-to-tr from-[#FF5722] to-[#FF9800] p-[2px] w-16 h-16 rounded-full">
+                        <div className="bg-white p-0.5 rounded-full w-full h-full flex items-center justify-center">
+                          <Plus className="h-8 w-8 text-[#FF5722]" />
+                        </div>
                       </div>
-                      <span className="text-xs">More</span>
+                      <span className="text-xs">Add Story</span>
                     </div>
+                    
+                    {/* Story Circles */}
+                    {displayedStoryUsers.map((user, index) => (
+                      <div key={user.id} onClick={() => handleStoryClick(index)}>
+                        <StoryCircle user={user} hasStory={true} />
+                      </div>
+                    ))}
                   </>
                 )}
               </div>
@@ -169,6 +218,22 @@ export default function HomePage() {
         open={createPostOpen}
         onClose={() => setCreatePostOpen(false)}
       />
+      
+      {/* Create Story Dialog */}
+      <CreateStoryDialog
+        open={createStoryOpen}
+        onOpenChange={setCreateStoryOpen}
+      />
+      
+      {/* Story Viewer */}
+      {allStories.length > 0 && (
+        <StoryViewer
+          open={storyViewerOpen}
+          onOpenChange={setStoryViewerOpen}
+          stories={allStories}
+          initialStoryIndex={selectedStoryUserIndex}
+        />
+      )}
     </div>
   );
 }
