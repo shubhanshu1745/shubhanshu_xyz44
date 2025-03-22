@@ -98,12 +98,6 @@ export function setupAuth(app: Express) {
         ...validatedUser,
         password: await hashPassword(validatedUser.password)
       });
-      
-      // Set email as verified for now (bypass verification)
-      await storage.updateUser(user.id, { emailVerified: true });
-      
-      // Get updated user
-      const updatedUser = await storage.getUser(user.id);
 
       // Still send verification email for demo purposes
       try {
@@ -121,7 +115,7 @@ export function setupAuth(app: Express) {
         const { password, ...userWithoutPassword } = user;
         res.status(201).json({
           ...userWithoutPassword,
-          message: "Please check your email to verify your account"
+          message: "Registration successful! You can now use all features of the application."
         });
       });
     } catch (error) {

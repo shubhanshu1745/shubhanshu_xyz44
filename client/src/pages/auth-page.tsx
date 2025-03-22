@@ -57,12 +57,18 @@ export default function AuthPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      // Show verify email alert if user email is not verified
+      // Bypass email verification check for now
+      // Comment: In production, uncomment the below code to enforce email verification
+      /*
       if (!user.emailVerified) {
         setShowVerifyEmailAlert(true);
       } else {
         setLocation("/");
       }
+      */
+      
+      // Always redirect to home for now
+      setLocation("/");
     }
   }, [user, setLocation]);
 
