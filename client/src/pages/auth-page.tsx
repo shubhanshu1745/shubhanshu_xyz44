@@ -183,9 +183,7 @@ export default function AuthPage() {
   async function handleResendVerification() {
     try {
       setResendVerificationPending(true);
-      await apiRequest<any>("/api/resend-verification", {
-        method: "POST"
-      } as RequestInit);
+      await apiRequest<any>("POST", "/api/resend-verification", null);
       
       toast({
         title: "Verification email sent",
@@ -473,12 +471,17 @@ export default function AuthPage() {
                   <CardFooter className="flex justify-center border-t pt-4">
                     <p className="text-sm text-neutral-600">
                       Don't have an account? 
-                      <Button variant="link" className="p-0 h-auto text-sm ml-1" onClick={() => {
-                        const registerTab = document.querySelector('[data-state="inactive"][data-value="register"]');
-                        if (registerTab instanceof HTMLElement) {
-                          registerTab.click();
-                        }
-                      }}>
+                      <Button 
+                        variant="link" 
+                        className="p-0 h-auto text-sm ml-1" 
+                        onClick={() => {
+                          // Find the register tab and click it if found
+                          const registerTab = document.querySelector('[data-state="inactive"][data-value="register"]');
+                          if (registerTab instanceof HTMLElement) {
+                            registerTab.click();
+                          }
+                        }}
+                      >
                         Sign up
                       </Button>
                     </p>
@@ -511,7 +514,14 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                              <Input placeholder="Your full name" {...field} />
+                              <Input 
+                                placeholder="Your full name" 
+                                value={field.value || ''} 
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -591,7 +601,16 @@ export default function AuthPage() {
                 <CardFooter className="flex justify-center border-t pt-4">
                   <p className="text-sm text-neutral-600">
                     Have an account? 
-                    <Button variant="link" className="p-0 h-auto text-sm ml-1" onClick={() => document.querySelector('[data-state="inactive"][data-value="login"]')?.click()}>
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-sm ml-1" 
+                      onClick={() => {
+                        const loginTab = document.querySelector('[data-state="inactive"][data-value="login"]');
+                        if (loginTab instanceof HTMLElement) {
+                          loginTab.click();
+                        }
+                      }}
+                    >
                       Log in
                     </Button>
                   </p>
