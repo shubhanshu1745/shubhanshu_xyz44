@@ -13,6 +13,7 @@ import {
   insertStorySchema,
   insertPlayerStatsSchema,
   insertPlayerMatchSchema,
+  createPlayerMatchSchema,
   insertPlayerMatchPerformanceSchema,
   forgotPasswordSchema,
   resetPasswordSchema
@@ -1533,20 +1534,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userData = { isPlayer: true };
       await storage.updateUser(userId, userData);
       
-      // Create the match
-      const matchData = {
+      // Use createPlayerMatchSchema to handle date conversion
+      const matchData = createPlayerMatchSchema.parse({
         userId: user.id,
         matchName: `vs ${req.body.opponent}`,
         opponent: req.body.opponent,
         venue: req.body.venue,
-        matchDate: new Date(req.body.matchDate),
+        matchDate: req.body.matchDate,
         matchType: req.body.matchType,
         result: req.body.result || "In Progress"
-      };
+      });
       
       const match = await storage.createPlayerMatch(matchData);
       res.status(201).json(match);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error("Validation error:", JSON.stringify(error.errors));
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
       console.error("Error creating match:", error);
       res.status(500).json({ message: "Failed to create match" });
     }
@@ -1665,7 +1670,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Allow any authenticated user to create matches
-      const matchData = insertPlayerMatchSchema.parse({ ...req.body, userId });
+      // Use createPlayerMatchSchema instead of insertPlayerMatchSchema to handle date conversion
+      const matchData = createPlayerMatchSchema.parse({ ...req.body, userId });
       const match = await storage.createPlayerMatch(matchData);
       
       res.status(201).json(match);

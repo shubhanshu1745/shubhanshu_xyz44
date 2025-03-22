@@ -30,7 +30,7 @@ import { ThemeToggle } from "./ui/theme-toggle";
 
 export function Header() {
   const { user, logoutMutation } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
 
@@ -40,6 +40,13 @@ export function Header() {
 
   const handleCreatePost = () => {
     setIsCreatePostModalOpen(true);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      setLocation(`/suggestions?q=${encodeURIComponent(searchQuery)}`);
+    }
   };
 
   return (
@@ -57,16 +64,21 @@ export function Header() {
         
         {/* Search Bar - Desktop */}
         <div className="hidden md:block flex-grow max-w-md mx-4">
-          <div className="relative">
-            <Input 
-              type="text"
-              className="bg-white/10 border-0 rounded-lg pl-10 pr-4 w-full text-sm focus:outline-none text-white placeholder:text-white/70" 
-              placeholder="Search players, matches, or posts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-white/70" />
-          </div>
+          <form onSubmit={handleSearch}>
+            <div className="relative">
+              <Input 
+                type="text"
+                className="bg-white/10 border-0 rounded-lg pl-10 pr-4 w-full text-sm focus:outline-none text-white placeholder:text-white/70" 
+                placeholder="Search players, matches, or posts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="submit" className="absolute right-3 top-2.5">
+                <SearchIcon className="h-4 w-4 text-white/70" />
+              </button>
+              <SearchIcon className="absolute left-3 top-2.5 h-4 w-4 text-white/70" />
+            </div>
+          </form>
         </div>
         
         {/* Nav Icons */}

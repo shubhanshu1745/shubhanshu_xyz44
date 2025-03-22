@@ -122,10 +122,11 @@ export default function StatsPage() {
   // Mutation for creating a new match
   const createMatchMutation = useMutation({
     mutationFn: async (data: MatchFormValues) => {
+      console.log("Creating match with date:", data.matchDate);
       const response = await apiRequest("POST", `/api/users/${user?.username}/matches`, {
         opponent: data.opponent,
         venue: data.venue,
-        matchDate: data.matchDate,
+        matchDate: data.matchDate, // This is already a string from the form
         matchType: data.matchType,
         result: data.result || "In Progress",
       });
