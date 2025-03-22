@@ -96,6 +96,25 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
     };
     
+    // Listen for message deletion
+    const handleMessageDeleted = (data: { messageId: number }) => {
+      // Update the query cache to remove the deleted message
+      queryClient.setQueryData<ConversationData>(
+        [`/api/conversations/${conversationId}`],
+        (oldData) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            messages: oldData.messages.filter(m => m.id !== data.messageId)
+          };
+        }
+      );
+      
+      // Update the conversations list to refresh the last message
+      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+    };
+    
     // Listen for typing indicators
     const handleTypingIndicator = (data: { conversationId: number, userId: number }) => {
       if (data.conversationId === conversationId && data.userId !== user.id) {
@@ -123,6 +142,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     
     // Register event listeners
     socket.on("receive_message", handleNewMessage);
+    socket.on("message_deleted", handleMessageDeleted);
     socket.on("user_typing", handleTypingIndicator);
     socket.on("messages_read", handleReadReceipts);
     
@@ -135,6 +155,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
         clearTimeout(typingTimeoutRef.current);
       }
       socket.off("receive_message", handleNewMessage);
+      socket.off("message_deleted", handleMessageDeleted);
       socket.off("user_typing", handleTypingIndicator);
       socket.off("messages_read", handleReadReceipts);
     };
@@ -185,20 +206,30 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   // Function to handle message deletion
   const handleDeleteMessage = async (messageId: number) => {
     try {
+      // Delete message via API
       await apiRequest('DELETE', `/api/messages/${messageId}`);
       
-      // Update the local cache to remove the message
-      queryClient.setQueryData<ConversationData>(
-        [`/api/conversations/${conversationId}`],
-        (oldData) => {
-          if (!oldData) return oldData;
-          
-          return {
-            ...oldData,
-            messages: oldData.messages.filter(m => m.id !== messageId)
-          };
-        }
-      );
+      // Also emit socket event for real-time updates
+      if (socket && isConnected && user) {
+        socket.emit("delete_message", {
+          messageId,
+          userId: user.id,
+          conversationId
+        });
+      } else {
+        // If socket is not connected, update the UI manually
+        queryClient.setQueryData<ConversationData>(
+          [`/api/conversations/${conversationId}`],
+          (oldData) => {
+            if (!oldData) return oldData;
+            
+            return {
+              ...oldData,
+              messages: oldData.messages.filter(m => m.id !== messageId)
+            };
+          }
+        );
+      }
       
       toast({
         title: "Message deleted",
