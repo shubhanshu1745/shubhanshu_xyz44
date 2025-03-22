@@ -1,4 +1,4 @@
-import { Home, PlusSquare, Trophy, Users, MessageCircle } from "lucide-react";
+import { Home, PlusSquare, Trophy, Users, MessageCircle, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useLocation } from "wouter";
@@ -31,9 +31,24 @@ export function MobileNav() {
           </Link>
           
           <Link href="/matches">
-            <Button variant="ghost" size="icon" className="text-neutral-600">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={location === "/matches" ? "text-primary" : "text-neutral-600"}
+            >
               <Trophy className="h-6 w-6" />
               <span className="sr-only">Matches</span>
+            </Button>
+          </Link>
+          
+          <Link href="/reels">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className={location === "/reels" ? "text-primary" : "text-neutral-600"}
+            >
+              <Film className="h-6 w-6" />
+              <span className="sr-only">Reels</span>
             </Button>
           </Link>
           
@@ -55,17 +70,6 @@ export function MobileNav() {
             >
               <Users className="h-6 w-6" />
               <span className="sr-only">Teams</span>
-            </Button>
-          </Link>
-          
-          <Link href="/chat">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={location.startsWith("/chat") ? "text-primary" : "text-neutral-600"}
-            >
-              <MessageCircle className="h-6 w-6" />
-              <span className="sr-only">Messages</span>
             </Button>
           </Link>
           
