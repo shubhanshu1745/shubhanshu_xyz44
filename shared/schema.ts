@@ -198,6 +198,8 @@ export const insertMessageSchema = createInsertSchema(messages).pick({
   conversationId: true,
   senderId: true,
   content: true,
+  messageType: true,
+  mediaUrl: true,
   read: true,
   createdAt: true,
 });

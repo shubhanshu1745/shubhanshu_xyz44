@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
@@ -20,6 +20,16 @@ import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
 import { Server as SocketServer } from "socket.io";
 import session from "express-session";
+import multer from "multer";
+import { saveFile, FileUploadResult } from "./services/file-upload";
+
+// Setup multer for file uploads
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication routes
