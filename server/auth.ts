@@ -96,12 +96,19 @@ export function setupAuth(app: Express) {
       // Hash password and create user
       const user = await storage.createUser({
         ...validatedUser,
-        password: await hashPassword(validatedUser.password),
+        password: await hashPassword(validatedUser.password)
       });
+      
+      // Set email as verified for now (bypass verification)
+      await storage.updateUser(user.id, { emailVerified: true });
+      
+      // Get updated user
+      const updatedUser = await storage.getUser(user.id);
 
-      // Send verification email
+      // Still send verification email for demo purposes
       try {
         await EmailService.sendVerificationEmail(user.email, user.id);
+        console.log("Verification email would be sent (verification bypass is active)");
       } catch (emailError) {
         console.error("Failed to send verification email:", emailError);
         // Continue with login even if email sending fails
@@ -138,6 +145,9 @@ export function setupAuth(app: Express) {
         if (!user) {
           return res.status(401).json({ message: "Invalid username or password" });
         }
+        
+        // Bypassing email verification check for now
+        // In production, you would check if user.emailVerified is true
         
         req.login(user, (err) => {
           if (err) return next(err);
