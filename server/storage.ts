@@ -623,6 +623,19 @@ export class MemStorage implements IStorage {
     
     return updated;
   }
+  
+  async deleteMessage(id: number, userId: number): Promise<boolean> {
+    // Fetch the message to verify ownership
+    const message = Array.from(this.messages.values()).find(msg => msg.id === id);
+    
+    // If message not found or user is not the sender, return false
+    if (!message || message.senderId !== userId) {
+      return false;
+    }
+    
+    // Delete the message
+    return this.messages.delete(id);
+  }
 
   // Story methods
   async createStory(insertStory: InsertStory): Promise<Story> {
