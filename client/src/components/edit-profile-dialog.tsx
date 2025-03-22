@@ -43,10 +43,39 @@ export function EditProfileDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload/profile', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      return await response.json();
+    }
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      // Simplified version without complex image uploading
-      // Just use the image preview directly for demo purposes
+      let profileImageUrl = profileImage;
+      
+      // If there is a new image file, upload it first
+      if (imageFile) {
+        try {
+          const uploadResult = await uploadImageMutation.mutateAsync(imageFile);
+          profileImageUrl = uploadResult.url;
+        } catch (error) {
+          console.error('Image upload failed:', error);
+          throw new Error('Failed to upload profile image');
+        }
+      }
       
       // Set the updated profile data
       const updatedProfile = {
@@ -54,10 +83,8 @@ export function EditProfileDialog({
         bio,
         location,
         website,
-        profileImage: imagePreview 
+        profileImage: profileImageUrl 
       };
-      
-      console.log("Updating profile with:", updatedProfile);
       
       // Make the API call to update the user profile
       return await apiRequest("PATCH", `/api/user`, updatedProfile);

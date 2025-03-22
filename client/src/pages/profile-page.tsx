@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
+import { SettingsDialog } from "@/components/settings-dialog";
 import { FollowListDialog } from "@/components/follow-list-dialog";
 import { CommentsDialog } from "@/components/comments-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -50,6 +51,7 @@ export default function ProfilePage() {
   
   // State for dialogs
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [followersOpen, setFollowersOpen] = useState(false);
   const [followingOpen, setFollowingOpen] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post & { 
@@ -242,11 +244,14 @@ export default function ProfilePage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setSettingsOpen(true)}>
                               <Settings className="h-4 w-4 mr-2" />
                               Account Settings
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => {
+                              setSettingsOpen(true);
+                              // This will be used in the future to automatically navigate to the notifications tab
+                            }}>
                               <Bell className="h-4 w-4 mr-2" />
                               Notifications
                             </DropdownMenuItem>
@@ -507,6 +512,11 @@ export default function ProfilePage() {
             open={editProfileOpen} 
             onOpenChange={setEditProfileOpen} 
             profile={profile} 
+          />
+          
+          <SettingsDialog
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
           />
           
           <FollowListDialog 
