@@ -267,7 +267,9 @@ export default function StatsPage() {
       console.log("Adding performance with data:", data);
       return await apiRequest("POST", "/api/player-match-performances", data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      console.log("Performance added successfully, server response:", response);
+      
       toast({
         title: "Performance added",
         description: "Your match and performance stats have been saved"
@@ -304,32 +306,32 @@ export default function StatsPage() {
       setNewMatchId(null);
       setIsAddMatchDialogOpen(false);
       
-      // Invalidate queries with both formats to ensure updates
-      // Array format for hierarchical cache segments
+      // Clear all cache related to this user - more aggressive approach
       queryClient.invalidateQueries({
-        queryKey: ['/api/users', user?.username, 'matches']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['/api/users', user?.username, 'player-stats']
-      });
-      
-      // Also try the legacy format
-      queryClient.invalidateQueries({
-        queryKey: [`/api/users/${user?.username}/matches`]
-      });
-      queryClient.invalidateQueries({
-        queryKey: [`/api/users/${user?.username}/player-stats`]
+        predicate: (query) => {
+          const queryKey = Array.isArray(query.queryKey) ? query.queryKey : [query.queryKey];
+          return queryKey.some(key => 
+            (typeof key === 'string' && key.includes(`/api/users`)) || 
+            (typeof key === 'string' && key.includes(user?.username || ''))
+          );
+        }
       });
       
-      // Force a timeout and manual refresh
-      setTimeout(() => {
-        queryClient.refetchQueries({
-          queryKey: ['/api/users', user?.username, 'matches']
-        });
-        queryClient.refetchQueries({
+      // Force immediate refetch of data without waiting for React Query's automatic refresh
+      console.log("Forcing immediate refetch of player stats and matches...");
+      
+      Promise.all([
+        queryClient.fetchQuery({
           queryKey: ['/api/users', user?.username, 'player-stats']
-        });
-      }, 300);
+        }), 
+        queryClient.fetchQuery({
+          queryKey: ['/api/users', user?.username, 'matches']
+        })
+      ]).then(() => {
+        console.log("Data refetch completed!");
+      }).catch(err => {
+        console.error("Error refetching data:", err);
+      });
     },
     onError: (error) => {
       toast({
@@ -496,8 +498,8 @@ export default function StatsPage() {
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Economy</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.oversBowled && parseFloat(playerStats.oversBowled) > 0
-                        ? ((playerStats.runsConceded || 0) / parseFloat(playerStats.oversBowled)).toFixed(2)
+                      {playerStats && playerStats.oversBowled && parseFloat(playerStats.oversBowled.toString()) > 0
+                        ? ((playerStats.runsConceded || 0) / parseFloat(playerStats.oversBowled.toString())).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>

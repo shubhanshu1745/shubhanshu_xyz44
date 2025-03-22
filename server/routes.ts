@@ -1610,8 +1610,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to update player stats after a new performance
   async function updatePlayerStatsFromPerformance(userId: number, performance: any) {
     try {
+      console.log("Updating player stats for user", userId, "with performance:", performance);
+      
       // Get current stats
       const currentStats = await storage.getPlayerStats(userId);
+      
+      // Make sure we have numbers for all relevant fields
+      const runsScored = parseInt(performance.runsScored) || 0;
+      const ballsFaced = parseInt(performance.ballsFaced) || 0;
+      const fours = parseInt(performance.fours) || 0;
+      const sixes = parseInt(performance.sixes) || 0;
+      const wicketsTaken = parseInt(performance.wicketsTaken) || 0;
+      const runsConceded = parseInt(performance.runsConceded) || 0;
+      const catches = parseInt(performance.catches) || 0;
+      const runOuts = parseInt(performance.runOuts) || 0;
+      const maidens = parseInt(performance.maidens) || 0;
+      const isNotOut = performance.battingStatus === 'Not Out' || performance.notOut === true;
+      
+      // Calculate best bowling figures
+      const bestBowlingNew = wicketsTaken > 0 ? `${wicketsTaken}/${runsConceded}` : "0/0";
       
       if (!currentStats) {
         // Create new stats if they don't exist
@@ -1621,38 +1638,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
           battingStyle: null,
           bowlingStyle: null,
           totalMatches: 1,
-          totalRuns: performance.runsScored,
-          battingAverage: performance.runsScored.toString(), // Initially just the runs from first match
-          totalWickets: performance.wicketsTaken,
-          totalCatches: performance.catches,
-          totalSixes: performance.sixes,
-          totalFours: performance.fours,
-          highestScore: performance.runsScored,
-          bestBowling: performance.wicketsTaken > 0 
-            ? `${performance.wicketsTaken}/${performance.runsConceded}` 
-            : "0/0"
+          totalRuns: runsScored,
+          battingAverage: isNotOut ? runsScored.toString() : runsScored.toString(), // Will be updated as more matches are played
+          totalWickets: wicketsTaken,
+          totalCatches: catches,
+          totalRunOuts: runOuts,
+          totalSixes: sixes,
+          totalFours: fours,
+          highestScore: runsScored,
+          bestBowling: bestBowlingNew,
+          // Extra fields for UI display
+          innings: 1,
+          notOuts: isNotOut ? 1 : 0,
+          ballsFaced: ballsFaced,
+          oversBowled: performance.oversBowled || "0",
+          runsConceded: runsConceded,
+          maidens: maidens
         };
         
+        console.log("Creating new player stats:", newStats);
         await storage.createPlayerStats(newStats);
       } else {
-        // Update existing stats
+        // Calculate innings (each match counts as one inning for now)
+        const innings = (currentStats.innings || 0) + 1;
+        const notOuts = (currentStats.notOuts || 0) + (isNotOut ? 1 : 0);
+        const totalRuns = (currentStats.totalRuns || 0) + runsScored;
+        
+        // Calculate batting average (runs / (innings - not outs))
+        const battingAverage = ((innings - notOuts) > 0)
+          ? (totalRuns / (innings - notOuts)).toFixed(2).toString()
+          : totalRuns.toString();
+        
+        // Calculate bowling average (runs conceded / wickets)
+        const totalWickets = (currentStats.totalWickets || 0) + wicketsTaken;
+        const totalRunsConceded = (currentStats.runsConceded || 0) + runsConceded;
+        const bowlingAverage = (totalWickets > 0)
+          ? (totalRunsConceded / totalWickets).toFixed(2).toString()
+          : "0";
+        
+        // Determine best bowling (more wickets is better, or same wickets with fewer runs)
+        let bestBowling = currentStats.bestBowling || "0/0";
+        if (bestBowling === "0/0" && wicketsTaken > 0) {
+          bestBowling = bestBowlingNew;
+        } else if (wicketsTaken > 0) {
+          const [currentWickets, currentRuns] = (currentStats.bestBowling || "0/0").split('/').map(Number);
+          if (wicketsTaken > currentWickets || (wicketsTaken === currentWickets && runsConceded < currentRuns)) {
+            bestBowling = bestBowlingNew;
+          }
+        }
+        
+        // Track if this is a fifty or century
+        const fifties = (currentStats.fifties || 0) + (runsScored >= 50 && runsScored < 100 ? 1 : 0);
+        const hundreds = (currentStats.hundreds || 0) + (runsScored >= 100 ? 1 : 0);
+        
+        // Update existing stats with all needed fields for UI
         const updatedStats = {
           totalMatches: (currentStats.totalMatches || 0) + 1,
-          totalRuns: (currentStats.totalRuns || 0) + performance.runsScored,
-          // Calculate new batting average
-          battingAverage: (((currentStats.totalRuns || 0) + performance.runsScored) / ((currentStats.totalMatches || 0) + 1)).toString(),
-          totalWickets: (currentStats.totalWickets || 0) + performance.wicketsTaken,
-          totalCatches: (currentStats.totalCatches || 0) + performance.catches,
-          totalSixes: (currentStats.totalSixes || 0) + performance.sixes,
-          totalFours: (currentStats.totalFours || 0) + performance.fours,
-          // Update highest score if needed
-          highestScore: Math.max(currentStats.highestScore || 0, performance.runsScored)
+          totalRuns: totalRuns,
+          battingAverage: battingAverage,
+          bowlingAverage: bowlingAverage,
+          totalWickets: totalWickets,
+          totalCatches: (currentStats.totalCatches || 0) + catches,
+          totalRunOuts: (currentStats.totalRunOuts || 0) + runOuts,
+          totalSixes: (currentStats.totalSixes || 0) + sixes,
+          totalFours: (currentStats.totalFours || 0) + fours,
+          highestScore: Math.max(currentStats.highestScore || 0, runsScored),
+          bestBowling: bestBowling,
+          // Additional fields for UI display
+          innings: innings,
+          notOuts: notOuts,
+          ballsFaced: (currentStats.ballsFaced || 0) + ballsFaced,
+          oversBowled: (parseFloat(currentStats.oversBowled || "0") + parseFloat(performance.oversBowled || "0")).toString(),
+          runsConceded: totalRunsConceded,
+          maidens: (currentStats.maidens || 0) + maidens,
+          fifties: fifties,
+          hundreds: hundreds
         };
         
+        console.log("Updating player stats to:", updatedStats);
         await storage.updatePlayerStats(userId, updatedStats);
       }
     } catch (error) {
       console.error("Error updating player stats:", error);
+      throw error; // Re-throw to allow caller to handle
     }
   }
   
