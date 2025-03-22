@@ -176,8 +176,10 @@ export default function StatsPage() {
     queryKey: ['/api/users', user?.username, 'player-stats'],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: true // Refetch when window gains focus
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    retry: 2 // Retry failed requests up to 2 times
   });
   
   // Create an enhanced player stats object with our needed UI fields
@@ -224,40 +226,44 @@ export default function StatsPage() {
     queryKey: ['/api/users', user?.username, 'matches'],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: true // Refetch when window gains focus
+    staleTime: 0, // Always consider data stale 
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    retry: 2 // Retry failed requests up to 2 times
   });
   
   // Create enhanced matches with the fields we need for UI
-  const matches: MatchWithPerformances[] = dbMatches && user ? dbMatches.map(match => ({
-    ...match,
-    date: match.matchDate ? match.matchDate.toString() : "",
-    matchTitle: match.matchName,
-    overs: match.matchType?.includes('T20') ? '20' : match.matchType?.includes('ODI') ? '50' : 'Full',
-    format: match.matchType || 'T20',
-    performance: {
-      id: 0, // Placeholder
-      userId: user.id,
-      matchId: match.id,
-      runsScored: 0,
-      ballsFaced: 0,
-      fours: 0,
-      sixes: 0,
-      battingStatus: '',
-      oversBowled: '0',
-      runsConceded: 0,
-      wicketsTaken: 0,
-      maidens: 0,
-      catches: 0,
-      runOuts: 0,
-      stumpings: 0,
-      createdAt: null,
-      // UI-specific fields
-      runs: 0,
-      notOut: false,
-      wickets: 0
-    }
-  })) : [];
+  const matches: MatchWithPerformances[] = (dbMatches && user) 
+    ? (dbMatches as any[]).map((match: any) => ({
+        ...match,
+        date: match.matchDate ? match.matchDate.toString() : "",
+        matchTitle: match.matchName,
+        overs: match.matchType?.includes('T20') ? '20' : match.matchType?.includes('ODI') ? '50' : 'Full',
+        format: match.matchType || 'T20',
+        performance: {
+          id: 0, // Placeholder
+          userId: user.id,
+          matchId: match.id,
+          runsScored: 0,
+          ballsFaced: 0,
+          fours: 0,
+          sixes: 0,
+          battingStatus: '',
+          oversBowled: '0',
+          runsConceded: 0,
+          wicketsTaken: 0,
+          maidens: 0,
+          catches: 0,
+          runOuts: 0,
+          stumpings: 0,
+          createdAt: null,
+          // UI-specific fields
+          runs: 0,
+          notOut: false,
+          wickets: 0
+        }
+      })) 
+    : [];
 
   // Add a new match 
   const addMatchMutation = useMutation({
