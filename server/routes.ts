@@ -1492,7 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Only player accounts should have matches
       if (!targetUser.isPlayer) {
-        return res.status(400).json({ message: "This user is not a player" });
+        return res.json([]); // Return empty array instead of error for better UX
       }
       
       const matches = await storage.getUserMatches(targetUser.id);
@@ -1503,6 +1503,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch player matches" });
     }
   });
+  
+  // Add a new match for a user
+  app.post("/api/users/:username/matches", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const username = req.params.username;
+      const user = await storage.getUserByUsername(username);
+      
+      // Check if this is the logged-in user
+      if (!user || user.id !== userId) {
+        return res.status(403).json({ message: "You can only add matches to your own account" });
+      }
+      
+      // Make all users players for demo purposes
+      const userData = { isPlayer: true };
+      await storage.updateUser(userId, userData);
+      
+      // Create the match
+      const matchData = {
+        userId: user.id,
+        opponent: req.body.opponent,
+        venue: req.body.venue,
+        matchDate: new Date(req.body.matchDate),
+        matchType: req.body.matchType,
+        result: req.body.result || "In Progress"
+      };
+      
+      const match = await storage.createPlayerMatch(matchData);
+      res.status(201).json(match);
+    } catch (error) {
+      console.error("Error creating match:", error);
+      res.status(500).json({ message: "Failed to create match" });
+    }
+  });
+  
+  // Add performance for a specific match
+  app.post("/api/users/:username/matches/:matchId/performance", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const username = req.params.username;
+      const matchId = parseInt(req.params.matchId);
+      const user = await storage.getUserByUsername(username);
+      
+      // Check if this is the logged-in user
+      if (!user || user.id !== userId) {
+        return res.status(403).json({ message: "You can only add performance to your own matches" });
+      }
+      
+      // Check if the match exists and belongs to the user
+      const match = await storage.getPlayerMatch(matchId);
+      if (!match || match.userId !== userId) {
+        return res.status(404).json({ message: "Match not found or doesn't belong to you" });
+      }
+      
+      // Create the performance
+      const performanceData = {
+        userId: user.id,
+        matchId: matchId,
+        runs: parseInt(req.body.runs) || 0,
+        balls: parseInt(req.body.balls) || 0,
+        fours: parseInt(req.body.fours) || 0,
+        sixes: parseInt(req.body.sixes) || 0,
+        wickets: parseInt(req.body.wickets) || 0,
+        oversBowled: req.body.oversBowled?.toString() || "0",
+        runsConceded: parseInt(req.body.runsConceded) || 0,
+        catches: parseInt(req.body.catches) || 0,
+        runOuts: parseInt(req.body.runOuts) || 0
+      };
+      
+      const performance = await storage.createPlayerMatchPerformance(performanceData);
+      
+      // Update player stats with this new performance
+      await updatePlayerStatsFromPerformance(userId, performanceData);
+      
+      res.status(201).json(performance);
+    } catch (error) {
+      console.error("Error adding performance:", error);
+      res.status(500).json({ message: "Failed to add performance" });
+    }
+  });
+  
+  // Helper function to update player stats after a new performance
+  async function updatePlayerStatsFromPerformance(userId: number, performance: any) {
+    try {
+      // Get current stats
+      const currentStats = await storage.getPlayerStats(userId);
+      
+      if (!currentStats) {
+        // Create new stats if they don't exist
+        const newStats = {
+          userId: userId,
+          position: null,
+          battingStyle: null,
+          bowlingStyle: null,
+          totalMatches: 1,
+          totalRuns: performance.runs,
+          battingAverage: performance.runs.toString(), // Initially just the runs from first match
+          strikeRate: performance.balls > 0 ? ((performance.runs / performance.balls) * 100).toString() : "0",
+          totalWickets: performance.wickets,
+          economy: performance.oversBowled && parseFloat(performance.oversBowled) > 0 
+            ? (performance.runsConceded / parseFloat(performance.oversBowled)).toString() 
+            : "0",
+          bowlingAverage: performance.wickets > 0 
+            ? (performance.runsConceded / performance.wickets).toString() 
+            : "0",
+          bestBowlingFigures: performance.wickets > 0 
+            ? `${performance.wickets}/${performance.runsConceded}` 
+            : "0/0",
+          highestScore: performance.runs,
+          fifties: performance.runs >= 50 && performance.runs < 100 ? 1 : 0,
+          hundreds: performance.runs >= 100 ? 1 : 0,
+          fours: performance.fours,
+          sixes: performance.sixes,
+          catches: performance.catches,
+          runOuts: performance.runOuts
+        };
+        
+        await storage.createPlayerStats(newStats);
+      } else {
+        // Update existing stats
+        const updatedStats = {
+          totalMatches: (currentStats.totalMatches || 0) + 1,
+          totalRuns: (currentStats.totalRuns || 0) + performance.runs,
+          // Calculate new batting average
+          battingAverage: (((currentStats.totalRuns || 0) + performance.runs) / ((currentStats.totalMatches || 0) + 1)).toString(),
+          // Update strike rate
+          strikeRate: ((currentStats.strikeRate ? parseFloat(currentStats.strikeRate) : 0) * (currentStats.totalMatches || 1) / ((currentStats.totalMatches || 0) + 1)
+            + (performance.balls > 0 ? (performance.runs / performance.balls) * 100 : 0) / ((currentStats.totalMatches || 0) + 1)).toString(),
+          totalWickets: (currentStats.totalWickets || 0) + performance.wickets,
+          // Update bowling figures
+          fifties: (currentStats.fifties || 0) + (performance.runs >= 50 && performance.runs < 100 ? 1 : 0),
+          hundreds: (currentStats.hundreds || 0) + (performance.runs >= 100 ? 1 : 0),
+          fours: (currentStats.fours || 0) + performance.fours,
+          sixes: (currentStats.sixes || 0) + performance.sixes,
+          catches: (currentStats.catches || 0) + performance.catches,
+          runOuts: (currentStats.runOuts || 0) + performance.runOuts,
+          // Update highest score if needed
+          highestScore: Math.max(currentStats.highestScore || 0, performance.runs)
+        };
+        
+        await storage.updatePlayerStats(userId, updatedStats);
+      }
+    } catch (error) {
+      console.error("Error updating player stats:", error);
+    }
+  }
   
   app.post("/api/player-matches", async (req, res) => {
     try {
