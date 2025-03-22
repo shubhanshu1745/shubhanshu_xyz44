@@ -121,8 +121,8 @@ export default function AuthPage() {
   }
 
   function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
-    const { confirmPassword, ...userData } = values;
-    registerMutation.mutate(userData);
+    // Don't remove confirmPassword as the server expects it for validation
+    registerMutation.mutate(values);
   }
   
   // Handle forgot password form submission

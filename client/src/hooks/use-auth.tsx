@@ -4,9 +4,22 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { User as SelectUser, InsertUser, LoginFormData } from "@shared/schema";
+import { User as SelectUser, InsertUser, LoginFormData, RegisterFormData } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+// Use a more compatible type definition for registration data
+type RegisterData = {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  profileImage?: string | null;
+  isPlayer?: boolean;
+};
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -14,7 +27,7 @@ type AuthContextType = {
   error: Error | null;
   loginMutation: UseMutationResult<Omit<SelectUser, "password">, Error, LoginFormData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<Omit<SelectUser, "password">, Error, InsertUser>;
+  registerMutation: UseMutationResult<Omit<SelectUser, "password">, Error, RegisterData>;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -52,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (userData: InsertUser) => {
+    mutationFn: async (userData: RegisterData) => {
       const res = await apiRequest("POST", "/api/register", userData);
       return await res.json();
     },
