@@ -131,6 +131,12 @@ export type Comment = typeof comments.$inferSelect;
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type Follow = typeof follows.$inferSelect;
 
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+
 // Extended schemas for frontend validation
 export const loginSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),

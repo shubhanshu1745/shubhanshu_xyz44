@@ -3,7 +3,9 @@ import {
   posts, type Post, type InsertPost,
   likes, type Like, type InsertLike,
   comments, type Comment, type InsertComment,
-  follows, type Follow, type InsertFollow
+  follows, type Follow, type InsertFollow,
+  conversations, type Conversation, type InsertConversation,
+  messages, type Message, type InsertMessage
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -46,6 +48,21 @@ export interface IStorage {
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
   getSuggestedUsers(userId: number, limit?: number): Promise<User[]>;
 
+  // Chat methods
+  createConversation(conversation: InsertConversation): Promise<Conversation>;
+  getConversation(user1Id: number, user2Id: number): Promise<Conversation | undefined>;
+  getConversationById(id: number): Promise<Conversation | undefined>;
+  getUserConversations(userId: number): Promise<(Conversation & { 
+    otherUser: Omit<User, 'password'>, 
+    lastMessage: Message | null,
+    unreadCount: number 
+  })[]>;
+  
+  // Message methods
+  createMessage(message: InsertMessage): Promise<Message>;
+  getConversationMessages(conversationId: number): Promise<(Message & { sender: Omit<User, 'password'> })[]>;
+  markMessagesAsRead(conversationId: number, userId: number): Promise<boolean>;
+  
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
 }
@@ -56,12 +73,16 @@ export class MemStorage implements IStorage {
   private likes: Map<number, Like>;
   private comments: Map<number, Comment>;
   private follows: Map<number, Follow>;
+  private conversations: Map<number, Conversation>;
+  private messages: Map<number, Message>;
   
   userCurrentId: number;
   postCurrentId: number;
   likeCurrentId: number;
   commentCurrentId: number;
   followCurrentId: number;
+  conversationCurrentId: number;
+  messageCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -70,12 +91,16 @@ export class MemStorage implements IStorage {
     this.likes = new Map();
     this.comments = new Map();
     this.follows = new Map();
+    this.conversations = new Map();
+    this.messages = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
     this.likeCurrentId = 1;
     this.commentCurrentId = 1;
     this.followCurrentId = 1;
+    this.conversationCurrentId = 1;
+    this.messageCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -322,6 +347,146 @@ export class MemStorage implements IStorage {
       .slice(0, limit);
     
     return suggestedUsers;
+  }
+
+  // Chat methods
+  async createConversation(insertConversation: InsertConversation): Promise<Conversation> {
+    // Check if a conversation already exists between these users
+    const existingConversation = await this.getConversation(
+      insertConversation.user1Id,
+      insertConversation.user2Id
+    );
+    
+    if (existingConversation) {
+      return existingConversation;
+    }
+    
+    const id = this.conversationCurrentId++;
+    const conversation: Conversation = {
+      id,
+      user1Id: insertConversation.user1Id,
+      user2Id: insertConversation.user2Id,
+      lastMessageAt: new Date(),
+      createdAt: new Date()
+    };
+    
+    this.conversations.set(id, conversation);
+    return conversation;
+  }
+  
+  async getConversation(user1Id: number, user2Id: number): Promise<Conversation | undefined> {
+    return Array.from(this.conversations.values()).find(
+      conv => 
+        (conv.user1Id === user1Id && conv.user2Id === user2Id) ||
+        (conv.user1Id === user2Id && conv.user2Id === user1Id)
+    );
+  }
+  
+  async getConversationById(id: number): Promise<Conversation | undefined> {
+    return this.conversations.get(id);
+  }
+  
+  async getUserConversations(userId: number): Promise<(Conversation & { 
+    otherUser: Omit<User, 'password'>, 
+    lastMessage: Message | null,
+    unreadCount: number 
+  })[]> {
+    const userConversations = Array.from(this.conversations.values())
+      .filter(conv => conv.user1Id === userId || conv.user2Id === userId)
+      .sort((a, b) => 
+        (b.lastMessageAt?.getTime() || 0) - (a.lastMessageAt?.getTime() || 0)
+      );
+      
+    return Promise.all(userConversations.map(async conv => {
+      // Get the other user in the conversation
+      const otherUserId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+      const otherUser = await this.getUser(otherUserId) as User;
+      const { password, ...otherUserWithoutPassword } = otherUser;
+      
+      // Get latest message
+      const conversationMessages = Array.from(this.messages.values())
+        .filter(msg => msg.conversationId === conv.id)
+        .sort((a, b) => 
+          (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
+        );
+        
+      const lastMessage = conversationMessages.length > 0 ? conversationMessages[0] : null;
+      
+      // Count unread messages
+      const unreadCount = conversationMessages.filter(
+        msg => msg.senderId !== userId && !msg.read
+      ).length;
+      
+      return {
+        ...conv,
+        otherUser: otherUserWithoutPassword,
+        lastMessage,
+        unreadCount
+      };
+    }));
+  }
+  
+  // Message methods
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = this.messageCurrentId++;
+    const message: Message = {
+      id,
+      conversationId: insertMessage.conversationId,
+      senderId: insertMessage.senderId,
+      content: insertMessage.content,
+      read: false,
+      createdAt: new Date()
+    };
+    
+    this.messages.set(id, message);
+    
+    // Update conversation's lastMessageAt
+    const conversation = await this.getConversationById(insertMessage.conversationId);
+    if (conversation) {
+      conversation.lastMessageAt = new Date();
+      this.conversations.set(conversation.id, conversation);
+    }
+    
+    return message;
+  }
+  
+  async getConversationMessages(conversationId: number): Promise<(Message & { sender: Omit<User, 'password'> })[]> {
+    const conversationMessages = Array.from(this.messages.values())
+      .filter(msg => msg.conversationId === conversationId)
+      .sort((a, b) => 
+        (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0)
+      );
+      
+    return Promise.all(conversationMessages.map(async message => {
+      const sender = await this.getUser(message.senderId) as User;
+      const { password, ...senderWithoutPassword } = sender;
+      
+      return {
+        ...message,
+        sender: senderWithoutPassword
+      };
+    }));
+  }
+  
+  async markMessagesAsRead(conversationId: number, userId: number): Promise<boolean> {
+    let updated = false;
+    
+    // Get all unread messages in the conversation that were not sent by the user
+    const unreadMessages = Array.from(this.messages.values())
+      .filter(msg => 
+        msg.conversationId === conversationId && 
+        msg.senderId !== userId && 
+        !msg.read
+      );
+      
+    // Mark each message as read
+    unreadMessages.forEach(message => {
+      message.read = true;
+      this.messages.set(message.id, message);
+      updated = true;
+    });
+    
+    return updated;
   }
 }
 
