@@ -1651,10 +1651,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const user = await storage.getUser(userId);
       
-      if (!user || !user.isPlayer) {
-        return res.status(403).json({ message: "Only player accounts can create matches" });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
       }
       
+      // Allow any authenticated user to create matches
       const matchData = insertPlayerMatchSchema.parse({ ...req.body, userId });
       const match = await storage.createPlayerMatch(matchData);
       

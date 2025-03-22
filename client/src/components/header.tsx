@@ -102,10 +102,49 @@ export function Header() {
             </Button>
           </Link>
           
-          <Button variant="ghost" size="icon" className="text-white hover:text-[#FFC107]">
-            <Heart className="h-5 w-5" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white hover:text-[#FFC107]">
+                <Heart className="h-5 w-5" />
+                <span className="sr-only">Notifications</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-72 max-h-[calc(100vh-100px)] overflow-y-auto">
+              <div className="px-4 py-3 font-medium border-b">Notifications</div>
+              <div className="py-2">
+                <div className="p-4 text-center">
+                  <p className="text-sm text-muted-foreground">No new notifications</p>
+                </div>
+                
+                {/* Example notifications that will be populated dynamically */}
+                <div className="px-4 py-2 hover:bg-muted/50 cursor-pointer transition">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8 mt-1">
+                      <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm leading-tight"><span className="font-semibold">crickfan</span> liked your post</p>
+                      <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="px-4 py-2 hover:bg-muted/50 cursor-pointer transition">
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-8 w-8 mt-1">
+                      <AvatarImage src="https://github.com/shadcn.png" alt="User" />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm leading-tight"><span className="font-semibold">cricketlover</span> started following you</p>
+                      <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           {/* Theme Toggle */}
           <ThemeToggle className="text-white hover:text-[#FFC107]" />
@@ -167,10 +206,12 @@ export function Header() {
                   <span>Profile</span>
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
+              <Link href="/settings">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+              </Link>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
                 <span>Logout</span>
