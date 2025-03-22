@@ -320,18 +320,38 @@ export default function StatsPage() {
       // Force immediate refetch of data without waiting for React Query's automatic refresh
       console.log("Forcing immediate refetch of player stats and matches...");
       
-      Promise.all([
-        queryClient.fetchQuery({
-          queryKey: ['/api/users', user?.username, 'player-stats']
-        }), 
-        queryClient.fetchQuery({
-          queryKey: ['/api/users', user?.username, 'matches']
-        })
-      ]).then(() => {
-        console.log("Data refetch completed!");
-      }).catch(err => {
-        console.error("Error refetching data:", err);
-      });
+      // First invalidate all queries to clear the cache
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/player-match'] });
+      
+      // Small delay to make sure invalidation completes before refetching
+      setTimeout(() => {
+        // Force refetch for immediate UI update using refetchQueries instead of fetchQuery
+        Promise.all([
+          queryClient.refetchQueries({ 
+            queryKey: ['/api/users', user?.username, 'player-stats'],
+            exact: true,
+            throwOnError: false
+          }), 
+          queryClient.refetchQueries({ 
+            queryKey: ['/api/users', user?.username, 'matches'],
+            exact: true,
+            throwOnError: false
+          })
+        ]).then(() => {
+          console.log("Data refetch completed!");
+          
+          // As a final fail-safe, trigger a window location refresh after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }).catch(err => {
+          console.error("Error refetching data:", err);
+          // Force page refresh as last resort
+          window.location.reload();
+        });
+      }, 100);
     },
     onError: (error) => {
       toast({
