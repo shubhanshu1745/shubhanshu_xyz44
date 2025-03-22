@@ -74,6 +74,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getConversationMessages(conversationId: number): Promise<(Message & { sender: Omit<User, 'password'> })[]>;
   markMessagesAsRead(conversationId: number, userId: number): Promise<boolean>;
+  deleteMessage(id: number, userId: number): Promise<boolean>;
   
   // Story methods
   createStory(story: InsertStory): Promise<Story>;

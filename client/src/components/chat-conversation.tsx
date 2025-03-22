@@ -7,10 +7,24 @@ import { useSocket } from "@/hooks/use-socket";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Paperclip } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Paperclip, 
+  X, 
+  Download, 
+  Trash2, 
+  MoreVertical 
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/chat-input";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { User, Conversation, Message } from "@shared/schema";
 
 type MessageWithSender = Message & {
@@ -33,6 +47,8 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
   const { socket, isConnected } = useSocket();
   const { toast } = useToast();
   const [otherUserTyping, setOtherUserTyping] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState<MessageWithSender | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const queryClient = useQueryClient();
@@ -156,6 +172,51 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
   
+  // Function to handle opening the full-size image preview
+  const handleImageClick = (imageUrl: string) => {
+    setPreviewImage(imageUrl);
+  };
+  
+  // Function to close the full-size image preview
+  const handleImagePreviewClose = () => {
+    setPreviewImage(null);
+  };
+  
+  // Function to handle message deletion
+  const handleDeleteMessage = async (messageId: number) => {
+    try {
+      await apiRequest('DELETE', `/api/messages/${messageId}`);
+      
+      // Update the local cache to remove the message
+      queryClient.setQueryData<ConversationData>(
+        [`/api/conversations/${conversationId}`],
+        (oldData) => {
+          if (!oldData) return oldData;
+          
+          return {
+            ...oldData,
+            messages: oldData.messages.filter(m => m.id !== messageId)
+          };
+        }
+      );
+      
+      toast({
+        title: "Message deleted",
+        description: "The message has been removed from the conversation",
+      });
+      
+      // Clear the selected message
+      setSelectedMessage(null);
+    } catch (error) {
+      console.error("Error deleting message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
@@ -248,7 +309,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
                 <div 
                   key={message.id} 
                   className={cn(
-                    "flex gap-2 mb-4",
+                    "flex gap-2 mb-4 group",
                     isCurrentUser ? "justify-end" : "justify-start"
                   )}
                 >
@@ -261,7 +322,29 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
                     </Avatar>
                   )}
                   
-                  <div>
+                  <div className="relative">
+                    {/* Message actions dropdown for user's own messages */}
+                    {isCurrentUser && (
+                      <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full bg-background/80">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteMessage(message.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+
                     <div className={cn(
                       "px-4 py-2 rounded-2xl max-w-xs break-words",
                       isCurrentUser 
@@ -274,6 +357,7 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
                             src={message.mediaUrl} 
                             alt="Shared image" 
                             className="rounded-lg max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => handleImageClick(message.mediaUrl || '')}
                           />
                           {message.content && <p className="mt-2">{message.content}</p>}
                         </div>
@@ -339,6 +423,43 @@ export function ChatConversation({ conversationId, onBack }: ChatConversationPro
         }}
         disabled={!socket || !isConnected}
       />
+
+      {/* Image preview dialog */}
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden">
+          <div className="relative h-full w-full">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute top-2 right-2 z-10 rounded-full bg-background/60 hover:bg-background/80"
+              onClick={() => setPreviewImage(null)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            {previewImage && (
+              <div className="flex items-center justify-center p-2 bg-black/90 w-full h-full max-h-[80vh]">
+                <img 
+                  src={previewImage} 
+                  alt="Preview" 
+                  className="max-w-full max-h-full object-contain" 
+                />
+              </div>
+            )}
+            <div className="bg-background p-3 flex justify-between">
+              <a 
+                href={previewImage || '#'} 
+                download 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-sm font-medium"
+              >
+                <Download className="h-4 w-4" />
+                Download
+              </a>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
