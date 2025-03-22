@@ -172,7 +172,6 @@ export default function StatsPage() {
         catches: data.catches,
         runOuts: data.runOuts,
         battingStatus: data.notOut ? "Not Out" : "Out",
-        notOut: data.notOut,
         maidens: 0,
         stumpings: 0
       });
