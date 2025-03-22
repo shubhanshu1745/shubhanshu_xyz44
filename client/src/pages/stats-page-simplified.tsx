@@ -36,6 +36,15 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Award, Calendar, Clock, Flag, MapPin } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const matchFormSchema = z.object({
+  opponent: z.string().min(1, "Opponent is required"),
+  venue: z.string().min(1, "Venue is required"),
+  matchDate: z.string().min(1, "Match date is required"),
+  matchType: z.string().min(1, "Match type is required"),
+  result: z.string().optional(),
+});
 
 type PlayerWithStats = {
   user: User;

@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreatePostModal } from "./create-post-modal";
+import { ThemeToggle } from "./ui/theme-toggle";
 
 export function Header() {
   const { user, logoutMutation } = useAuth();
@@ -105,6 +106,9 @@ export function Header() {
             <Heart className="h-5 w-5" />
             <span className="sr-only">Notifications</span>
           </Button>
+          
+          {/* Theme Toggle */}
+          <ThemeToggle className="text-white hover:text-[#FFC107]" />
           
           {/* More Button with Dropdown */}
           <DropdownMenu>
