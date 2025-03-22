@@ -41,12 +41,33 @@ export default function StatsPage() {
 
   return (
     <div className="container max-w-5xl mx-auto py-6 px-4 relative">
-      {/* Cricket field background - purely decorative */}
+      {/* Cricket field background - enhanced with realistic cricket field elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-b from-[#2E8B57]/5 to-[#2E8B57]/20 opacity-50 rounded-lg"></div>
-        <div className="absolute w-[80%] h-[80%] border-[10px] border-[#2E8B57]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute w-[60%] h-[10px] bg-[#2E8B57]/20 top-1/2 left-1/2 transform -translate-x-1/2"></div>
-        <div className="absolute w-[10px] h-[60%] bg-[#2E8B57]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        {/* Main field gradient */}
+        <div className="w-full h-full bg-gradient-to-b from-[#2E8B57]/5 to-[#2E8B57]/20 opacity-70 rounded-lg"></div>
+        
+        {/* Outer boundary */}
+        <div className="absolute w-[90%] h-[90%] border-[12px] border-[#2E8B57]/30 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        
+        {/* 30-yard circle */}
+        <div className="absolute w-[70%] h-[70%] border-[8px] border-[#2E8B57]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        
+        {/* Pitch */}
+        <div className="absolute w-[20%] h-[60%] bg-[#C19A6B]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-[4px] border-[#2E8B57]/30"></div>
+        
+        {/* Pitch creases */}
+        <div className="absolute w-[20%] h-[4px] bg-white/50 top-[35%] left-1/2 transform -translate-x-1/2"></div>
+        <div className="absolute w-[20%] h-[4px] bg-white/50 top-[65%] left-1/2 transform -translate-x-1/2"></div>
+        
+        {/* Middle stump line */}
+        <div className="absolute w-[4px] h-[60%] bg-white/30 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        
+        {/* Wickets */}
+        <div className="absolute w-[6%] h-[6px] bg-[#D2B48C] top-[35%] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute w-[6%] h-[6px] bg-[#D2B48C] top-[65%] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        
+        {/* Shadow effect for depth */}
+        <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#1F3B4D]/10 opacity-40"></div>
       </div>
       
       {/* Content */}

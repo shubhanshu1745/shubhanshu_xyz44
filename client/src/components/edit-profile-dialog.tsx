@@ -45,19 +45,21 @@ export function EditProfileDialog({
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      // In a real app, we would handle image upload to a storage service
-      // and then include the resulting URL in the profile update
-      // For now, we'll just simulate the profile update
+      // Simplified version without complex image uploading
+      // Just use the image preview directly for demo purposes
       
+      // Set the updated profile data
       const updatedProfile = {
-        fullName: name, // Map to the correct field in the schema
+        fullName: name,
         bio,
         location,
         website,
-        // In a real implementation, we would get this URL from the image upload response
-        profileImage: imagePreview || profile.profileImage
+        profileImage: imagePreview 
       };
       
+      console.log("Updating profile with:", updatedProfile);
+      
+      // Make the API call to update the user profile
       return await apiRequest("PATCH", `/api/user`, updatedProfile);
     },
     onSuccess: () => {

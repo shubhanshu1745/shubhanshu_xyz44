@@ -8,7 +8,13 @@ import {
   PlusSquare,
   Compass,
   Heart,
-  Search as SearchIcon
+  Search as SearchIcon,
+  MoreHorizontal,
+  TrendingUp,
+  User,
+  Settings,
+  BookOpen,
+  Video
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
@@ -100,6 +106,44 @@ export function Header() {
             <span className="sr-only">Notifications</span>
           </Button>
           
+          {/* More Button with Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white hover:text-[#FFC107]">
+                <MoreHorizontal className="h-5 w-5" />
+                <span className="sr-only">More</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <Link href="/stats">
+                <DropdownMenuItem className="cursor-pointer">
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  <span>Player Stats</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/reels">
+                <DropdownMenuItem className="cursor-pointer">
+                  <Video className="mr-2 h-4 w-4" />
+                  <span>Reels</span>
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/teams">
+                <DropdownMenuItem className="cursor-pointer">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  <span>Teams</span>
+                </DropdownMenuItem>
+              </Link>
+              <DropdownMenuSeparator />
+              <Link href="/suggestions">
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Suggestions</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* User Profile Button */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full border-2 border-[#2E8B57]">
@@ -114,15 +158,17 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <Link href={`/profile/${user?.username}`}>
-                <DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
               </Link>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-500">
                 <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
