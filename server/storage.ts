@@ -32,6 +32,7 @@ export interface IStorage {
   getUserPosts(userId: number): Promise<Post[]>;
   getFeed(userId: number, limit?: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>;
   deletePost(id: number): Promise<boolean>;
+  getReels(userId: number, limit?: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>;
   
   // Like methods
   likePost(like: InsertLike): Promise<Like>;
@@ -67,6 +68,27 @@ export interface IStorage {
   getConversationMessages(conversationId: number): Promise<(Message & { sender: Omit<User, 'password'> })[]>;
   markMessagesAsRead(conversationId: number, userId: number): Promise<boolean>;
   
+  // Story methods
+  createStory(story: InsertStory): Promise<Story>;
+  getUserStories(userId: number): Promise<Story[]>;
+  getStoriesForFeed(userId: number): Promise<(Story & { user: User })[]>;
+  deleteExpiredStories(): Promise<void>;
+  
+  // Player Stats methods
+  createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
+  getPlayerStats(userId: number): Promise<PlayerStats | undefined>;
+  updatePlayerStats(userId: number, stats: Partial<PlayerStats>): Promise<PlayerStats | undefined>;
+  
+  // Player Match methods
+  createPlayerMatch(match: InsertPlayerMatch): Promise<PlayerMatch>;
+  getPlayerMatch(id: number): Promise<PlayerMatch | undefined>;
+  getUserMatches(userId: number): Promise<PlayerMatch[]>;
+  
+  // Player Match Performance methods
+  createPlayerMatchPerformance(performance: InsertPlayerMatchPerformance): Promise<PlayerMatchPerformance>;
+  getPlayerMatchPerformance(userId: number, matchId: number): Promise<PlayerMatchPerformance | undefined>;
+  getMatchPerformances(matchId: number): Promise<(PlayerMatchPerformance & { user: User })[]>;
+  
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
 }
@@ -79,6 +101,10 @@ export class MemStorage implements IStorage {
   private follows: Map<number, Follow>;
   private conversations: Map<number, Conversation>;
   private messages: Map<number, Message>;
+  private stories: Map<number, Story>;
+  private playerStats: Map<number, PlayerStats>;
+  private playerMatches: Map<number, PlayerMatch>;
+  private playerMatchPerformances: Map<number, PlayerMatchPerformance>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -87,6 +113,10 @@ export class MemStorage implements IStorage {
   followCurrentId: number;
   conversationCurrentId: number;
   messageCurrentId: number;
+  storyCurrentId: number;
+  playerStatsCurrentId: number;
+  playerMatchCurrentId: number;
+  playerMatchPerformanceCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -97,6 +127,10 @@ export class MemStorage implements IStorage {
     this.follows = new Map();
     this.conversations = new Map();
     this.messages = new Map();
+    this.stories = new Map();
+    this.playerStats = new Map();
+    this.playerMatches = new Map();
+    this.playerMatchPerformances = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -105,6 +139,10 @@ export class MemStorage implements IStorage {
     this.followCurrentId = 1;
     this.conversationCurrentId = 1;
     this.messageCurrentId = 1;
+    this.storyCurrentId = 1;
+    this.playerStatsCurrentId = 1;
+    this.playerMatchCurrentId = 1;
+    this.playerMatchPerformanceCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -139,6 +177,7 @@ export class MemStorage implements IStorage {
       bio: insertUser.bio || null,
       location: insertUser.location || null,
       profileImage: insertUser.profileImage || null,
+      isPlayer: insertUser.isPlayer || false,
       createdAt: new Date() 
     };
     this.users.set(id, user);
@@ -162,6 +201,9 @@ export class MemStorage implements IStorage {
       userId: insertPost.userId,
       content: insertPost.content || null,
       imageUrl: insertPost.imageUrl || null,
+      videoUrl: insertPost.videoUrl || null,
+      thumbnailUrl: insertPost.thumbnailUrl || null,
+      duration: insertPost.duration || null,
       location: insertPost.location || null,
       category: insertPost.category || null,
       matchId: insertPost.matchId || null,
@@ -217,6 +259,42 @@ export class MemStorage implements IStorage {
   
   async deletePost(id: number): Promise<boolean> {
     return this.posts.delete(id);
+  }
+
+  async getReels(userId: number, limit: number = 20): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    // Get following IDs
+    const followingIds = Array.from(this.follows.values())
+      .filter(follow => follow.followerId === userId)
+      .map(follow => follow.followingId);
+    
+    // Include user's own reels
+    followingIds.push(userId);
+    
+    // Get reels (posts with videoUrl)
+    const reelPosts = Array.from(this.posts.values())
+      .filter(post => 
+        post.videoUrl !== null && 
+        post.category === 'reel' && 
+        followingIds.includes(post.userId)
+      )
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, limit);
+    
+    // Enrich post data
+    return Promise.all(reelPosts.map(async post => {
+      const user = await this.getUser(post.userId) as User;
+      const likes = await this.getLikesForPost(post.id);
+      const comments = await this.getCommentsForPost(post.id);
+      const hasLiked = !!(await this.getLike(userId, post.id));
+      
+      return {
+        ...post,
+        user,
+        likeCount: likes.length,
+        commentCount: comments.length,
+        hasLiked
+      };
+    }));
   }
 
   // Like methods
@@ -491,6 +569,183 @@ export class MemStorage implements IStorage {
     });
     
     return updated;
+  }
+
+  // Story methods
+  async createStory(insertStory: InsertStory): Promise<Story> {
+    const id = this.storyCurrentId++;
+    const expiresAt = insertStory.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    
+    const story: Story = {
+      id,
+      userId: insertStory.userId,
+      imageUrl: insertStory.imageUrl,
+      caption: insertStory.caption || null,
+      createdAt: new Date(),
+      expiresAt
+    };
+    
+    this.stories.set(id, story);
+    return story;
+  }
+  
+  async getUserStories(userId: number): Promise<Story[]> {
+    // Get unexpired stories
+    const now = new Date();
+    return Array.from(this.stories.values())
+      .filter(story => 
+        story.userId === userId && 
+        story.expiresAt && 
+        new Date(story.expiresAt) > now
+      )
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  async getStoriesForFeed(userId: number): Promise<(Story & { user: User })[]> {
+    // Get following IDs
+    const followingIds = Array.from(this.follows.values())
+      .filter(follow => follow.followerId === userId)
+      .map(follow => follow.followingId);
+    
+    // Get unexpired stories from following users
+    const now = new Date();
+    const feedStories = Array.from(this.stories.values())
+      .filter(story => 
+        followingIds.includes(story.userId) && 
+        story.expiresAt && 
+        new Date(story.expiresAt) > now
+      )
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    // Enrich story data with user info
+    return Promise.all(feedStories.map(async story => {
+      const user = await this.getUser(story.userId) as User;
+      return { ...story, user };
+    }));
+  }
+  
+  async deleteExpiredStories(): Promise<void> {
+    const now = new Date();
+    const expiredStories = Array.from(this.stories.values())
+      .filter(story => story.expiresAt && new Date(story.expiresAt) <= now);
+    
+    expiredStories.forEach(story => this.stories.delete(story.id));
+  }
+
+  // Player Stats methods
+  async createPlayerStats(insertStats: InsertPlayerStats): Promise<PlayerStats> {
+    const id = this.playerStatsCurrentId++;
+    const stats: PlayerStats = {
+      id,
+      userId: insertStats.userId,
+      position: insertStats.position || null,
+      battingStyle: insertStats.battingStyle || null,
+      bowlingStyle: insertStats.bowlingStyle || null,
+      totalMatches: insertStats.totalMatches || 0,
+      totalRuns: insertStats.totalRuns || 0,
+      totalWickets: insertStats.totalWickets || 0,
+      totalCatches: insertStats.totalCatches || 0,
+      totalSixes: insertStats.totalSixes || 0,
+      totalFours: insertStats.totalFours || 0,
+      highestScore: insertStats.highestScore || 0,
+      bestBowling: insertStats.bestBowling || null,
+      battingAverage: insertStats.battingAverage || "0",
+      bowlingAverage: insertStats.bowlingAverage || "0",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.playerStats.set(id, stats);
+    return stats;
+  }
+  
+  async getPlayerStats(userId: number): Promise<PlayerStats | undefined> {
+    return Array.from(this.playerStats.values()).find(stats => stats.userId === userId);
+  }
+  
+  async updatePlayerStats(userId: number, statsData: Partial<PlayerStats>): Promise<PlayerStats | undefined> {
+    const stats = await this.getPlayerStats(userId);
+    if (!stats) return undefined;
+    
+    const updatedStats = { 
+      ...stats, 
+      ...statsData,
+      updatedAt: new Date()
+    };
+    this.playerStats.set(stats.id, updatedStats);
+    return updatedStats;
+  }
+
+  // Player Match methods
+  async createPlayerMatch(insertMatch: InsertPlayerMatch): Promise<PlayerMatch> {
+    const id = this.playerMatchCurrentId++;
+    const match: PlayerMatch = {
+      id,
+      userId: insertMatch.userId,
+      matchName: insertMatch.matchName,
+      matchDate: insertMatch.matchDate,
+      venue: insertMatch.venue || null,
+      opponent: insertMatch.opponent,
+      matchType: insertMatch.matchType || null,
+      teamScore: insertMatch.teamScore || null,
+      opponentScore: insertMatch.opponentScore || null,
+      result: insertMatch.result || null,
+      createdAt: new Date()
+    };
+    
+    this.playerMatches.set(id, match);
+    return match;
+  }
+  
+  async getPlayerMatch(id: number): Promise<PlayerMatch | undefined> {
+    return this.playerMatches.get(id);
+  }
+  
+  async getUserMatches(userId: number): Promise<PlayerMatch[]> {
+    return Array.from(this.playerMatches.values())
+      .filter(match => match.userId === userId)
+      .sort((a, b) => (b.matchDate?.getTime() || 0) - (a.matchDate?.getTime() || 0));
+  }
+
+  // Player Match Performance methods
+  async createPlayerMatchPerformance(insertPerformance: InsertPlayerMatchPerformance): Promise<PlayerMatchPerformance> {
+    const id = this.playerMatchPerformanceCurrentId++;
+    const performance: PlayerMatchPerformance = {
+      id,
+      userId: insertPerformance.userId,
+      matchId: insertPerformance.matchId,
+      runsScored: insertPerformance.runsScored || 0,
+      ballsFaced: insertPerformance.ballsFaced || 0,
+      fours: insertPerformance.fours || 0,
+      sixes: insertPerformance.sixes || 0,
+      battingStatus: insertPerformance.battingStatus || null,
+      oversBowled: insertPerformance.oversBowled || "0",
+      runsConceded: insertPerformance.runsConceded || 0,
+      wicketsTaken: insertPerformance.wicketsTaken || 0,
+      maidens: insertPerformance.maidens || 0,
+      catches: insertPerformance.catches || 0,
+      runOuts: insertPerformance.runOuts || 0,
+      stumpings: insertPerformance.stumpings || 0,
+      createdAt: new Date()
+    };
+    
+    this.playerMatchPerformances.set(id, performance);
+    return performance;
+  }
+  
+  async getPlayerMatchPerformance(userId: number, matchId: number): Promise<PlayerMatchPerformance | undefined> {
+    return Array.from(this.playerMatchPerformances.values())
+      .find(perf => perf.userId === userId && perf.matchId === matchId);
+  }
+  
+  async getMatchPerformances(matchId: number): Promise<(PlayerMatchPerformance & { user: User })[]> {
+    const performances = Array.from(this.playerMatchPerformances.values())
+      .filter(perf => perf.matchId === matchId);
+    
+    return Promise.all(performances.map(async perf => {
+      const user = await this.getUser(perf.userId) as User;
+      return { ...perf, user };
+    }));
   }
 }
 

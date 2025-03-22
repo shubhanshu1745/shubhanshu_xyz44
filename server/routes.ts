@@ -8,7 +8,11 @@ import {
   insertPostSchema, 
   insertFollowSchema,
   insertConversationSchema,
-  insertMessageSchema
+  insertMessageSchema,
+  insertStorySchema,
+  insertPlayerStatsSchema,
+  insertPlayerMatchSchema,
+  insertPlayerMatchPerformanceSchema
 } from "@shared/schema";
 import { CricketDataService } from "./services/cricket-data";
 
