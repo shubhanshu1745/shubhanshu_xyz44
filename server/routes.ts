@@ -1873,9 +1873,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log performance data after validation
       console.log("Validated performance data:", performanceData);
       
-      // Calculate additional analytics metrics
-      const strikeRate = performanceData.ballsFaced > 0 
-        ? (performanceData.runsScored / performanceData.ballsFaced * 100).toFixed(2) 
+      // Calculate additional analytics metrics with null safety
+      const runsScored = performanceData.runsScored || 0;
+      const ballsFaced = performanceData.ballsFaced || 0;
+      const fours = performanceData.fours || 0;
+      const sixes = performanceData.sixes || 0;
+      const wicketsTaken = performanceData.wicketsTaken || 0;
+      const runsConceded = performanceData.runsConceded || 0;
+      const maidens = performanceData.maidens || 0;
+      
+      const strikeRate = ballsFaced > 0 
+        ? (runsScored / ballsFaced * 100).toFixed(2) 
         : "0.00";
         
       // Parse overs bowled and calculate balls bowled
@@ -1887,21 +1895,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate economy rate (runs conceded per over)
       const economyRate = totalBallsBowled > 0 
-        ? (performanceData.runsConceded / (totalBallsBowled / 6)).toFixed(2) 
+        ? (runsConceded / (totalBallsBowled / 6)).toFixed(2) 
         : "0.00";
       
       // Calculate bowling strike rate (balls per wicket)
-      const bowlingStrikeRate = performanceData.wicketsTaken > 0 && totalBallsBowled > 0
-        ? (totalBallsBowled / performanceData.wicketsTaken).toFixed(2) 
+      const bowlingStrikeRate = wicketsTaken > 0 && totalBallsBowled > 0
+        ? (totalBallsBowled / wicketsTaken).toFixed(2) 
         : "0.00";
         
       // Calculate match impact score (custom formula)
-      const battingImpact = performanceData.runsScored * 1 + 
-                          performanceData.fours * 1 + 
-                          performanceData.sixes * 2;
+      const battingImpact = runsScored * 1 + 
+                          fours * 1 + 
+                          sixes * 2;
                           
-      const bowlingImpact = performanceData.wicketsTaken * 20 + 
-                          (performanceData.maidens || 0) * 5;
+      const bowlingImpact = wicketsTaken * 20 + 
+                          maidens * 5;
                           
       const fieldingImpact = (performanceData.catches || 0) * 10 + 
                           (performanceData.runOuts || 0) * 15;
