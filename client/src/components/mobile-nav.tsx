@@ -30,10 +30,12 @@ export function MobileNav() {
             </Button>
           </Link>
           
-          <Button variant="ghost" size="icon" className="text-neutral-600">
-            <Search className="h-6 w-6" />
-            <span className="sr-only">Search</span>
-          </Button>
+          <Link href="/matches">
+            <Button variant="ghost" size="icon" className="text-neutral-600">
+              <Trophy className="h-6 w-6" />
+              <span className="sr-only">Matches</span>
+            </Button>
+          </Link>
           
           <Button 
             variant="ghost" 
@@ -45,10 +47,12 @@ export function MobileNav() {
             <span className="sr-only">Create</span>
           </Button>
           
-          <Button variant="ghost" size="icon" className="text-neutral-600">
-            <Heart className="h-6 w-6" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <Link href="/teams">
+            <Button variant="ghost" size="icon" className="text-neutral-600">
+              <Users className="h-6 w-6" />
+              <span className="sr-only">Teams</span>
+            </Button>
+          </Link>
           
           <Link href={`/profile/${user?.username}`}>
             <Button variant="ghost" size="icon" className="rounded-full">

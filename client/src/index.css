@@ -11,3 +11,75 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Cricket-themed custom styling */
+.cricket-gradient {
+  background: linear-gradient(135deg, #0D2B40 0%, #1A73E8 100%);
+}
+
+.cricket-pitch-bg {
+  background-color: #e7f0dd;
+  background-image: linear-gradient(90deg, transparent 49%, #d0e7c0 49%, #d0e7c0 51%, transparent 51%);
+  background-size: 20px 100%;
+}
+
+.cricket-ball-shadow {
+  box-shadow: 0 4px 15px rgba(223, 44, 31, 0.15);
+}
+
+.cricket-bat-shadow {
+  box-shadow: 0 4px 15px rgba(150, 90, 25, 0.15);
+}
+
+.match-card {
+  transition: transform 0.2s;
+}
+
+.match-card:hover {
+  transform: translateY(-3px);
+}
+
+.team-badge {
+  border: 2px solid #f3f4f6;
+  transition: all 0.2s;
+}
+
+.team-badge:hover {
+  border-color: #1A73E8;
+  transform: scale(1.05);
+}
+
+.scoreboard {
+  font-family: 'Roboto Mono', monospace;
+}
+
+.bounce-animation {
+  animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-5px);
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #c5c5c5;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a5a5a5;
+}
