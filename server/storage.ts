@@ -785,6 +785,16 @@ export class MemStorage implements IStorage {
       bestBowling: insertStats.bestBowling || null,
       battingAverage: insertStats.battingAverage || "0",
       bowlingAverage: insertStats.bowlingAverage || "0",
+      // Extended stats for UI display
+      innings: insertStats.innings || 0,
+      notOuts: insertStats.notOuts || 0,
+      ballsFaced: insertStats.ballsFaced || 0,
+      oversBowled: insertStats.oversBowled || "0",
+      runsConceded: insertStats.runsConceded || 0,
+      maidens: insertStats.maidens || 0,
+      fifties: insertStats.fifties || 0,
+      hundreds: insertStats.hundreds || 0,
+      totalRunOuts: insertStats.totalRunOuts || 0,
       createdAt: new Date(),
       updatedAt: new Date()
     };
