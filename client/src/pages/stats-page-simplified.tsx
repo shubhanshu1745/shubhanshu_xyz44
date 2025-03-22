@@ -171,16 +171,33 @@ export default function StatsPage() {
     addPerformanceMutation.mutate(performanceData);
   }
 
-  // Fetch player stats
-  const { data: dbPlayerStats, isLoading: isStatsLoading } = useQuery<DbPlayerStats>({
+  // Fetch player stats with more aggressive refetch options
+  const { data: dbPlayerStats, isLoading: isStatsLoading, refetch: refetchStats } = useQuery<DbPlayerStats>({
     queryKey: ['/api/users', user?.username, 'player-stats'],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    enabled: !!user
+    enabled: !!user,
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true // Refetch when window gains focus
   });
   
   // Create an enhanced player stats object with our needed UI fields
   const playerStats: PlayerStats | undefined = dbPlayerStats ? {
-    ...dbPlayerStats,
+    id: dbPlayerStats.id,
+    userId: dbPlayerStats.userId,
+    position: dbPlayerStats.position,
+    battingStyle: dbPlayerStats.battingStyle,
+    bowlingStyle: dbPlayerStats.bowlingStyle,
+    totalMatches: dbPlayerStats.totalMatches,
+    totalRuns: dbPlayerStats.totalRuns,
+    totalWickets: dbPlayerStats.totalWickets,
+    totalCatches: dbPlayerStats.totalCatches,
+    totalRunOuts: dbPlayerStats.totalRunOuts,
+    totalSixes: dbPlayerStats.totalSixes,
+    totalFours: dbPlayerStats.totalFours,
+    highestScore: dbPlayerStats.highestScore,
+    bestBowling: dbPlayerStats.bestBowling, 
+    battingAverage: dbPlayerStats.battingAverage,
+    bowlingAverage: dbPlayerStats.bowlingAverage,
     matches: dbPlayerStats.totalMatches || 0,
     innings: dbPlayerStats.innings || 0,
     notOuts: dbPlayerStats.notOuts || 0,
@@ -196,14 +213,19 @@ export default function StatsPage() {
     catches: dbPlayerStats.totalCatches || 0,
     runOuts: dbPlayerStats.totalRunOuts || 0,
     playerOfMatchAwards: 0, // We'll need to add this to the database later
-    highestScoreNotOut: false // We'll need to add this to the database later
+    highestScoreNotOut: false, // We'll need to add this to the database later
+    createdAt: dbPlayerStats.createdAt,
+    updatedAt: dbPlayerStats.updatedAt,
+    maidens: dbPlayerStats.maidens,
   } : undefined;
   
-  // Fetch recent matches
-  const { data: dbMatches, isLoading: isMatchesLoading } = useQuery<PlayerMatch[]>({
+  // Fetch recent matches with aggressive refetch options
+  const { data: dbMatches, isLoading: isMatchesLoading, refetch: refetchMatches } = useQuery<PlayerMatch[]>({
     queryKey: ['/api/users', user?.username, 'matches'],
     queryFn: getQueryFn({ on401: "returnNull" }),
-    enabled: !!user
+    enabled: !!user,
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true // Refetch when window gains focus
   });
   
   // Create enhanced matches with the fields we need for UI
@@ -406,31 +428,31 @@ export default function StatsPage() {
       <div className="relative z-10">
         {/* Player Header */}
         <div className="flex flex-col md:flex-row items-center mb-8 bg-white p-6 rounded-lg shadow-md">
-          <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-[#2E8B57] mb-4 md:mb-0 md:mr-6">
+          <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-[#1F3A8A] mb-4 md:mb-0 md:mr-6">
             <AvatarImage 
               src={user.profileImage || "https://github.com/shadcn.png"} 
               alt={user.username} 
             />
-            <AvatarFallback className="bg-[#2E8B57] text-white text-2xl">
+            <AvatarFallback className="bg-[#1F3A8A] text-white text-2xl">
               {user.username.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
           <div className="flex-grow text-center md:text-left">
             <h1 className="text-2xl md:text-3xl font-bold cricket-primary mb-1">{user.fullName || user.username}</h1>
-            <p className="text-[#2E8B57] font-medium mb-3">@{user.username}</p>
+            <p className="text-[#1F3A8A] font-medium mb-3">@{user.username}</p>
             
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <div className="flex items-center">
-                <Award className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <Award className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">Batsman</span>
               </div>
               <div className="flex items-center">
-                <Award className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <Award className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">All-rounder</span>
               </div>
               <div className="flex items-center">
-                <MapPin className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <MapPin className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">{user.location || "Location not specified"}</span>
               </div>
             </div>
@@ -438,7 +460,7 @@ export default function StatsPage() {
           
           <Button
             variant="default"
-            className="mt-4 md:mt-0 bg-[#2E8B57] hover:bg-[#1F3B4D]"
+            className="mt-4 md:mt-0 bg-[#1F3A8A] hover:bg-[#152C6B]"
             onClick={() => setIsAddMatchDialogOpen(true)}
           >
             Add Match
@@ -447,7 +469,7 @@ export default function StatsPage() {
         
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Batting</CardTitle>
             </CardHeader>
