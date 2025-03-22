@@ -14,7 +14,7 @@
 
 /* Cricket-themed custom styling */
 .cricket-gradient {
-  background: linear-gradient(135deg, #0D2B40 0%, #1A73E8 100%);
+  background: linear-gradient(135deg, #1F3B4D 0%, #2E8B57 100%);
 }
 
 .cricket-pitch-bg {
@@ -33,10 +33,13 @@
 
 .match-card {
   transition: transform 0.2s;
+  background-color: #FFFFFF;
+  border: 1px solid #F5F5F5;
 }
 
 .match-card:hover {
   transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(46, 139, 87, 0.1);
 }
 
 .team-badge {
@@ -45,8 +48,67 @@
 }
 
 .team-badge:hover {
-  border-color: #1A73E8;
+  border-color: #2E8B57;
   transform: scale(1.05);
+}
+
+/* New Cricket Theme classes */
+.cricket-nav-bg {
+  background-color: #1F3B4D;
+}
+
+.cricket-primary {
+  color: #1F3B4D;
+}
+
+.cricket-primary-bg {
+  background-color: #1F3B4D;
+}
+
+.cricket-action {
+  color: #2E8B57;
+}
+
+.cricket-action-bg {
+  background-color: #2E8B57;
+}
+
+.cricket-accent {
+  color: #FFC107;
+}
+
+.cricket-accent-bg {
+  background-color: #FFC107;
+}
+
+.cricket-text {
+  color: #333333;
+}
+
+.cricket-surface-bg {
+  background-color: #F5F5F5;
+}
+
+.cricket-btn {
+  background-color: #2E8B57;
+  color: white;
+  transition: all 0.2s;
+}
+
+.cricket-btn:hover {
+  background-color: #267349;
+  transform: translateY(-1px);
+}
+
+.cricket-accent-btn {
+  background-color: #FFC107;
+  color: #1F3B4D;
+  transition: all 0.2s;
+}
+
+.cricket-accent-btn:hover {
+  background-color: #E5AD06;
+  transform: translateY(-1px);
 }
 
 .scoreboard {
@@ -71,15 +133,16 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #F5F5F5;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #c5c5c5;
+  background: #2E8B57;
+  opacity: 0.7;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #a5a5a5;
+  background: #267349;
 }

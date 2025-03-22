@@ -1,0 +1,79 @@
+Primary Background & Navigation:
+Deep Navy Blue
+
+Hex: #1F3B4D
+
+Use for headers, navigation bars, and major background sections to instill trust and a professional tone.
+
+Action & Interactive Elements:
+Cricket Green
+
+Hex: #2E8B57
+
+Ideal for buttons, icons, and call-to-action elements that need to pop.
+
+Accents & Highlights:
+Golden Yellow
+
+Hex: #FFC107
+
+Perfect for notifications, highlights, and hover states to inject energy and warmth.
+
+Content Background:
+Crisp White
+
+Hex: #FFFFFF
+
+Use as the main canvas for content and posts for maximum readability.
+
+Secondary/Surface Background:
+Light Gray
+
+Hex: #F5F5F5
+
+For card backgrounds and secondary sections that need a subtle separation from the main content.
+
+Text Color:
+Charcoal Gray
+
+Hex: #333333
+
+Provides high readability for body text without the harshness of black.
+
+Typography
+Headings & Titles:
+Montserrat
+
+Weights: Semi-Bold (for primary headings) and Bold (for emphasis)
+
+Sizes: 24-32px depending on the hierarchy
+
+Body & Details:
+Open Sans (or Roboto as an alternative)
+
+Weights: Regular for standard text, Medium for subheadings
+
+Sizes: 16-18px with ample line spacing for easy reading
+
+UI Elements & Layout
+Navigation Bar:
+Fixed at the top with Deep Navy Blue. Icons and active states should use Cricket Green and Golden Yellow for clear visual feedback.
+
+Cards & Content Blocks:
+Use a mix of Crisp White for primary content areas and Light Gray for card surfaces. Rounded corners and subtle shadows add a modern feel.
+
+Buttons & Interactive Components:
+Rounded buttons in Cricket Green or Golden Yellow, with smooth micro-interactions (like ripple effects) to confirm actions.
+
+Imagery & Icons:
+Integrate custom, minimalistic cricket-related icons (bats, balls, wickets) and use subtle gradients for a modern twist.
+
+Overall Look and Feel
+Modern & Clean:
+The design is sleek, uncluttered, and visually balanced, ensuring that content (from networking posts to live match updates) is the focal point.
+
+Dynamic & Engaging:
+With strategic use of accent colors and interactive feedback, the app feels lively and responsive.
+
+Accessible & Intuitive:
+High contrast between text and backgrounds, responsive element sizing, and clear navigation make the app usable across all devices.
