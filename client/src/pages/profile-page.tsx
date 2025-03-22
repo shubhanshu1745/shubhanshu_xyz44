@@ -21,7 +21,9 @@ import {
   UserPlus,
   MessageSquare,
   Bell,
-  MoreHorizontal
+  MoreHorizontal,
+  Trophy,
+  ActivitySquare
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EditProfileDialog } from "@/components/edit-profile-dialog";
@@ -306,6 +308,10 @@ export default function ProfilePage() {
                     <Tag className="h-4 w-4" />
                     <span className="hidden sm:inline">TAGGED</span>
                   </TabsTrigger>
+                  <TabsTrigger value="stats" className="flex items-center gap-2 py-3">
+                    <Trophy className="h-4 w-4" />
+                    <span className="hidden sm:inline">CRICKET STATS</span>
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="posts" className="mt-4">
@@ -378,6 +384,31 @@ export default function ProfilePage() {
                 <TabsContent value="tagged" className="mt-4">
                   <div className="text-center py-10">
                     <p className="text-neutral-500">No tagged posts yet.</p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="stats" className="mt-4">
+                  <div className="p-6 bg-white rounded-md shadow-sm">
+                    <div className="flex items-center gap-4 mb-6">
+                      <ActivitySquare className="h-12 w-12 text-primary" />
+                      <div>
+                        <h3 className="text-xl font-bold">Cricket Statistics</h3>
+                        <p className="text-muted-foreground">View detailed cricket performance metrics</p>
+                      </div>
+                    </div>
+                    
+                    <p className="mb-6">
+                      View comprehensive cricket statistics including batting averages, bowling figures, 
+                      match-by-match performance data, and career highlights.
+                    </p>
+                    
+                    <Button
+                      onClick={() => setLocation(`/player-stats/${username}`)}
+                      className="bg-primary hover:bg-primary/90"
+                    >
+                      <Trophy className="mr-2 h-4 w-4" />
+                      View Cricket Stats Dashboard
+                    </Button>
                   </div>
                 </TabsContent>
               </Tabs>
