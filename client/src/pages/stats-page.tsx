@@ -21,28 +21,38 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 // Define schemas for match and performance forms
 const matchFormSchema = z.object({
-  opponent: z.string().min(1, "Opponent is required"),
+  opponent: z.string().min(1, "Opponent name is required"),
   venue: z.string().min(1, "Venue is required"),
-  matchDate: z.string().min(1, "Match date is required"),
-  matchType: z.string().min(1, "Match type is required"),
-  result: z.string().optional(),
-  teamScore: z.string().optional(),
-  opponentScore: z.string().optional(),
+  matchDate: z.string(),
+  matchType: z.enum(["T20", "ODI", "Test", "Other"]),
+  result: z.enum(["Win", "Loss", "Draw", "In Progress"]),
+  teamScore: z.string().min(1, "Team score is required"),
+  opponentScore: z.string().min(1, "Opponent score is required"),
+  matchDescription: z.string().optional(),
+  tossResult: z.string().optional(),
+  firstInnings: z.boolean().optional(),
 });
 
 const performanceFormSchema = z.object({
-  runsScored: z.string().optional().default("0"),
-  ballsFaced: z.string().optional().default("0"),
-  notOut: z.boolean().default(false),
-  fours: z.string().optional().default("0"),
-  sixes: z.string().optional().default("0"),
-  wicketsTaken: z.string().optional().default("0"),
-  oversBowled: z.string().optional().default("0"),
-  runsConceded: z.string().optional().default("0"),
-  maidens: z.string().optional().default("0"),
-  catches: z.string().optional().default("0"),
-  runOuts: z.string().optional().default("0"),
-  stumpings: z.string().optional().default("0"),
+  runsScored: z.string(),
+  ballsFaced: z.string(),
+  notOut: z.boolean(),
+  fours: z.string(),
+  sixes: z.string(),
+  wicketsTaken: z.string(),
+  oversBowled: z.string(),
+  runsConceded: z.string(),
+  maidens: z.string(),
+  catches: z.string(),
+  runOuts: z.string(),
+  stumpings: z.string(),
+  battingPosition: z.number().min(1).max(11).optional(),
+  bowlingPosition: z.number().min(1).max(11).optional(),
+  battingStyle: z.string().optional(),
+  bowlingStyle: z.string().optional(),
+  economyRate: z.number().optional(),
+  strikeRate: z.number().optional(),
+  playerOfMatch: z.boolean().optional(),
 });
 
 type PlayerWithStats = {
@@ -75,6 +85,9 @@ export default function StatsPage() {
       result: "Win",
       teamScore: "",
       opponentScore: "",
+      matchDescription: "",
+      tossResult: "",
+      firstInnings: false,
     },
   });
 
@@ -94,6 +107,13 @@ export default function StatsPage() {
       catches: "0",
       runOuts: "0",
       stumpings: "0",
+      battingPosition: null,
+      bowlingPosition: null,
+      battingStyle: null,
+      bowlingStyle: null,
+      economyRate: null,
+      strikeRate: null,
+      playerOfMatch: false,
     },
   });
 
@@ -238,6 +258,9 @@ export default function StatsPage() {
         result: "Win",
         teamScore: "",
         opponentScore: "",
+        matchDescription: "",
+        tossResult: "",
+        firstInnings: false,
       });
 
       performanceForm.reset({
@@ -253,6 +276,13 @@ export default function StatsPage() {
         catches: "0",
         runOuts: "0",
         stumpings: "0",
+        battingPosition: null,
+        bowlingPosition: null,
+        battingStyle: null,
+        bowlingStyle: null,
+        economyRate: null,
+        strikeRate: null,
+        playerOfMatch: false,
       });
 
       // Reset state and close dialog
@@ -296,6 +326,9 @@ export default function StatsPage() {
       matchName: `${user.username} vs ${values.opponent}`,
       teamScore: values.teamScore,
       opponentScore: values.opponentScore,
+      matchDescription: values.matchDescription,
+      tossResult: values.tossResult,
+      firstInnings: values.firstInnings,
     };
 
     console.log('Submitting match data:', matchData);
@@ -321,6 +354,13 @@ export default function StatsPage() {
       catches: parseInt(values.catches || "0"),
       runOuts: parseInt(values.runOuts || "0"),
       stumpings: parseInt(values.stumpings || "0"),
+      battingPosition: values.battingPosition,
+      bowlingPosition: values.bowlingPosition,
+      battingStyle: values.battingStyle,
+      bowlingStyle: values.bowlingStyle,
+      economyRate: values.economyRate,
+      strikeRate: values.strikeRate,
+      playerOfMatch: values.playerOfMatch,
     };
 
     console.log('Submitting performance data:', performanceData);
@@ -653,51 +693,51 @@ export default function StatsPage() {
                         </div>
 
                         <div className="p-4">
-                          <h3 className="text-lg font-semibold mb-2">{match.matchTitle || 'Cricket Match'}</h3>
-                          <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center">
-                              <Clock className="h-4 w-4 mr-2" />
-                              <span>{match.overs || '20'} overs</span>
+                          <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-semibold ">{match.matchTitle || 'Cricket Match'}</h3>
+                            <span className={`px-2 py-1 rounded text-sm ${
+                              match.result === 'Win' ? 'bg-green-100 text-green-800' :
+                              match.result === 'Loss' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {match.result}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 mb-2">
+                            <div>
+                              <p className="text-sm text-gray-600">Date</p>
+                              <p className="font-medium">{match.date ? format(new Date(match.date), 'PPP') : 'Date not available'}</p>
                             </div>
-                            <div className="flex items-center">
-                              <Flag className="h-4 w-4 mr-2" />
-                              <span>{match.format || 'T20'}</span>
+                            <div>
+                              <p className="text-sm text-gray-600">Venue</p>
+                              <p className="font-medium">{match.venue || 'Venue not specified'}</p>
                             </div>
                           </div>
-
+                          <div className="grid grid-cols-2 gap-4 mb-2">
+                            <div<p className="text-sm text-gray-600">Team Score</p>
+                              <p className="font-medium">{match.teamScore || 'N/A'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-600">Opponent Score</p>
+                              <p className="font-medium">{match.opponentScore || 'N/A'}</p>
+                            </div>
+                          </div>
                           {match.performance && (
-                            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
-                              <div>
-                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Batting</h4>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Runs:</span>
-                                  <span className="font-medium">{match.performance.runs || 0}
-                                    {match.performance.notOut ? '*' : ''}
-                                  </span>
-                                </p>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Balls:</span>
-                                  <span className="font-medium">{match.performance.ballsFaced || 0}</span>
-                                </p>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">4s / 6s:</span>
-                                  <span className="font-medium">{match.performance.fours || 0} / {match.performance.sixes || 0}</span>
-                                </p>
-                              </div>
-
-                              <div>
-                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Bowling</h4>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Wickets:</span>
-                                  <span className="font-medium">{match.performance.wickets || 0}</span>
-                                </p>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Overs:</span>
-                                  <span className="font-medium">{match.performance.oversBowled || 0}</span>
-                                </p>
-                                <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Runs:</span                                  <span className="font-medium">{match.performance.runsConceded || 0}</span>
-                                </p>
+                            <div className="mt-4 pt-4 border-t">
+                              <h4 className="font-semibold mb-2">Your Performance</h4>
+                              <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                  <p className="text-sm text-gray-600">Runs</p>
+                                  <p className="font-medium">{match.performance.runsScored}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Wickets</p>
+                                  <p className="font-medium">{match.performance.wicketsTaken}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-600">Catches</p>
+                                  <p className="font-medium">{match.performance.catches}</p>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -714,12 +754,11 @@ export default function StatsPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-10">
-                    <h3 className="text-lg font-medium mb-2">No match data available</h3>
-                    <p className="text-muted-foreground mb-4">Add your match details to start tracking your cricket performance</p>
-                    <Button
-                      variant="default"
-                      className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                  <div className="text-center py-8">
+                    <p className="text-gray-600">No matches found</p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
                       onClick={() => setIsAddMatchDialogOpen(true)}
                     >
                       Add Your First Match
@@ -849,8 +888,7 @@ export default function StatsPage() {
                             <SelectItem value="T20">T20</SelectItem>
                             <SelectItem value="ODI">ODI</SelectItem>
                             <SelectItem value="Test">Test</SelectItem>
-                            <SelectItem value="One Day">One Day</SelectItem>
-                            <SelectItem value="Others">Others</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -908,10 +946,48 @@ export default function StatsPage() {
                           <SelectItem value="Win">Win</SelectItem>
                           <SelectItem value="Loss">Loss</SelectItem>
                           <SelectItem value="Draw">Draw</SelectItem>
-                          <SelectItem value="Tie">Tie</SelectItem>
-                          <SelectItem value="No Result">No Result</SelectItem>
+                          <SelectItem value="In Progress">In Progress</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={matchForm.control}
+                  name="matchDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Match Description</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter match description" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={matchForm.control}
+                  name="tossResult"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Toss Result</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter toss result" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={matchForm.control}
+                  name="firstInnings"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox {...field} />
+                      </FormControl>
+                      <FormLabel>Did your team bat first?</FormLabel>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -951,10 +1027,10 @@ export default function StatsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Runs Scored</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
                       )}
                     />
@@ -1020,6 +1096,45 @@ export default function StatsPage() {
                       )}
                     />
                   </div>
+                  <FormField
+                    control={performanceForm.control}
+                    name="battingPosition"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Batting Position</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Enter batting position" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={performanceForm.control}
+                    name="battingStyle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Batting Style</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter batting style" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={performanceForm.control}
+                    name="strikeRate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Strike Rate</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="Enter strike rate" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <div>
@@ -1082,6 +1197,45 @@ export default function StatsPage() {
                         </FormItem>
                       )}
                     />
+                    <FormField
+                      control={performanceForm.control}
+                      name="bowlingPosition"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bowling Position</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="Enter bowling position" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={performanceForm.control}
+                      name="bowlingStyle"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bowling Style</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter bowling style" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={performanceForm.control}
+                      name="economyRate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Economy Rate</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="Enter economy rate" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </div>
 
@@ -1130,6 +1284,19 @@ export default function StatsPage() {
                       )}
                     />
                   </div>
+                  <FormField
+                    control={performanceForm.control}
+                    name="playerOfMatch"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Checkbox {...field} />
+                        </FormControl>
+                        <FormLabel>Player of the Match?</FormLabel>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <DialogFooter>
