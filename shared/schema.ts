@@ -434,10 +434,6 @@ export const createPlayerMatchPerformanceSchema = insertPlayerMatchPerformanceSc
 });
 
 // Story Schema
-export const createStorySchema = insertStorySchema.extend({
-  imageUrl: z.string().min(1, "Image URL is required"),
-  caption: z.string().max(100, "Caption must be less than 100 characters").optional(),
-});
 
 export type CreatePostFormData = z.infer<typeof createPostSchema>;
 export type CreatePlayerStatsFormData = z.infer<typeof createPlayerStatsSchema>;
