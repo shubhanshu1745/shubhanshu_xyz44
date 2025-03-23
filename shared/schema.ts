@@ -101,9 +101,9 @@ export const stories = pgTable("stories", {
 export const playerStats = pgTable("player_stats", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  position: text("position"), // e.g., "Batsman", "Bowler", "All-rounder"
-  battingStyle: text("batting_style"), // e.g., "Right-handed", "Left-handed"
-  bowlingStyle: text("bowling_style"), // e.g., "Right-arm fast", "Left-arm spin"
+  position: text("position"),
+  battingStyle: text("batting_style"),
+  bowlingStyle: text("bowling_style"),
   totalMatches: integer("total_matches").default(0),
   totalRuns: integer("total_runs").default(0),
   totalWickets: integer("total_wickets").default(0),
@@ -111,10 +111,11 @@ export const playerStats = pgTable("player_stats", {
   totalSixes: integer("total_sixes").default(0),
   totalFours: integer("total_fours").default(0),
   highestScore: integer("highest_score").default(0),
-  bestBowling: text("best_bowling"), // e.g., "5/20"
-  battingAverage: numeric("batting_average").default("0"),
-  bowlingAverage: numeric("bowling_average").default("0"),
-  // Extended stats for UI display
+  bestBowling: text("best_bowling").default("0/0"),
+  battingAverage: numeric("batting_average", { precision: 2 }).default("0"),
+  bowlingAverage: numeric("bowling_average", { precision: 2 }).default("0"),
+  strikeRate: numeric("strike_rate", { precision: 2 }).default("0"),
+  economyRate: numeric("economy_rate", { precision: 2 }).default("0"),
   innings: integer("innings").default(0),
   notOuts: integer("not_outs").default(0),
   ballsFaced: integer("balls_faced").default(0),
@@ -248,7 +249,8 @@ export const insertPlayerStatsSchema = createInsertSchema(playerStats).pick({
   bestBowling: true,
   battingAverage: true,
   bowlingAverage: true,
-  // Extended stats for UI display
+  strikeRate: true,
+  economyRate: true,
   innings: true,
   notOuts: true,
   ballsFaced: true,
