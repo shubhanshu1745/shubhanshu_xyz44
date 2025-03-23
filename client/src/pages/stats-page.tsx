@@ -26,6 +26,8 @@ const matchFormSchema = z.object({
   matchDate: z.string().min(1, "Match date is required"),
   matchType: z.string().min(1, "Match type is required"),
   result: z.string().optional(),
+  teamScore: z.string().optional(),
+  opponentScore: z.string().optional(),
 });
 
 const performanceFormSchema = z.object({
@@ -71,6 +73,8 @@ export default function StatsPage() {
       matchDate: format(new Date(), "yyyy-MM-dd"),
       matchType: "T20",
       result: "Win",
+      teamScore: "",
+      opponentScore: "",
     },
   });
 
@@ -147,11 +151,11 @@ export default function StatsPage() {
     sixes: dbPlayerStats.totalSixes || 0,
     catches: dbPlayerStats.totalCatches || 0,
     runOuts: dbPlayerStats.totalRunOuts || 0,
-    playerOfMatchAwards: 0, // We'll need to add this to the database later
-    highestScoreNotOut: false, // We'll need to add this to the database later
+    playerOfMatchAwards: dbPlayerStats.playerOfMatchAwards || 0, 
+    highestScoreNotOut: dbPlayerStats.highestScoreNotOut || false, 
     createdAt: dbPlayerStats.createdAt,
     updatedAt: dbPlayerStats.updatedAt,
-    maidens: dbPlayerStats.maidens,
+    maidens: dbPlayerStats.maidens || 0,
   } : undefined;
 
   // Create enhanced matches with the fields we need for UI
@@ -232,6 +236,8 @@ export default function StatsPage() {
         matchDate: format(new Date(), "yyyy-MM-dd"),
         matchType: "T20",
         result: "Win",
+        teamScore: "",
+        opponentScore: "",
       });
 
       performanceForm.reset({
@@ -330,6 +336,35 @@ export default function StatsPage() {
   }
 
   const isLoading = isStatsLoading || isMatchesLoading;
+  const stats = playerStats || {
+    totalMatches: 0,
+    totalRuns: 0,
+    totalWickets: 0,
+    totalCatches: 0,
+    totalRunOuts: 0,
+    totalSixes: 0,
+    totalFours: 0,
+    highestScore: 0,
+    bestBowling: "0/0",
+    battingAverage: "0.00",
+    bowlingAverage: "0.00",
+    innings: 0,
+    notOuts: 0,
+    ballsFaced: 0,
+    oversBowled: "0",
+    runsConceded: 0,
+    maidens: 0,
+    fifties: 0,
+    hundreds: 0,
+    playerOfMatchAwards: 0,
+    highestScoreNotOut: false,
+    createdAt: null,
+    updatedAt: null,
+    id: 0,
+    userId: 0,
+    position: ''
+  };
+
 
   return (
     <div className="container max-w-5xl mx-auto py-6 px-4 relative">
@@ -425,26 +460,26 @@ export default function StatsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Matches</span>
-                    <span className="font-semibold">{playerStats?.matches || 0}</span>
+                    <span className="font-semibold">{stats.matches || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Runs</span>
-                    <span className="font-semibold">{playerStats?.totalRuns || 0}</span>
+                    <span className="font-semibold">{stats.totalRuns || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Average</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.matches && playerStats.matches > 0
-                        ? ((playerStats.totalRuns || 0) /
-                           ((playerStats.innings || 1) - (playerStats.notOuts || 0) || 1)).toFixed(2)
+                      {stats.matches && stats.matches > 0
+                        ? ((stats.totalRuns || 0) /
+                           ((stats.innings || 1) - (stats.notOuts || 0) || 1)).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Strike Rate</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.ballsFaced && playerStats.ballsFaced > 0
-                        ? (((playerStats.totalRuns || 0) / playerStats.ballsFaced) * 100).toFixed(2)
+                      {stats.ballsFaced && stats.ballsFaced > 0
+                        ? (((stats.totalRuns || 0) / stats.ballsFaced) * 100).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
@@ -471,27 +506,27 @@ export default function StatsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Wickets</span>
-                    <span className="font-semibold">{playerStats?.wickets || 0}</span>
+                    <span className="font-semibold">{stats.wickets || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Economy</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.oversBowled && parseFloat(playerStats.oversBowled.toString()) > 0
-                        ? ((playerStats.runsConceded || 0) / parseFloat(playerStats.oversBowled.toString())).toFixed(2)
+                      {stats.oversBowled && parseFloat(stats.oversBowled.toString()) > 0
+                        ? ((stats.runsConceded || 0) / parseFloat(stats.oversBowled.toString())).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Average</span>
                     <span className="font-semibold">
-                      {playerStats && playerStats.wickets && playerStats.wickets > 0
-                        ? ((playerStats.runsConceded || 0) / playerStats.wickets).toFixed(2)
+                      {stats.wickets && stats.wickets > 0
+                        ? ((stats.runsConceded || 0) / stats.wickets).toFixed(2)
                         : "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Best Figures</span>
-                    <span className="font-semibold">{playerStats?.bestBowlingFigures || "0/0"}</span>
+                    <span className="font-semibold">{stats.bestBowlingFigures || "0/0"}</span>
                   </div>
                 </div>
               )}
@@ -516,19 +551,19 @@ export default function StatsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">50s</span>
-                    <span className="font-semibold">{playerStats?.fifties || 0}</span>
+                    <span className="font-semibold">{stats.fifties || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">100s</span>
-                    <span className="font-semibold">{playerStats?.hundreds || 0}</span>
+                    <span className="font-semibold">{stats.hundreds || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">4s</span>
-                    <span className="font-semibold">{playerStats?.fours || 0}</span>
+                    <span className="font-semibold">{stats.fours || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">6s</span>
-                    <span className="font-semibold">{playerStats?.sixes || 0}</span>
+                    <span className="font-semibold">{stats.sixes || 0}</span>
                   </div>
                 </div>
               )}
@@ -553,19 +588,19 @@ export default function StatsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Catches</span>
-                    <span className="font-semibold">{playerStats?.catches || 0}</span>
+                    <span className="font-semibold">{stats.catches || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Run Outs</span>
-                    <span className="font-semibold">{playerStats?.runOuts || 0}</span>
+                    <span className="font-semibold">{stats.runOuts || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Player of Match</span>
-                    <span className="font-semibold">{playerStats?.playerOfMatchAwards || 0}</span>
+                    <span className="font-semibold">{stats.playerOfMatchAwards || 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">Highest Score</span>
-                    <span className="font-semibold">{playerStats?.highestScore || 0}{playerStats?.highestScoreNotOut ? '*' : ''}</span>
+                    <span className="font-semibold">{stats.highestScore || 0}{stats.highestScoreNotOut ? '*' : ''}</span>
                   </div>
                 </div>
               )}
@@ -661,8 +696,7 @@ export default function StatsPage() {
                                   <span className="font-medium">{match.performance.oversBowled || 0}</span>
                                 </p>
                                 <p className="grid grid-cols-2 gap-1">
-                                  <span className="text-muted-foreground">Runs:</span>
-                                  <span className="font-medium">{match.performance.runsConceded || 0}</span>
+                                  <span className="text-muted-foreground">Runs:</span                                  <span className="font-medium">{match.performance.runsConceded || 0}</span>
                                 </p>
                               </div>
                             </div>
@@ -917,10 +951,10 @@ export default function StatsPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Runs Scored</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="0" {...field} />
-                          </FormControl>
-                          <FormMessage />
+                        <FormControl>
+                          <Input type="number" placeholder="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
                         </FormItem>
                       )}
                     />
