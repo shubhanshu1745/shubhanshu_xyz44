@@ -274,22 +274,36 @@ export const insertPlayerMatchSchema = createInsertSchema(playerMatches).pick({
   result: true,
 });
 
-export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatchPerformance).pick({
-  userId: true,
-  matchId: true,
-  runsScored: true,
-  ballsFaced: true,
-  fours: true,
-  sixes: true,
-  battingStatus: true,
-  oversBowled: true,
-  runsConceded: true,
-  wicketsTaken: true,
-  maidens: true,
-  catches: true,
-  runOuts: true,
-  stumpings: true,
-});
+export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatchPerformance)
+  .pick({
+    userId: true,
+    matchId: true,
+    runsScored: true,
+    ballsFaced: true,
+    fours: true,
+    sixes: true,
+    battingStatus: true,
+    oversBowled: true,
+    runsConceded: true,
+    wicketsTaken: true,
+    maidens: true,
+    catches: true,
+    runOuts: true,
+    stumpings: true,
+  })
+  .extend({
+    runsScored: z.coerce.number().min(0),
+    ballsFaced: z.coerce.number().min(0),
+    fours: z.coerce.number().min(0),
+    sixes: z.coerce.number().min(0),
+    wicketsTaken: z.coerce.number().min(0),
+    runsConceded: z.coerce.number().min(0),
+    maidens: z.coerce.number().min(0),
+    catches: z.coerce.number().min(0),
+    runOuts: z.coerce.number().min(0),
+    stumpings: z.coerce.number().min(0),
+    oversBowled: z.string().regex(/^\d+(\.\d)?$/, "Invalid overs format"),
+  });
 
 // Story Schema
 export const createStorySchema = insertStorySchema.extend({
