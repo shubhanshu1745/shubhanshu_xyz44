@@ -1,0 +1,31 @@
+match-history.tsx:71 Uncaught ReferenceError: Cricket is not defined
+    at match-history.tsx:71:20
+    at Array.map (<anonymous>)
+    at MatchHistory (match-history.tsx:29:16)
+match-history.tsx:71 Uncaught ReferenceError: Cricket is not defined
+    at match-history.tsx:71:20
+    at Array.map (<anonymous>)
+    at MatchHistory (match-history.tsx:29:16)
+chunk-RPCDYKBN.js?v=38a2087b:14032 The above error occurred in the <MatchHistory> component:
+
+    at MatchHistory (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/components/stats/match-history.tsx:24:32)
+    at div
+    at PlayerStatsPage (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/pages/player-stats-page.tsx:30:20)
+    at Route (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.d…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=38a2087b:323:16)
+    at ProtectedRoute (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.d…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=38a2087b:379:17)
+    at Router
+    at SocketProvider (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/hooks/use-socket.tsx:25:34)
+    at AuthProvider (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.dev/src/hooks/use-theme.tsx:25:3)
+    at QueryClientProvider (https://c8079f27-2ae6-4650-9f8b-232d306138bd-00-3s4h6wqfhojhm.pike.replit.d…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=38a2087b:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+chunk-RPCDYKBN.js?v=38a2087b:9129 Uncaught ReferenceError: Cricket is not defined
+    at match-history.tsx:71:20
+    at Array.map (<anonymous>)
+    at MatchHistory (match-history.tsx:29:16)
+﻿
+
