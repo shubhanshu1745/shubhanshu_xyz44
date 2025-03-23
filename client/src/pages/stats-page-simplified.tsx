@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import {
   Card, CardTitle, CardDescription,
@@ -20,6 +20,7 @@ import {
   SelectItem,
   Avatar, AvatarFallback, AvatarImage,
   Checkbox,
+  useToast
 } from "@/components/ui";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -34,6 +35,8 @@ export default function StatsPage() {
   const [isAddMatchDialogOpen, setIsAddMatchDialogOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState<'match' | 'performance'>('match');
   const [newMatchId, setNewMatchId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: matches, isLoading: matchesLoading } = useQuery({
     queryKey: ['matches'],
@@ -51,12 +54,23 @@ export default function StatsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to add match');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add match');
+      }
       return response.json();
     },
     onSuccess: (data) => {
       setNewMatchId(data.id);
       setCurrentStep('performance');
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add match. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -74,7 +88,15 @@ export default function StatsPage() {
       setIsAddMatchDialogOpen(false);
       setCurrentStep('match');
       setNewMatchId(null);
+      queryClient.invalidateQueries({ queryKey: ['matches'] });
     },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add performance. Please try again.",
+        variant: "destructive",
+      });
+    }
   });
 
   const matchForm = useForm<CreatePlayerMatchFormData>({
