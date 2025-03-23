@@ -9,25 +9,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/header";
 import { MobileNav } from "@/components/mobile-nav";
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
   Cell,
   Legend
 } from "recharts";
@@ -86,13 +86,13 @@ export default function PlayerStatsPage() {
                 <Skeleton className="h-4 w-60" />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Skeleton className="h-32" />
               <Skeleton className="h-32" />
               <Skeleton className="h-32" />
             </div>
-            
+
             <Skeleton className="h-[400px] mb-6" />
             <Skeleton className="h-[300px]" />
           </div>
@@ -154,7 +154,7 @@ export default function PlayerStatsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-neutral-50">
       <Header />
-      
+
       <main className="flex-grow pt-16 pb-16 md:pb-0">
         <div className="container max-w-5xl mx-auto px-4">
           {/* Player Info Header */}
@@ -349,132 +349,132 @@ export default function PlayerStatsPage() {
               </Card>
             </TabsContent>
 
-        {/* Bowling Tab */}
-        <TabsContent value="bowling">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bowling Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Bowling Style</span>
-                      <span className="font-medium">{stats.bowlingStyle || "N/A"}</span>
+            {/* Bowling Tab */}
+            <TabsContent value="bowling">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Bowling Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Bowling Style</span>
+                          <span className="font-medium">{stats.bowlingStyle || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Wickets</span>
+                          <span className="font-medium">{stats.totalWickets}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Bowling Average</span>
+                          <span className="font-medium">{stats.bowlingAverage}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Best Bowling</span>
+                          <span className="font-medium">{stats.bestBowling || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-muted-foreground">Total Catches</span>
+                          <span className="font-medium">{stats.totalCatches}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Wickets</span>
-                      <span className="font-medium">{stats.totalWickets}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Bowling Average</span>
-                      <span className="font-medium">{stats.bowlingAverage}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Best Bowling</span>
-                      <span className="font-medium">{stats.bestBowling || "N/A"}</span>
-                    </div>
-                    <div className="flex justify-between border-b pb-1">
-                      <span className="text-muted-foreground">Total Catches</span>
-                      <span className="font-medium">{stats.totalCatches}</span>
+                    <div>
+                      <h3 className="font-semibold mb-4">Bowling & Fielding</h3>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={bowlingFieldingData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {bowlingFieldingData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [`${value}`, ""]} />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-4">Bowling & Fielding</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={bowlingFieldingData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {bowlingFieldingData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => [`${value}`, ""]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        {/* Matches Tab */}
-        <TabsContent value="matches">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Matches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {matches && matches.length > 0 ? (
-                <Table>
-                  <TableCaption>Recent matches played by {user.username}</TableCaption>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Match</TableHead>
-                      <TableHead>Opponent</TableHead>
-                      <TableHead>Runs</TableHead>
-                      <TableHead>Wickets</TableHead>
-                      <TableHead>Result</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {matches.map((match) => (
-                      <TableRow key={match.id}>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <span>
-                              {new Date(match.matchDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium">{match.matchName}</TableCell>
-                        <TableCell>{match.opponent}</TableCell>
-                        <TableCell>{match.performance?.runsScored || "-"}</TableCell>
-                        <TableCell>{match.performance?.wicketsTaken || "-"}</TableCell>
-                        <TableCell>
-                          <span className={
-                            match.result?.includes("Won") 
-                              ? "text-green-600 font-medium" 
-                              : match.result?.includes("Lost")
-                                ? "text-red-600"
-                                : ""
-                          }>
-                            {match.result || "N/A"}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-6">
-                  <p>No recent matches found.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            {/* Matches Tab */}
+            <TabsContent value="matches">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Matches</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {matches && matches.length > 0 ? (
+                    <Table>
+                      <TableCaption>Recent matches played by {user.username}</TableCaption>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Match</TableHead>
+                          <TableHead>Opponent</TableHead>
+                          <TableHead>Runs</TableHead>
+                          <TableHead>Wickets</TableHead>
+                          <TableHead>Result</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {matches.map((match) => (
+                          <TableRow key={match.id}>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                                <span>
+                                  {new Date(match.matchDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{match.matchName}</TableCell>
+                            <TableCell>{match.opponent}</TableCell>
+                            <TableCell>{match.performance?.runsScored || "-"}</TableCell>
+                            <TableCell>{match.performance?.wicketsTaken || "-"}</TableCell>
+                            <TableCell>
+                              <span className={
+                                match.result?.includes("Won")
+                                  ? "text-green-600 font-medium"
+                                  : match.result?.includes("Lost")
+                                    ? "text-red-600"
+                                    : ""
+                              }>
+                                {match.result || "N/A"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p>No recent matches found.</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
-      
+
       <MobileNav />
     </div>
   );

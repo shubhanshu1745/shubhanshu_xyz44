@@ -9,35 +9,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Spinner } from "@/components/ui/spinner";
-import { Bot, Calendar, Calendar as CalendarIcon, Clock, Flag, MapPin, Award, Send, Gauge, Trophy, BarChart2, TrendingUp, Zap } from "lucide-react";
+import { Award, Calendar, Clock, Flag, MapPin, ChevronRight, ChevronLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
-// Custom Cricket and Bat icons as React components
-const Cricket = (props: any) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M12 3v18" />
-    <path d="M5 8h14" />
-    <path d="M8 12a4 4 0 0 0 8 0" />
-  </svg>
-);
-
-const Bat = (props: any) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M4.5 14.5L3 16c-.667.667-.667 2 0 4 2 .667 3.333.667 4 0l1.5-1.5" />
-    <path d="M8 16l3.5 3.5c.667.667 2 .667 4 0 .667-2 .667-3.333 0-4" />
-    <path d="M18 3l3 3" />
-    <path d="M14 7l-1 1" />
-    <path d="M16 5l-3.5 3.5C11.833 9.167 10 9.167 7 7" />
-  </svg>
-);
-
-// Define a schema for the match form
+// Define schemas for match and performance forms
 const matchFormSchema = z.object({
   opponent: z.string().min(1, "Opponent is required"),
   venue: z.string().min(1, "Venue is required"),
@@ -46,27 +28,28 @@ const matchFormSchema = z.object({
   result: z.string().optional(),
 });
 
-// Define a schema for the performance form
 const performanceFormSchema = z.object({
-  runs: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  balls: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  fours: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  sixes: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  wickets: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  oversBowled: z.union([z.string().transform((val) => parseFloat(val) || 0), z.number()]),
-  runsConceded: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  catches: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  runOuts: z.union([z.string().transform((val) => parseInt(val) || 0), z.number()]),
-  battingStatus: z.string().default("Out"),
+  runsScored: z.string().optional().default("0"),
+  ballsFaced: z.string().optional().default("0"),
+  notOut: z.boolean().default(false),
+  fours: z.string().optional().default("0"),
+  sixes: z.string().optional().default("0"),
+  wicketsTaken: z.string().optional().default("0"),
+  oversBowled: z.string().optional().default("0"),
+  runsConceded: z.string().optional().default("0"),
+  maidens: z.string().optional().default("0"),
+  catches: z.string().optional().default("0"),
+  runOuts: z.string().optional().default("0"),
+  stumpings: z.string().optional().default("0"),
 });
-
-type MatchFormValues = z.infer<typeof matchFormSchema>;
-type PerformanceFormValues = z.infer<typeof performanceFormSchema>;
 
 type PlayerWithStats = {
   user: User;
   stats: PlayerStats;
 };
+
+type MatchFormValues = z.infer<typeof matchFormSchema>;
+type PerformanceFormValues = z.infer<typeof performanceFormSchema>;
 
 type MatchWithPerformances = PlayerMatch & {
   performance?: PlayerMatchPerformance;
@@ -75,22 +58,9 @@ type MatchWithPerformances = PlayerMatch & {
 export default function StatsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false);
-  const [createdMatchId, setCreatedMatchId] = useState<number | null>(null);
-  const [isPerformanceDialogOpen, setIsPerformanceDialogOpen] = useState(false);
-
-  // Get player stats
-  const { data: playerData, isLoading: isPlayerLoading, error: playerError, refetch: refetchStats } = useQuery<PlayerWithStats>({
-    queryKey: [`/api/users/${user?.username}/player-stats`],
-    enabled: !!user?.username,
-    // Handle errors gracefully without onError/onSettled
-  });
-
-  // Get player matches
-  const { data: matches, isLoading: isMatchesLoading, error: matchesError, refetch: refetchMatches } = useQuery<MatchWithPerformances[]>({
-    queryKey: [`/api/users/${user?.username}/matches`],
-    enabled: !!user?.username,
-  });
+  const [isAddMatchDialogOpen, setIsAddMatchDialogOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<"match" | "performance">("match");
+  const [newMatchId, setNewMatchId] = useState<number | null>(null);
 
   // Form for adding a new match
   const matchForm = useForm<MatchFormValues>({
@@ -100,137 +70,255 @@ export default function StatsPage() {
       venue: "",
       matchDate: format(new Date(), "yyyy-MM-dd"),
       matchType: "T20",
-      result: "",
+      result: "Win",
     },
   });
 
-  // Form for adding match performance
+  // Form for adding player performance
   const performanceForm = useForm<PerformanceFormValues>({
     resolver: zodResolver(performanceFormSchema),
     defaultValues: {
-      runs: 0,
-      balls: 0,
-      fours: 0,
-      sixes: 0,
-      wickets: 0,
-      oversBowled: 0, // This will be converted to string when sent to API
-      runsConceded: 0,
-      catches: 0,
-      runOuts: 0,
-      battingStatus: "Out", // Default to "Out"
+      runsScored: "0",
+      ballsFaced: "0",
+      notOut: false,
+      fours: "0",
+      sixes: "0",
+      wicketsTaken: "0",
+      oversBowled: "0",
+      runsConceded: "0",
+      maidens: "0",
+      catches: "0",
+      runOuts: "0",
+      stumpings: "0",
     },
   });
 
-  // Mutation for creating a new match
-  const createMatchMutation = useMutation({
-    mutationFn: async (data: MatchFormValues) => {
-      console.log("Creating match with date:", data.matchDate);
-      const response = await apiRequest("POST", `/api/users/${user?.username}/matches`, {
-        opponent: data.opponent,
-        venue: data.venue,
-        matchDate: data.matchDate, // This is already a string from the form
-        matchType: data.matchType,
-        result: data.result || "In Progress",
-      });
-      return response;
+  // Fetch player stats with aggressive refetch options
+  const { data: dbPlayerStats, isLoading: isStatsLoading, refetch: refetchStats } = useQuery<PlayerStats>({
+    queryKey: ['/api/users', user?.username, 'player-stats'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    retry: 2 // Retry failed requests up to 2 times
+  });
+
+  // Fetch recent matches with aggressive refetch options
+  const { data: dbMatches, isLoading: isMatchesLoading, refetch: refetchMatches } = useQuery<PlayerMatch[]>({
+    queryKey: ['/api/users', user?.username, 'matches'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user,
+    staleTime: 0, // Always consider data stale
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    retry: 2 // Retry failed requests up to 2 times
+  });
+
+  // Create an enhanced player stats object with our needed UI fields
+  const playerStats: PlayerStats | undefined = dbPlayerStats ? {
+    id: dbPlayerStats.id,
+    userId: dbPlayerStats.userId,
+    position: dbPlayerStats.position,
+    battingStyle: dbPlayerStats.battingStyle,
+    bowlingStyle: dbPlayerStats.bowlingStyle,
+    totalMatches: dbPlayerStats.totalMatches,
+    totalRuns: dbPlayerStats.totalRuns,
+    totalWickets: dbPlayerStats.totalWickets,
+    totalCatches: dbPlayerStats.totalCatches,
+    totalRunOuts: dbPlayerStats.totalRunOuts,
+    totalSixes: dbPlayerStats.totalSixes,
+    totalFours: dbPlayerStats.totalFours,
+    highestScore: dbPlayerStats.highestScore,
+    bestBowling: dbPlayerStats.bestBowling,
+    battingAverage: dbPlayerStats.battingAverage,
+    bowlingAverage: dbPlayerStats.bowlingAverage,
+    matches: dbPlayerStats.totalMatches || 0,
+    innings: dbPlayerStats.innings || 0,
+    notOuts: dbPlayerStats.notOuts || 0,
+    wickets: dbPlayerStats.totalWickets || 0,
+    ballsFaced: dbPlayerStats.ballsFaced || 0,
+    oversBowled: dbPlayerStats.oversBowled || "0",
+    runsConceded: dbPlayerStats.runsConceded || 0,
+    bestBowlingFigures: dbPlayerStats.bestBowling || "0/0",
+    fifties: dbPlayerStats.fifties || 0,
+    hundreds: dbPlayerStats.hundreds || 0,
+    fours: dbPlayerStats.totalFours || 0,
+    sixes: dbPlayerStats.totalSixes || 0,
+    catches: dbPlayerStats.totalCatches || 0,
+    runOuts: dbPlayerStats.totalRunOuts || 0,
+    playerOfMatchAwards: 0, // We'll need to add this to the database later
+    highestScoreNotOut: false, // We'll need to add this to the database later
+    createdAt: dbPlayerStats.createdAt,
+    updatedAt: dbPlayerStats.updatedAt,
+    maidens: dbPlayerStats.maidens,
+  } : undefined;
+
+  // Create enhanced matches with the fields we need for UI
+  const matches: MatchWithPerformances[] = (dbMatches && user)
+    ? (dbMatches as any[]).map((match: any) => ({
+        ...match,
+        date: match.matchDate ? match.matchDate.toString() : "",
+        matchTitle: match.matchName,
+        overs: match.matchType?.includes('T20') ? '20' : match.matchType?.includes('ODI') ? '50' : 'Full',
+        format: match.matchType || 'T20',
+        performance: {
+          id: 0, // Placeholder
+          userId: user.id,
+          matchId: match.id,
+          runsScored: 0,
+          ballsFaced: 0,
+          fours: 0,
+          sixes: 0,
+          battingStatus: '',
+          oversBowled: '0',
+          runsConceded: 0,
+          wicketsTaken: 0,
+          maidens: 0,
+          catches: 0,
+          runOuts: 0,
+          stumpings: 0,
+          createdAt: null,
+          // UI-specific fields
+          runs: 0,
+          notOut: false,
+          wickets: 0
+        }
+      }))
+    : [];
+
+  // Add a new match
+  const addMatchMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("POST", "/api/player-matches", data);
     },
-    onSuccess: (data) => {
+    onSuccess: (response) => {
+      const matchId = response.id;
+      setNewMatchId(matchId);
+      setCurrentStep("performance");
+
       toast({
-        title: "Success",
-        description: "New match added successfully",
+        title: "Match added",
+        description: "Now add your performance details"
       });
-      setCreatedMatchId(data.id);
-      refetchMatches();
-      setIsMatchDialogOpen(false);
-      setIsPerformanceDialogOpen(true);
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: "Failed to add match",
-        variant: "destructive",
+        variant: "destructive"
       });
-    },
+    }
   });
 
-  // Mutation for adding match performance
+  // Add match performance
   const addPerformanceMutation = useMutation({
-    mutationFn: async (data: PerformanceFormValues) => {
-      if (!createdMatchId) throw new Error("No match selected");
-      
-      // Log match ID and performance data for debugging
-      console.log("Adding performance for match ID:", createdMatchId, "with data:", data);
-      
-      return await apiRequest("POST", `/api/player-match-performances`, {
-        userId: user?.id,
-        matchId: createdMatchId,
-        runsScored: data.runs,
-        ballsFaced: data.balls,
-        fours: data.fours,
-        sixes: data.sixes,
-        wicketsTaken: data.wickets,
-        oversBowled: data.oversBowled.toString(),
-        runsConceded: data.runsConceded,
-        catches: data.catches,
-        runOuts: data.runOuts,
-        battingStatus: data.battingStatus,
-        maidens: 0,
-        stumpings: 0
-      });
+    mutationFn: async (data: any) => {
+      console.log("Adding performance with data:", data);
+      return await apiRequest("POST", "/api/player-match-performances", data);
     },
     onSuccess: (response) => {
       console.log("Performance added successfully, server response:", response);
-      
+
       toast({
-        title: "Success",
-        description: "Performance added successfully",
+        title: "Performance added",
+        description: "Your match and performance stats have been saved"
       });
-      
-      // Close the dialog first
-      setIsPerformanceDialogOpen(false);
-      setCreatedMatchId(null); // Reset the match ID to prevent duplicate performances
-      
-      // First invalidate all queries to clear the cache
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
-      
-      // Small delay to make sure invalidation completes before refetching
-      setTimeout(() => {
-        // Then force immediate refetch to update UI
-        Promise.all([
-          queryClient.refetchQueries({ queryKey: [`/api/users/${user?.username}/player-stats`], exact: true }),
-          queryClient.refetchQueries({ queryKey: [`/api/users/${user?.username}/matches`], exact: true })
-        ]).then(() => {
-          console.log("Data refetch completed!");
-          // Manually trigger the refetch hooks as a final guarantee
-          refetchMatches();
-          refetchStats();
-        }).catch(err => {
-          console.error("Error refetching data:", err);
-          // Even if Promise.all fails, try the individual refetches
-          refetchMatches();
-          refetchStats();
-        });
-      }, 100);
+
+      // Reset forms
+      matchForm.reset({
+        opponent: "",
+        venue: "",
+        matchDate: format(new Date(), "yyyy-MM-dd"),
+        matchType: "T20",
+        result: "Win",
+      });
+
+      performanceForm.reset({
+        runsScored: "0",
+        ballsFaced: "0",
+        notOut: false,
+        fours: "0",
+        sixes: "0",
+        wicketsTaken: "0",
+        oversBowled: "0",
+        runsConceded: "0",
+        maidens: "0",
+        catches: "0",
+        runOuts: "0",
+        stumpings: "0",
+      });
+
+      // Reset state and close dialog
+      setCurrentStep("match");
+      setNewMatchId(null);
+      setIsAddMatchDialogOpen(false);
+
+      // Invalidate queries to clear the cache
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'player-stats'],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['/api/users', user?.username, 'matches'],
+      });
+
+      // Force immediate refetch of data
+      refetchStats();
+      refetchMatches();
     },
     onError: (error) => {
       toast({
         title: "Error",
         description: "Failed to add performance",
-        variant: "destructive",
+        variant: "destructive"
       });
       console.error("Error adding performance:", error);
-    },
+    }
   });
 
-  // Handle submitting the match form
+  // Handle match form submission
   function onMatchSubmit(values: MatchFormValues) {
-    createMatchMutation.mutate(values);
+    if (!user) return;
+
+    const matchData = {
+      userId: user.id,
+      opponent: values.opponent,
+      venue: values.venue,
+      matchDate: values.matchDate,
+      matchType: values.matchType,
+      result: values.result,
+      matchName: `${user.username} vs ${values.opponent}`,
+      teamScore: values.teamScore,
+      opponentScore: values.opponentScore,
+    };
+
+    console.log('Submitting match data:', matchData);
+    addMatchMutation.mutate(matchData);
   }
 
-  // Handle submitting the performance form
+  // Handle performance form submission
   function onPerformanceSubmit(values: PerformanceFormValues) {
-    addPerformanceMutation.mutate(values);
+    if (!user || !newMatchId) return;
+
+    const performanceData = {
+      userId: user.id,
+      matchId: newMatchId,
+      runsScored: parseInt(values.runsScored || "0"),
+      ballsFaced: parseInt(values.ballsFaced || "0"),
+      battingStatus: values.notOut ? "Not Out" : "Out",
+      fours: parseInt(values.fours || "0"),
+      sixes: parseInt(values.sixes || "0"),
+      wicketsTaken: parseInt(values.wicketsTaken || "0"),
+      oversBowled: values.oversBowled || "0",
+      runsConceded: parseInt(values.runsConceded || "0"),
+      maidens: parseInt(values.maidens || "0"),
+      catches: parseInt(values.catches || "0"),
+      runOuts: parseInt(values.runOuts || "0"),
+      stumpings: parseInt(values.stumpings || "0"),
+    };
+
+    console.log('Submitting performance data:', performanceData);
+    addPerformanceMutation.mutate(performanceData);
   }
 
   if (!user) {
@@ -241,664 +329,397 @@ export default function StatsPage() {
     );
   }
 
-  if (isPlayerLoading || isMatchesLoading) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <Spinner size="lg" variant="green" />
-      </div>
-    );
-  }
-
-  if (playerError || matchesError) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="text-center">Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center">Failed to load player stats. You may need to create your player profile first.</p>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button
-              variant="default"
-              onClick={() => window.location.reload()}
-            >
-              Try Again
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
+  const isLoading = isStatsLoading || isMatchesLoading;
 
   return (
     <div className="container max-w-5xl mx-auto py-6 px-4 relative">
-      {/* Cricket field background - purely decorative */}
+      {/* Cricket field background - enhanced with realistic cricket field elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-b from-[#2E8B57]/5 to-[#2E8B57]/20 opacity-50 rounded-lg"></div>
-        <div className="absolute w-[80%] h-[80%] border-[10px] border-[#2E8B57]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute w-[60%] h-[10px] bg-[#2E8B57]/20 top-1/2 left-1/2 transform -translate-x-1/2"></div>
-        <div className="absolute w-[10px] h-[60%] bg-[#2E8B57]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        {/* Main field gradient */}
+        <div className="w-full h-full bg-gradient-to-b from-[#1F3A8A]/5 to-[#1F3A8A]/20 opacity-70 rounded-lg"></div>
+
+        {/* Outer boundary */}
+        <div className="absolute w-[90%] h-[90%] border-[12px] border-[#1F3A8A]/30 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+
+        {/* 30-yard circle */}
+        <div className="absolute w-[70%] h-[70%] border-[8px] border-[#1F3A8A]/20 rounded-full top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+
+        {/* Pitch */}
+        <div className="absolute w-[20%] h-[60%] bg-[#C19A6B]/20 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 border-[4px] border-[#1F3A8A]/30"></div>
+
+        {/* Pitch creases */}
+        <div className="absolute w-[20%] h-[4px] bg-white/50 top-[35%] left-1/2 transform -translate-x-1/2"></div>
+        <div className="absolute w-[20%] h-[4px] bg-white/50 top-[65%] left-1/2 transform -translate-x-1/2"></div>
+
+        {/* Middle stump line */}
+        <div className="absolute w-[4px] h-[60%] bg-white/30 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+
+        {/* Wickets */}
+        <div className="absolute w-[6%] h-[6px] bg-[#D2B48C] top-[35%] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute w-[6%] h-[6px] bg-[#D2B48C] top-[65%] left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+
+        {/* Shadow effect for depth */}
+        <div className="absolute inset-0 bg-gradient-radial from-transparent to-[#1F3A8A]/10 opacity-40"></div>
       </div>
-      
+
       {/* Content */}
       <div className="relative z-10">
         {/* Player Header */}
         <div className="flex flex-col md:flex-row items-center mb-8 bg-white p-6 rounded-lg shadow-md">
-          <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-[#2E8B57] mb-4 md:mb-0 md:mr-6">
-            <AvatarImage 
-              src={user.profileImage || "https://github.com/shadcn.png"} 
-              alt={user.username} 
+          <Avatar className="w-24 h-24 md:w-32 md:h-32 border-4 border-[#1F3A8A] mb-4 md:mb-0 md:mr-6">
+            <AvatarImage
+              src={user.profileImage || "https://github.com/shadcn.png"}
+              alt={user.username}
             />
-            <AvatarFallback className="bg-[#2E8B57] text-white text-2xl">
+            <AvatarFallback className="bg-[#1F3A8A] text-white text-2xl">
               {user.username.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-grow text-center md:text-left">
             <h1 className="text-2xl md:text-3xl font-bold cricket-primary mb-1">{user.fullName || user.username}</h1>
-            <p className="text-[#2E8B57] font-medium mb-3">@{user.username}</p>
-            
+            <p className="text-[#1F3A8A] font-medium mb-3">@{user.username}</p>
+
             <div className="flex flex-wrap justify-center md:justify-start gap-4">
               <div className="flex items-center">
-                <Bat className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <Award className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">Batsman</span>
               </div>
               <div className="flex items-center">
-                <Cricket className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <Award className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">All-rounder</span>
               </div>
               <div className="flex items-center">
-                <MapPin className="w-5 h-5 text-[#2E8B57] mr-2" />
+                <MapPin className="w-5 h-5 text-[#1F3A8A] mr-2" />
                 <span className="text-sm font-medium">{user.location || "Location not specified"}</span>
               </div>
             </div>
           </div>
-          
+
           <Button
             variant="default"
-            className="mt-4 md:mt-0 bg-[#2E8B57] hover:bg-[#1F3B4D]"
-            onClick={() => setIsMatchDialogOpen(true)}
+            className="mt-4 md:mt-0 bg-[#1F3A8A] hover:bg-[#152C6B]"
+            onClick={() => setIsAddMatchDialogOpen(true)}
           >
             Add Match
           </Button>
         </div>
-        
+
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Batting</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Matches</span>
-                  <span className="font-semibold">{playerData?.stats?.totalMatches || matches?.length || 0}</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Runs</span>
-                  <span className="font-semibold">{playerData?.stats?.totalRuns || 0}</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Matches</span>
+                    <span className="font-semibold">{playerStats?.matches || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Runs</span>
+                    <span className="font-semibold">{playerStats?.totalRuns || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Average</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.matches && playerStats.matches > 0
+                        ? ((playerStats.totalRuns || 0) /
+                           ((playerStats.innings || 1) - (playerStats.notOuts || 0) || 1)).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Strike Rate</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.ballsFaced && playerStats.ballsFaced > 0
+                        ? (((playerStats.totalRuns || 0) / playerStats.ballsFaced) * 100).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Average</span>
-                  <span className="font-semibold">
-                    {typeof playerData?.stats?.battingAverage === 'string'
-                      ? parseFloat(playerData.stats.battingAverage).toFixed(2)
-                      : "0.00"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Strike Rate</span>
-                  <span className="font-semibold">
-                    {playerData?.stats?.totalRuns && playerData?.stats?.totalMatches 
-                      ? ((playerData.stats.totalRuns / playerData.stats.totalMatches) * 100).toFixed(2) 
-                      : "0.00"}
-                  </span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-          
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Bowling</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Wickets</span>
-                  <span className="font-semibold">{playerData?.stats?.totalWickets || 0}</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Economy</span>
-                  <span className="font-semibold">
-                    {playerData?.stats?.totalWickets && playerData?.stats?.totalRuns
-                      ? (playerData?.stats?.totalRuns / playerData?.stats?.totalWickets).toFixed(2)
-                      : "0.00"}
-                  </span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Wickets</span>
+                    <span className="font-semibold">{playerStats?.wickets || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Economy</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.oversBowled && parseFloat(playerStats.oversBowled.toString()) > 0
+                        ? ((playerStats.runsConceded || 0) / parseFloat(playerStats.oversBowled.toString())).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Average</span>
+                    <span className="font-semibold">
+                      {playerStats && playerStats.wickets && playerStats.wickets > 0
+                        ? ((playerStats.runsConceded || 0) / playerStats.wickets).toFixed(2)
+                        : "0.00"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Best Figures</span>
+                    <span className="font-semibold">{playerStats?.bestBowlingFigures || "0/0"}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Average</span>
-                  <span className="font-semibold">
-                    {typeof playerData?.stats?.bowlingAverage === 'string'
-                      ? parseFloat(playerData.stats.bowlingAverage).toFixed(2)
-                      : "0.00"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Best Figures</span>
-                  <span className="font-semibold">{playerData?.stats?.bestBowling || "0/0"}</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-          
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Batting Milestones</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">50s</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">100s</span>
-                  <span className="font-semibold">0</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">50s</span>
+                    <span className="font-semibold">{playerStats?.fifties || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">100s</span>
+                    <span className="font-semibold">{playerStats?.hundreds || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">4s</span>
+                    <span className="font-semibold">{playerStats?.fours || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">6s</span>
+                    <span className="font-semibold">{playerStats?.sixes || 0}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">4s</span>
-                  <span className="font-semibold">{playerData?.stats?.totalFours || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">6s</span>
-                  <span className="font-semibold">{playerData?.stats?.totalSixes || 0}</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-          
-          <Card className="bg-white shadow-md border-[#2E8B57]/20">
+
+          <Card className="bg-white shadow-md border-[#1F3A8A]/20">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg cricket-primary">Fielding & More</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Catches</span>
-                  <span className="font-semibold">0</span>
+              {isLoading ? (
+                <div className="space-y-2 animate-pulse">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex justify-between">
+                      <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Run Outs</span>
-                  <span className="font-semibold">0</span>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Catches</span>
+                    <span className="font-semibold">{playerStats?.catches || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Run Outs</span>
+                    <span className="font-semibold">{playerStats?.runOuts || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Player of Match</span>
+                    <span className="font-semibold">{playerStats?.playerOfMatchAwards || 0}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Highest Score</span>
+                    <span className="font-semibold">{playerStats?.highestScore || 0}{playerStats?.highestScoreNotOut ? '*' : ''}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Player of Match</span>
-                  <span className="font-semibold">0</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Highest Score</span>
-                  <span className="font-semibold">{playerData?.stats?.highestScore || 0}</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
-        
-        {/* Match Form Dialog */}
-        <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Match</DialogTitle>
-              <DialogDescription>
-                Enter the details of your cricket match
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...matchForm}>
-              <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
-                <FormField
-                  control={matchForm.control}
-                  name="opponent"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Opponent Team</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Super Kings" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={matchForm.control}
-                  name="venue"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Venue</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Local Cricket Ground" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={matchForm.control}
-                  name="matchDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Match Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={matchForm.control}
-                  name="matchType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Match Type</FormLabel>
-                      <FormControl>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                          {...field}
-                        >
-                          <option value="T20">T20</option>
-                          <option value="ODI">ODI</option>
-                          <option value="Test">Test</option>
-                          <option value="Friendly">Friendly</option>
-                          <option value="Club">Club</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={matchForm.control}
-                  name="result"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Result (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Won by 5 wickets" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Leave blank if match is upcoming or in progress
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsMatchDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    className="bg-[#2E8B57] hover:bg-[#1F3B4D] text-white"
-                    disabled={createMatchMutation.isPending}
-                  >
-                    {createMatchMutation.isPending && (
-                      <Spinner className="mr-2 h-4 w-4" />
-                    )}
-                    Add Match
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        
-        {/* Performance Form Dialog */}
-        <Dialog open={isPerformanceDialogOpen} onOpenChange={setIsPerformanceDialogOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Match Performance</DialogTitle>
-              <DialogDescription>
-                Enter your performance details for this match
-              </DialogDescription>
-            </DialogHeader>
-            
-            <Form {...performanceForm}>
-              <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={performanceForm.control}
-                    name="runs"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Runs Scored</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="balls"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Balls Faced</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="fours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>4s</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="sixes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>6s</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="wickets"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Wickets Taken</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" max="10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="oversBowled"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Overs Bowled</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" step="0.1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="runsConceded"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Runs Conceded</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="catches"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catches</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="runOuts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Run Outs</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setIsPerformanceDialogOpen(false)}
-                  >
-                    Skip
-                  </Button>
-                  <Button 
-                    type="submit"
-                    className="bg-[#2E8B57] hover:bg-[#1F3B4D] text-white"
-                    disabled={addPerformanceMutation.isPending}
-                  >
-                    {addPerformanceMutation.isPending && (
-                      <Spinner className="mr-2 h-4 w-4" />
-                    )}
-                    Save Performance
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-        
+
         {/* Tabs for Recent Matches and Stats */}
         <Tabs defaultValue="recent-matches" className="bg-white rounded-lg shadow-md">
           <TabsList className="w-full border-b p-0 h-auto">
-            <TabsTrigger 
-              value="recent-matches" 
-              className="flex-1 py-3 rounded-none rounded-tl-lg data-[state=active]:border-b-2 data-[state=active]:border-[#2E8B57]"
+            <TabsTrigger
+              value="recent-matches"
+              className="flex-1 py-3 rounded-none rounded-tl-lg data-[state=active]:border-b-2 data-[state=active]:border-[#1F3A8A]"
             >
               Recent Matches
             </TabsTrigger>
-            <TabsTrigger 
-              value="performance-trends" 
-              className="flex-1 py-3 rounded-none rounded-tr-lg data-[state=active]:border-b-2 data-[state=active]:border-[#2E8B57]"
+            <TabsTrigger
+              value="performance-trends"
+              className="flex-1 py-3 rounded-none rounded-tr-lg data-[state=active]:border-b-2 data-[state=active]:border-[#1F3A8A]"
             >
               Performance Trends
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="recent-matches" className="p-4">
-            {matches && matches.length > 0 ? (
-              <div className="space-y-4">
-                {matches.map((match) => (
-                  <Card key={match.id} className="overflow-hidden border-[#2E8B57]/20">
-                    <div className="bg-[#2E8B57]/10 px-4 py-2 flex justify-between items-center">
-                      <div className="flex items-center">
-                        <Flag className="w-4 h-4 text-[#2E8B57] mr-2" />
-                        <span className="font-medium cricket-primary">{match.matchType}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 text-[#2E8B57] mr-2" />
-                        <span className="text-sm">{format(new Date(match.matchDate), "dd MMM yyyy")}</span>
-                      </div>
-                    </div>
-                    
-                    <CardContent className="p-4">
-                      <div className="flex flex-col md:flex-row justify-between mb-4">
-                        <div>
-                          <h3 className="font-bold text-lg cricket-primary mb-1">
-                            {user.username} vs {match.opponent}
-                          </h3>
-                          <div className="flex items-center text-sm text-muted-foreground">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {match.venue}
-                          </div>
-                        </div>
-                        
-                        <div className="mt-2 md:mt-0">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            match.result === "Won" 
-                              ? "bg-green-100 text-green-800" 
-                              : match.result === "Lost"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }`}>
-                            {match.result}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {match.performance ? (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                          <div className="space-y-2 border-r border-gray-200 pr-4">
-                            <h4 className="font-medium text-[#2E8B57]">Batting</h4>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Runs</span>
-                              <span className="font-medium">{match.performance.runsScored || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Balls</span>
-                              <span className="font-medium">{match.performance.ballsFaced || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">4s / 6s</span>
-                              <span className="font-medium">{match.performance.fours || 0} / {match.performance.sixes || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Strike Rate</span>
-                              <span className="font-medium">
-                                {parseInt(match.performance.ballsFaced?.toString() || "0") > 0 
-                                  ? (((match.performance.runsScored || 0) / parseInt(match.performance.ballsFaced?.toString() || "1")) * 100).toFixed(2) 
-                                  : "0.00"}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2 border-r border-gray-200 pr-4">
-                            <h4 className="font-medium text-[#2E8B57]">Bowling</h4>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Wickets</span>
-                              <span className="font-medium">{match.performance.wicketsTaken || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Overs</span>
-                              <span className="font-medium">{match.performance.oversBowled || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Runs Conceded</span>
-                              <span className="font-medium">{match.performance.runsConceded || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Economy</span>
-                              <span className="font-medium">
-                                {parseFloat(match.performance.oversBowled?.toString() || "0") > 0 
-                                  ? ((match.performance.runsConceded || 0) / parseFloat(match.performance.oversBowled?.toString() || "1")).toFixed(2) 
-                                  : "0.00"}
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-[#2E8B57]">Fielding</h4>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Catches</span>
-                              <span className="font-medium">{match.performance.catches || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span className="text-sm">Run Outs</span>
-                              <span className="font-medium">{match.performance.runOuts || 0}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-4 text-center py-4 bg-gray-50 rounded-md">
-                          <p className="text-sm text-muted-foreground">No performance data available for this match</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+            {isLoading ? (
+              <div className="space-y-4 animate-pulse">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="bg-gray-100 p-4 rounded-md">
+                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                  </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-10">
-                <h3 className="text-lg font-medium mb-2">No match data available</h3>
-                <p className="text-muted-foreground mb-4">Add your match details to start tracking your cricket performance</p>
-                <Button 
-                  variant="default"
-                  className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-                  onClick={() => setIsMatchDialogOpen(true)}
-                >
-                  Add Your First Match
-                </Button>
-              </div>
+              <>
+                {matches && matches.length > 0 ? (
+                  <div className="space-y-4">
+                    {matches.map((match) => (
+                      <Card key={match.id} className="overflow-hidden border-[#1F3A8A]/20">
+                        <div className="flex bg-[#1F3A8A]/10 p-2 items-center">
+                          <Calendar className="h-4 w-4 text-[#1F3A8A] mr-2" />
+                          <span className="text-sm font-medium">
+                            {match.date ? format(new Date(match.date), 'PPP') : 'Date not available'}
+                          </span>
+                          <div className="mx-2 text-gray-400">•</div>
+                          <MapPin className="h-4 w-4 text-[#1F3A8A] mr-2" />
+                          <span className="text-sm">{match.venue || 'Venue not specified'}</span>
+                        </div>
+
+                        <div className="p-4">
+                          <h3 className="text-lg font-semibold mb-2">{match.matchTitle || 'Cricket Match'}</h3>
+                          <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-2" />
+                              <span>{match.overs || '20'} overs</span>
+                            </div>
+                            <div className="flex items-center">
+                              <Flag className="h-4 w-4 mr-2" />
+                              <span>{match.format || 'T20'}</span>
+                            </div>
+                          </div>
+
+                          {match.performance && (
+                            <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                              <div>
+                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Batting</h4>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Runs:</span>
+                                  <span className="font-medium">{match.performance.runs || 0}
+                                    {match.performance.notOut ? '*' : ''}
+                                  </span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Balls:</span>
+                                  <span className="font-medium">{match.performance.ballsFaced || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">4s / 6s:</span>
+                                  <span className="font-medium">{match.performance.fours || 0} / {match.performance.sixes || 0}</span>
+                                </p>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-1 text-[#1F3A8A]">Bowling</h4>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Wickets:</span>
+                                  <span className="font-medium">{match.performance.wickets || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Overs:</span>
+                                  <span className="font-medium">{match.performance.oversBowled || 0}</span>
+                                </p>
+                                <p className="grid grid-cols-2 gap-1">
+                                  <span className="text-muted-foreground">Runs:</span>
+                                  <span className="font-medium">{match.performance.runsConceded || 0}</span>
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {match.result && (
+                          <div className="border-t p-3 bg-[#1F3A8A]/5">
+                            <p className="text-sm">
+                              <span className="font-medium text-[#1F3A8A]">Result:</span> {match.result}
+                            </p>
+                          </div>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10">
+                    <h3 className="text-lg font-medium mb-2">No match data available</h3>
+                    <p className="text-muted-foreground mb-4">Add your match details to start tracking your cricket performance</p>
+                    <Button
+                      variant="default"
+                      className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                      onClick={() => setIsAddMatchDialogOpen(true)}
+                    >
+                      Add Your First Match
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </TabsContent>
-          
+
           <TabsContent value="performance-trends" className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="p-4 border-[#2E8B57]/20">
+              <Card className="p-4 border-[#1F3A8A]/20">
                 <CardTitle className="text-lg cricket-primary mb-4">Batting Performance</CardTitle>
                 <CardDescription className="mb-4">
-                  Your batting performance has been tracked across all your matches
+                  Your batting performance will be tracked across all your matches
                 </CardDescription>
-                
-                <div className="h-64 flex items-center justify-center bg-[#2E8B57]/5 rounded-md">
+
+                <div className="h-64 flex items-center justify-center bg-[#1F3A8A]/5 rounded-md">
                   <p className="text-center text-muted-foreground">
-                    Batting performance chart will appear here as you add more matches
+                    Batting performance chart will appear here as you add matches
                   </p>
                 </div>
               </Card>
-              
-              <Card className="p-4 border-[#2E8B57]/20">
+
+              <Card className="p-4 border-[#1F3A8A]/20">
                 <CardTitle className="text-lg cricket-primary mb-4">Bowling Analysis</CardTitle>
                 <CardDescription className="mb-4">
                   Your bowling statistics and economy rate across matches
                 </CardDescription>
-                
-                <div className="h-64 flex items-center justify-center bg-[#2E8B57]/5 rounded-md">
+
+                <div className="h-64 flex items-center justify-center bg-[#1F3A8A]/5 rounded-md">
                   <p className="text-center text-muted-foreground">
-                    Bowling analysis chart will appear here as you add more matches
+                    Bowling analysis chart will appear here as you add matches
                   </p>
                 </div>
               </Card>
@@ -906,311 +727,398 @@ export default function StatsPage() {
           </TabsContent>
         </Tabs>
       </div>
-      
-      {/* Match Dialog */}
-      <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+
+      {/* Add Match & Performance Dialog */}
+      <Dialog open={isAddMatchDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Reset everything when dialog closes
+          setCurrentStep("match");
+          setNewMatchId(null);
+        }
+        setIsAddMatchDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Add New Match</DialogTitle>
+            <DialogTitle>{currentStep === "match" ? "Add New Match" : "Add Your Performance"}</DialogTitle>
             <DialogDescription>
-              Enter the details about your cricket match.
+              {currentStep === "match"
+                ? "Add details about your cricket match to track your performance stats."
+                : "Now add your personal performance stats for this match."}
             </DialogDescription>
           </DialogHeader>
-          
-          <Form {...matchForm}>
-            <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
-              <FormField
-                control={matchForm.control}
-                name="opponent"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Opponent</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter opponent name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={matchForm.control}
-                name="venue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Venue</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Match location" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={matchForm.control}
-                  name="matchDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={matchForm.control}
-                  name="matchType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Match Type</FormLabel>
-                      <FormControl>
-                        <select
-                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          {...field}
+
+          {/* Match Form - Step 1 */}
+          {currentStep === "match" && (
+            <Form {...matchForm}>
+              <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={matchForm.control}
+                    name="opponent"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Opponent Team</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter opponent team name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={matchForm.control}
+                    name="venue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Venue</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter match venue" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={matchForm.control}
+                    name="matchDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Match Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={matchForm.control}
+                    name="matchType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Match Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
                         >
-                          <option value="T20">T20</option>
-                          <option value="ODI">ODI</option>
-                          <option value="Test">Test</option>
-                          <option value="Club">Club</option>
-                          <option value="Friendly">Friendly</option>
-                        </select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <FormField
-                control={matchForm.control}
-                name="result"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Result</FormLabel>
-                    <FormControl>
-                      <select
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        {...field}
-                      >
-                        <option value="In Progress">In Progress</option>
-                        <option value="Won">Won</option>
-                        <option value="Lost">Lost</option>
-                        <option value="Draw">Draw</option>
-                        <option value="Abandoned">Abandoned</option>
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button 
-                  type="submit" 
-                  disabled={createMatchMutation.isPending}
-                  className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-                >
-                  {createMatchMutation.isPending ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Saving...
-                    </>
-                  ) : 
-                    "Save Match"
-                  }
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Performance Dialog */}
-      <Dialog open={isPerformanceDialogOpen} onOpenChange={setIsPerformanceDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Your Performance</DialogTitle>
-            <DialogDescription>
-              Enter your performance details for this match.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...performanceForm}>
-            <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="font-medium text-[#2E8B57]">Batting</h3>
-                <div className="grid grid-cols-2 gap-4">
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select match type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="T20">T20</SelectItem>
+                            <SelectItem value="ODI">ODI</SelectItem>
+                            <SelectItem value="Test">Test</SelectItem>
+                            <SelectItem value="One Day">One Day</SelectItem>
+                            <SelectItem value="Others">Others</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
-                    control={performanceForm.control}
-                    name="runs"
+                    control={matchForm.control}
+                    name="teamScore"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Runs</FormLabel>
+                        <FormLabel>Your Team Score</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input placeholder="E.g., '150/6'" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
-                    control={performanceForm.control}
-                    name="balls"
+                    control={matchForm.control}
+                    name="opponentScore"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Balls</FormLabel>
+                        <FormLabel>Opponent Score</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input placeholder="E.g., '142/8'" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={performanceForm.control}
-                    name="fours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>4s</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="sixes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>6s</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-4 pt-2">
-                <h3 className="font-medium text-[#2E8B57]">Bowling</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={performanceForm.control}
-                    name="wickets"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Wickets</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="oversBowled"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Overs</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" step="0.1" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
+
                 <FormField
-                  control={performanceForm.control}
-                  name="runsConceded"
+                  control={matchForm.control}
+                  name="result"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Runs Conceded</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" {...field} />
-                      </FormControl>
+                      <FormLabel>Result</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select match result" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Win">Win</SelectItem>
+                          <SelectItem value="Loss">Loss</SelectItem>
+                          <SelectItem value="Draw">Draw</SelectItem>
+                          <SelectItem value="Tie">Tie</SelectItem>
+                          <SelectItem value="No Result">No Result</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              
-              <div className="space-y-4 pt-2">
-                <h3 className="font-medium text-[#2E8B57]">Fielding</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={performanceForm.control}
-                    name="catches"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Catches</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={performanceForm.control}
-                    name="runOuts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Run Outs</FormLabel>
-                        <FormControl>
-                          <Input type="number" min="0" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsAddMatchDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                    disabled={addMatchMutation.isPending}
+                  >
+                    {addMatchMutation.isPending ? "Adding..." : "Next: Add Performance"}
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
+
+          {/* Performance Form - Step 2 */}
+          {currentStep === "performance" && (
+            <Form {...performanceForm}>
+              <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Batting Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="runsScored"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Runs Scored</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="ballsFaced"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Balls Faced</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="notOut"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-end space-x-2 space-y-0 rounded-md p-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm font-normal">Not Out</FormLabel>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <FormField
+                      control={performanceForm.control}
+                      name="fours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of 4s</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="sixes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Number of 6s</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-              </div>
-              
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsPerformanceDialogOpen(false)}
-                  className="mr-2"
-                >
-                  Skip
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={addPerformanceMutation.isPending}
-                  className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
-                >
-                  {addPerformanceMutation.isPending ? (
-                    <>
-                      <Spinner size="sm" className="mr-2" />
-                      Saving...
-                    </>
-                  ) : 
-                    "Save Performance"
-                  }
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Bowling Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="wicketsTaken"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Wickets Taken</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="oversBowled"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Overs Bowled</FormLabel>
+                          <FormControl>
+                            <Input placeholder="0.0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="runsConceded"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Runs Conceded</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="mt-2">
+                    <FormField
+                      control={performanceForm.control}
+                      name="maidens"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Maiden Overs</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium mb-3 cricket-primary">Fielding Performance</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={performanceForm.control}
+                      name="catches"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Catches Taken</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="runOuts"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Run Outs</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={performanceForm.control}
+                      name="stumpings"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Stumpings</FormLabel>
+                          <FormControl>
+                            <Input type="number" placeholder="0" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCurrentStep("match")}
+                    disabled={addPerformanceMutation.isPending}
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
+                    disabled={addPerformanceMutation.isPending}
+                  >
+                    {addPerformanceMutation.isPending ? "Saving..." : "Save Performance"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

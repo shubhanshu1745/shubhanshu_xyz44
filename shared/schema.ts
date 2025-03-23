@@ -289,6 +289,12 @@ export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatch
   stumpings: true,
 });
 
+// Story Schema
+export const createStorySchema = insertStorySchema.extend({
+  imageUrl: z.string().min(1, "Image URL is required"),
+  caption: z.string().max(100, "Caption must be less than 100 characters").optional(),
+});
+
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -380,11 +386,11 @@ export const createPostSchema = insertPostSchema.omit({ userId: true }).extend({
   duration: z.number().optional(),
   location: z.string().optional(),
   category: z.enum([
-    "match_discussion", 
-    "player_highlight", 
-    "team_news", 
-    "opinion", 
-    "meme", 
+    "match_discussion",
+    "player_highlight",
+    "team_news",
+    "opinion",
+    "meme",
     "highlights",
     "reel"
   ]).optional(),
