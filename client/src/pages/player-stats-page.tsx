@@ -1,63 +1,43 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "wouter";
-import { useAuth } from "@/hooks/use-auth";
-import { getQueryFn } from "@/lib/queryClient";
-import { PlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
-import { StatsOverview } from "@/components/stats/stats-overview";
-import { MatchHistory } from "@/components/stats/match-history";
-import { PerformanceTrends } from "@/components/stats/performance-trends";
-import { PlayerProfile } from "@/components/stats/player-profile";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Header } from "@/components/header";
-import { MobileNav } from "@/components/mobile-nav";
-
-type PlayerWithStats = {
-  user: User;
-  stats: PlayerStats;
-  matches: (PlayerMatch & { performance?: PlayerMatchPerformance })[];
-};
+import { Loader2 } from "lucide-react";
+import StatsOverview from "@/components/stats/stats-overview";
+import MatchHistory from "@/components/stats/match-history";
+import { useUser } from "@/lib/hooks/use-user";
 
 export default function PlayerStatsPage() {
-  const { username } = useParams<{ username: string }>();
-  const { user: currentUser } = useAuth();
+  const { user } = useUser();
 
-  const { data: playerData, isLoading } = useQuery<PlayerWithStats>({
-    queryKey: [`/api/users/${username}/full-stats`],
-    queryFn: getQueryFn({ on401: "throw" }),
-    enabled: !!username && !!currentUser,
-    staleTime: 30000,
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/users', user?.username, 'player-stats'],
+    enabled: !!user
   });
 
-  if (!currentUser) {
-    return <div>Please log in to view stats</div>;
-  }
+  const { data: matches, isLoading: matchesLoading } = useQuery({
+    queryKey: ['/api/users', user?.username, 'matches'],
+    enabled: !!user
+  });
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (!playerData || !playerData.stats) {
-    return <div>No stats available</div>;
+  if (statsLoading || matchesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <Header />
+    <div className="container mx-auto py-8 space-y-8">
+      <h1 className="text-3xl font-bold">Player Statistics</h1>
 
-      <main className="container max-w-7xl mx-auto px-4 py-8">
-        <PlayerProfile user={playerData.user} stats={playerData.stats} />
+      {stats && <StatsOverview stats={stats} />}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <StatsOverview stats={playerData.stats} />
-          <PerformanceTrends matches={playerData.matches} />
+      {matches && matches.length > 0 ? (
+        <MatchHistory matches={matches} />
+      ) : (
+        <div className="text-center py-8 text-muted-foreground">
+          No matches recorded yet
         </div>
-
-        <div className="mt-8">
-          <MatchHistory matches={playerData.matches} />
-        </div>
-      </main>
-
-      <MobileNav />
+      )}
     </div>
   );
 }
