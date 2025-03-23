@@ -1,11 +1,29 @@
-import { format } from 'date-fns';
-import type { CricketMatch } from '../../types/cricket';
 
-interface MatchHistoryProps {
-  matches: CricketMatch[];
+import { format } from 'date-fns';
+
+interface Team {
+  name: string;
+  score?: string;
 }
 
-export function MatchHistory({ matches }: MatchHistoryProps) {
+interface Match {
+  id: string;
+  title?: string;
+  date?: string;
+  venue?: string;
+  result?: string;
+  status?: string;
+  teams?: {
+    team1: Team;
+    team2: Team;
+  };
+}
+
+interface MatchHistoryProps {
+  matches: Match[];
+}
+
+export function MatchHistory({ matches = [] }: MatchHistoryProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold mb-4">Match History</h2>
@@ -18,7 +36,7 @@ export function MatchHistory({ matches }: MatchHistoryProps) {
               match.result?.includes('lost') ? 'bg-red-100 text-red-800' :
               'bg-gray-100 text-gray-800'
             }`}>
-              {match.result || match.status}
+              {match.result || match.status || 'Pending'}
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -32,14 +50,18 @@ export function MatchHistory({ matches }: MatchHistoryProps) {
               <p className="text-sm text-gray-600">Venue</p>
               <p className="font-medium">{match.venue || 'Venue not specified'}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">{match.teams.team1.name}</p>
-              <p className="font-medium">{match.teams.team1.score || '-'}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">{match.teams.team2.name}</p>
-              <p className="font-medium">{match.teams.team2.score || '-'}</p>
-            </div>
+            {match.teams && (
+              <>
+                <div>
+                  <p className="text-sm text-gray-600">{match.teams.team1?.name || 'Team 1'}</p>
+                  <p className="font-medium">{match.teams.team1?.score || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">{match.teams.team2?.name || 'Team 2'}</p>
+                  <p className="font-medium">{match.teams.team2?.score || '-'}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       ))}
