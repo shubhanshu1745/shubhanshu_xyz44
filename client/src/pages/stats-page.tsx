@@ -98,10 +98,10 @@ export default function StatsPage() {
     queryKey: ['/api/users', user?.username, 'player-stats'],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
-    staleTime: 0, // Always consider data stale
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    retry: 2 // Retry failed requests up to 2 times
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 
   // Fetch recent matches with aggressive refetch options
@@ -109,10 +109,10 @@ export default function StatsPage() {
     queryKey: ['/api/users', user?.username, 'matches'],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
-    staleTime: 0, // Always consider data stale
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when window gains focus
-    retry: 2 // Retry failed requests up to 2 times
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    retry: 1
   });
 
   // Create an enhanced player stats object with our needed UI fields
