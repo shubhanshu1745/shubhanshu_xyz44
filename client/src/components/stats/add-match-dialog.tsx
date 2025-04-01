@@ -14,6 +14,19 @@ import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 
+// Interface for our form data which uses string for the date
+interface MatchFormData {
+  matchName: string;
+  matchDate: string; // This will be sent as string and converted by schema
+  venue?: string;
+  opponent: string;
+  matchType?: string;
+  teamScore?: string;
+  opponentScore?: string;
+  result?: string;
+  userId?: number;
+}
+
 export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   // Component state
   const [open, setOpen] = useState(false);
@@ -29,8 +42,8 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   // Today's date for default form value
   const today = new Date().toISOString().split('T')[0];
 
-  // Match Form setup
-  const matchForm = useForm<Omit<CreatePlayerMatchFormData, 'matchDate' | 'userId'> & { matchDate: string }>({
+  // Match Form setup - using our custom interface
+  const matchForm = useForm<MatchFormData>({
     resolver: zodResolver(
       createPlayerMatchSchema.omit({ matchDate: true, userId: true }).extend({
         matchDate: z.string().min(1, "Match date is required")
@@ -48,7 +61,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     },
   });
 
-  // Performance Form setup
+  // Performance Form setup with proper type conversion
   const performanceForm = useForm<CreatePlayerMatchPerformanceFormData>({
     resolver: zodResolver(createPlayerMatchPerformanceSchema),
     defaultValues: {
@@ -114,7 +127,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
   // Match Creation Mutation
   const addMatchMutation = useMutation({
-    mutationFn: async (data: CreatePlayerMatchFormData): Promise<{ id: number }> => {
+    mutationFn: async (data: MatchFormData): Promise<{ id: number }> => {
       if (!user?.username) {
         throw new Error("User not authenticated");
       }
@@ -231,7 +244,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   });
 
   // Match Form Submit Handler
-  const onMatchSubmit = (formData: Omit<CreatePlayerMatchFormData, 'matchDate' | 'userId'> & { matchDate: string }) => {
+  const onMatchSubmit = (formData: MatchFormData) => {
     if (submitting) return;
     setSubmitting(true);
     
@@ -265,10 +278,9 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
 
-    // Prepare data for API with string date
-    const matchData: CreatePlayerMatchFormData = {
+    // Prepare data for API with string date as required by schema
+    const matchData = {
       ...formData,
-      matchDate: formData.matchDate, // Keep as string
       userId: user.id,
     };
 
@@ -297,7 +309,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         return;
       }
       
-      // Submit data to API
+      // Submit to API with validation.data - handles transformation of date into Date object
       addMatchMutation.mutate(validation.data);
     } catch (error) {
       console.error("Match submission error:", error);
@@ -711,6 +723,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   disabled={submitting || addPerformanceMutation.isPending}
                 >
                   {submitting || addPerformanceMutation.isPending ? "Saving..." : "Save Performance"}
+                  <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               </DialogFooter>
             </form>
