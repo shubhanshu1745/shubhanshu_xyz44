@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { createPlayerMatchSchema, createPlayerMatchPerformanceSchema } from "@shared/schema";
 import type { CreatePlayerMatchFormData, CreatePlayerMatchPerformanceFormData } from "@shared/schema";
 import { useToast } from "../ui/use-toast";
@@ -39,8 +40,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
   const today = new Date().toISOString().split('T')[0]; // Format as YYYY-MM-DD string
   
-  const matchForm = useForm<CreatePlayerMatchFormData>({
-    resolver: zodResolver(createPlayerMatchSchema),
+  const matchForm = useForm<Omit<CreatePlayerMatchFormData, 'matchDate'> & { matchDate: string }>({
+    resolver: zodResolver(
+      createPlayerMatchSchema.omit({ matchDate: true }).extend({
+        matchDate: z.string().min(1, "Match date is required")
+      })
+    ),
     defaultValues: {
       matchName: '',
       matchDate: today,
@@ -125,13 +130,23 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     }
   });
 
-  const onMatchSubmit = (data: CreatePlayerMatchFormData) => {
-    addMatchMutation.mutate(data);
+  const onMatchSubmit = (data: Omit<CreatePlayerMatchFormData, 'matchDate'> & { matchDate: string }) => {
+    // Convert string date to Date object as required by the API
+    const formattedData = {
+      ...data,
+      matchDate: new Date(data.matchDate),
+      userId: user?.id || 0
+    };
+    addMatchMutation.mutate(formattedData as unknown as CreatePlayerMatchFormData);
   };
 
   const onPerformanceSubmit = (data: CreatePlayerMatchPerformanceFormData) => {
     if (newMatchId) {
-      addPerformanceMutation.mutate({ ...data, matchId: newMatchId });
+      addPerformanceMutation.mutate({ 
+        ...data, 
+        matchId: newMatchId,
+        userId: user?.id || 0
+      });
     }
   };
 
