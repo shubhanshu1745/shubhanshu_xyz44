@@ -333,11 +333,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
   // Performance Form Submit Handler
   const onPerformanceSubmit = (formData: CreatePlayerMatchPerformanceFormData) => {
+    // Prevent duplicate submissions
     if (submitting) return;
     setSubmitting(true);
     
     console.log("Performance form submitted:", formData);
+    console.log("Save Performance button clicked!");
     
+    // Check user authentication
     if (!user || !user.id) {
       toast({
         title: "Authentication Error",
@@ -348,6 +351,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
 
+    // Validate match ID exists
     if (newMatchId === null) {
       toast({
         title: "Error",
@@ -358,39 +362,53 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
 
+    console.log(`Using matchId: ${newMatchId} and userId: ${user.id}`);
+
     // Prepare data for API with correct field types
     // Fields are already pre-processed by zod schema with z.coerce.number()
     const performanceData = {
       userId: user.id,
       matchId: newMatchId,
-      runsScored: formData.runsScored,
-      ballsFaced: formData.ballsFaced,
-      fours: formData.fours,
-      sixes: formData.sixes,
+      // Ensure numeric fields are converted correctly
+      runsScored: Number(formData.runsScored || 0),
+      ballsFaced: Number(formData.ballsFaced || 0),
+      fours: Number(formData.fours || 0),
+      sixes: Number(formData.sixes || 0),
       battingStatus: formData.battingStatus || "Not Out",
       // Ensure oversBowled is a string in correct format
       oversBowled: formData.oversBowled?.toString() || "0",
-      runsConceded: formData.runsConceded,
-      wicketsTaken: formData.wicketsTaken,
-      maidens: formData.maidens,
-      catches: formData.catches,
-      runOuts: formData.runOuts,
-      stumpings: formData.stumpings || 0,
+      runsConceded: Number(formData.runsConceded || 0),
+      wicketsTaken: Number(formData.wicketsTaken || 0),
+      maidens: Number(formData.maidens || 0),
+      catches: Number(formData.catches || 0),
+      runOuts: Number(formData.runOuts || 0),
+      stumpings: Number(formData.stumpings || 0),
       // Optional fields
-      battingPosition: formData.battingPosition,
-      bowlingPosition: formData.bowlingPosition,
-      battingStyle: formData.battingStyle,
-      bowlingStyle: formData.bowlingStyle,
-      economyRate: formData.economyRate,
-      strikeRate: formData.strikeRate,
+      battingPosition: formData.battingPosition ? Number(formData.battingPosition) : undefined,
+      bowlingPosition: formData.bowlingPosition ? Number(formData.bowlingPosition) : undefined,
+      battingStyle: formData.battingStyle || undefined,
+      bowlingStyle: formData.bowlingStyle || undefined,
+      economyRate: formData.economyRate ? Number(formData.economyRate) : undefined,
+      strikeRate: formData.strikeRate ? Number(formData.strikeRate) : undefined,
       playerOfMatch: Boolean(formData.playerOfMatch)
     };
 
     console.log("Prepared performance data:", performanceData);
 
-    // Skip double validation since the form already validates the data
-    // and we've intentionally formatted the special fields correctly
-    addPerformanceMutation.mutate(performanceData);
+    try {
+      // Skip double validation since the form already validates the data
+      // and we've intentionally formatted the special fields correctly
+      addPerformanceMutation.mutate(performanceData);
+      console.log("Performance mutation called successfully");
+    } catch (error) {
+      console.error("Error when calling performance mutation:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save performance. Please try again.",
+        variant: "destructive",
+      });
+      setSubmitting(false);
+    }
   };
 
   // Handle manual dialog open
@@ -700,6 +718,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   type="submit" 
                   className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
                   disabled={submitting || addPerformanceMutation.isPending}
+                  onClick={() => {
+                    console.log("Save Performance button clicked directly");
+                    if (!submitting && !addPerformanceMutation.isPending) {
+                      const formData = performanceForm.getValues();
+                      console.log("Form data from button click:", formData);
+                      // The form onSubmit will handle the actual submission
+                    }
+                  }}
                 >
                   {submitting || addPerformanceMutation.isPending ? "Saving..." : "Save Performance"}
                   <ChevronRight className="ml-2 h-4 w-4" />

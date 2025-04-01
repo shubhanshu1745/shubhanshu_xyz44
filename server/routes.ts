@@ -1771,7 +1771,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           oversBowled: (parseFloat(currentStats.oversBowled || "0") + parseFloat(performance.oversBowled || "0")).toString(),
           runsConceded: totalRunsConceded,
           maidens: (currentStats.maidens || 0) + maidens,
-          stumpings: (currentStats.stumpings || 0) + stumpings,
+          // Only include stumpings if it exists in the schema 
+          // (for backward compatibility with existing accounts)
+          ...(currentStats.stumpings !== undefined ? { stumpings: (currentStats.stumpings || 0) + stumpings } : {}),
           fifties: fifties,
           hundreds: hundreds
         };
