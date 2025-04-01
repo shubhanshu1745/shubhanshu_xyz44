@@ -68,28 +68,53 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       maidens: 0,
       catches: 0,
       runOuts: 0,
+      stumpings: 0,
+      battingStatus: '',
+      battingPosition: undefined,
+      battingStyle: '',
+      strikeRate: undefined,
+      bowlingPosition: undefined,
+      bowlingStyle: '',
+      economyRate: undefined,
+      playerOfMatch: false,
     },
   });
 
   const addMatchMutation = useMutation({
     mutationFn: async (data: CreatePlayerMatchFormData) => {
+      console.log("Sending match data to API:", data);
+      console.log("API endpoint:", `/api/users/${user?.username}/matches`);
+      
       const response = await fetch(`/api/users/${user?.username}/matches`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      
+      console.log("API response status:", response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
+        console.error("API error response:", errorData);
         throw new Error(errorData.message || 'Failed to add match');
       }
-      return response.json();
+      
+      const jsonResponse = await response.json();
+      console.log("API success response:", jsonResponse);
+      return jsonResponse;
     },
     onSuccess: (data) => {
+      console.log("Match successfully created with ID:", data.id);
       setNewMatchId(data.id);
       setCurrentStep('performance');
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
+      toast({
+        title: "Success",
+        description: "Match created! Now add your performance details.",
+      });
     },
     onError: (error) => {
+      console.error("Match mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to add match. Please try again.",
@@ -100,15 +125,29 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
   const addPerformanceMutation = useMutation({
     mutationFn: async (data: CreatePlayerMatchPerformanceFormData) => {
+      console.log("Sending performance data to API:", data);
+      console.log("API endpoint:", `/api/users/${user?.username}/matches/${newMatchId}/performance`);
+      
       const response = await fetch(`/api/users/${user?.username}/matches/${newMatchId}/performance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error('Failed to add performance');
-      return response.json();
+      
+      console.log("Performance API response status:", response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Performance API error response:", errorData);
+        throw new Error(errorData.message || 'Failed to add performance');
+      }
+      
+      const jsonResponse = await response.json();
+      console.log("Performance API success response:", jsonResponse);
+      return jsonResponse;
     },
     onSuccess: () => {
+      console.log("Performance successfully recorded!");
       handleOpenChange(false);
       setCurrentStep('match');
       setNewMatchId(null);
@@ -122,6 +161,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       performanceForm.reset();
     },
     onError: (error) => {
+      console.error("Performance mutation error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to add performance. Please try again.",
@@ -131,21 +171,58 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   });
 
   const onMatchSubmit = (data: Omit<CreatePlayerMatchFormData, 'matchDate'> & { matchDate: string }) => {
+    console.log("Match form submission:", data);
+    console.log("Current user:", user);
+    
     // Convert string date to Date object as required by the API
     const formattedData = {
       ...data,
       matchDate: new Date(data.matchDate),
       userId: user?.id || 0
     };
-    addMatchMutation.mutate(formattedData as unknown as CreatePlayerMatchFormData);
+    console.log("Formatted data:", formattedData);
+    
+    try {
+      addMatchMutation.mutate(formattedData as unknown as CreatePlayerMatchFormData);
+    } catch (error) {
+      console.error("Match mutation error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit match data. See console for details.",
+        variant: "destructive",
+      });
+    }
   };
 
   const onPerformanceSubmit = (data: CreatePlayerMatchPerformanceFormData) => {
-    if (newMatchId) {
-      addPerformanceMutation.mutate({ 
+    console.log("Performance form submission:", data);
+    console.log("Match ID:", newMatchId);
+    console.log("Current user:", user);
+    
+    if (!newMatchId) {
+      console.error("No match ID found for performance submission");
+      toast({
+        title: "Error",
+        description: "Match ID not found. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const performanceData = { 
         ...data, 
         matchId: newMatchId,
         userId: user?.id || 0
+      };
+      console.log("Performance data to submit:", performanceData);
+      addPerformanceMutation.mutate(performanceData);
+    } catch (error) {
+      console.error("Performance mutation error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit performance data. See console for details.",
+        variant: "destructive",
       });
     }
   };
