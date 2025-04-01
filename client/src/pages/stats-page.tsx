@@ -217,16 +217,29 @@ export default function StatsPage() {
       return await apiRequest("POST", "/api/player-matches", data);
     },
     onSuccess: (response) => {
-      const matchId = response.id;
-      setNewMatchId(matchId);
-      setCurrentStep("performance");
+      try {
+        const matchId = response.id;
+        if (!matchId) {
+          throw new Error("No match ID returned");
+        }
+        setNewMatchId(matchId);
+        setCurrentStep("performance");
 
-      toast({
-        title: "Match added",
-        description: "Now add your performance details"
-      });
+        toast({
+          title: "Match added",
+          description: "Now add your performance details"
+        });
+      } catch (err) {
+        console.error("Error handling match creation:", err);
+        toast({
+          title: "Error",
+          description: "Failed to process match creation",
+          variant: "destructive"
+        });
+      }
     },
     onError: (error) => {
+      console.error("Match creation error:", error);
       toast({
         title: "Error",
         description: "Failed to add match",
