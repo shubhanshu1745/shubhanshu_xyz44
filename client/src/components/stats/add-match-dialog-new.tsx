@@ -349,18 +349,18 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       ...formData,
       userId: user.id,
       matchId: newMatchId,
-      runsScored: Number(formData.runsScored || 0),
-      ballsFaced: Number(formData.ballsFaced || 0),
-      fours: Number(formData.fours || 0),
-      sixes: Number(formData.sixes || 0),
+      runsScored: parseNumber(formData.runsScored),
+      ballsFaced: parseNumber(formData.ballsFaced),
+      fours: parseNumber(formData.fours),
+      sixes: parseNumber(formData.sixes),
       battingStatus: formData.battingStatus || "Not Out",
       oversBowled: formData.oversBowled || "0",
-      runsConceded: Number(formData.runsConceded || 0),
-      wicketsTaken: Number(formData.wicketsTaken || 0),
-      maidens: Number(formData.maidens || 0),
-      catches: Number(formData.catches || 0),
-      runOuts: Number(formData.runOuts || 0),
-      stumpings: Number(formData.stumpings || 0),
+      runsConceded: parseNumber(formData.runsConceded),
+      wicketsTaken: parseNumber(formData.wicketsTaken),
+      maidens: parseNumber(formData.maidens),
+      catches: parseNumber(formData.catches),
+      runOuts: parseNumber(formData.runOuts),
+      stumpings: parseNumber(formData.stumpings),
       playerOfMatch: Boolean(formData.playerOfMatch),
     };
 
@@ -600,7 +600,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -619,7 +618,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -638,7 +636,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -657,7 +654,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -695,7 +691,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -714,7 +709,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -733,7 +727,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -757,7 +750,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
@@ -776,7 +768,6 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                             type="number" 
                             min="0" 
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))} 
                           />
                         </FormControl>
                         <FormMessage />
