@@ -1607,18 +1607,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the performance
+      console.log("Received performance data:", req.body);
+      
+      // Parse and validate fields from the request body
+      const parseNumber = (value: any): number => {
+        if (value === null || value === undefined || value === '') return 0;
+        const parsed = Number(value);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+      
       const performanceData = {
         userId: user.id,
         matchId: matchId,
-        runsScored: parseInt(req.body.runs) || 0,
-        ballsFaced: parseInt(req.body.balls) || 0,
-        fours: parseInt(req.body.fours) || 0,
-        sixes: parseInt(req.body.sixes) || 0,
-        wicketsTaken: parseInt(req.body.wickets) || 0,
+        runsScored: parseNumber(req.body.runsScored),
+        ballsFaced: parseNumber(req.body.ballsFaced),
+        fours: parseNumber(req.body.fours),
+        sixes: parseNumber(req.body.sixes),
+        battingStatus: req.body.battingStatus || "Not Out",
         oversBowled: req.body.oversBowled?.toString() || "0",
-        runsConceded: parseInt(req.body.runsConceded) || 0,
-        catches: parseInt(req.body.catches) || 0,
-        runOuts: parseInt(req.body.runOuts) || 0
+        runsConceded: parseNumber(req.body.runsConceded),
+        wicketsTaken: parseNumber(req.body.wicketsTaken),
+        maidens: parseNumber(req.body.maidens),
+        catches: parseNumber(req.body.catches),
+        runOuts: parseNumber(req.body.runOuts),
+        stumpings: parseNumber(req.body.stumpings),
+        playerOfMatch: req.body.playerOfMatch === true
       };
       
       const performance = await storage.createPlayerMatchPerformance(performanceData);
@@ -1641,16 +1654,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current stats
       const currentStats = await storage.getPlayerStats(userId);
       
+      // Helper function to safely parse numbers from various formats
+      const parseNumber = (value: any): number => {
+        if (value === null || value === undefined || value === '') return 0;
+        const parsed = Number(value);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+      
       // Make sure we have numbers for all relevant fields
-      const runsScored = parseInt(performance.runsScored) || 0;
-      const ballsFaced = parseInt(performance.ballsFaced) || 0;
-      const fours = parseInt(performance.fours) || 0;
-      const sixes = parseInt(performance.sixes) || 0;
-      const wicketsTaken = parseInt(performance.wicketsTaken) || 0;
-      const runsConceded = parseInt(performance.runsConceded) || 0;
-      const catches = parseInt(performance.catches) || 0;
-      const runOuts = parseInt(performance.runOuts) || 0;
-      const maidens = parseInt(performance.maidens) || 0;
+      const runsScored = parseNumber(performance.runsScored);
+      const ballsFaced = parseNumber(performance.ballsFaced);
+      const fours = parseNumber(performance.fours);
+      const sixes = parseNumber(performance.sixes);
+      const wicketsTaken = parseNumber(performance.wicketsTaken);
+      const runsConceded = parseNumber(performance.runsConceded);
+      const catches = parseNumber(performance.catches);
+      const runOuts = parseNumber(performance.runOuts);
+      const maidens = parseNumber(performance.maidens);
+      const stumpings = parseNumber(performance.stumpings);
       const isNotOut = performance.battingStatus === 'Not Out' || performance.notOut === true;
       
       // Calculate best bowling figures
@@ -1679,7 +1700,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ballsFaced: ballsFaced,
           oversBowled: performance.oversBowled || "0",
           runsConceded: runsConceded,
-          maidens: maidens
+          maidens: maidens,
+          stumpings: stumpings
         };
         
         console.log("Creating new player stats:", newStats);
@@ -1737,6 +1759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           oversBowled: (parseFloat(currentStats.oversBowled || "0") + parseFloat(performance.oversBowled || "0")).toString(),
           runsConceded: totalRunsConceded,
           maidens: (currentStats.maidens || 0) + maidens,
+          stumpings: (currentStats.stumpings || 0) + stumpings,
           fifties: fifties,
           hundreds: hundreds
         };
