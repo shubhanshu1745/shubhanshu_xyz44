@@ -186,7 +186,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
   // Performance Creation Mutation
   const addPerformanceMutation = useMutation({
-    mutationFn: async (data: CreatePlayerMatchPerformanceFormData) => {
+    mutationFn: async (data: any) => {
       if (!user?.username) {
         throw new Error("User not authenticated");
       }
@@ -198,10 +198,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       console.log("Performance data to submit:", data);
       
       try {
+        // The API route will extract userId and matchId from authentication and URL params
+        // So we don't need to send them in the body, which could cause conflicts
+        const { userId, matchId, ...performanceFields } = data;
+        
         const response = await fetch(`/api/users/${user.username}/matches/${newMatchId}/performance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(performanceFields),
         });
 
         console.log("Performance API response status:", response.status);
