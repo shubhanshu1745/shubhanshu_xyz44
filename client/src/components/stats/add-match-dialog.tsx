@@ -196,6 +196,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       }
 
       console.log("Performance data to submit:", data);
+      console.log(`API URL: /api/users/${user.username}/matches/${newMatchId}/performance`);
       
       try {
         // Important: The server API expects userId and matchId in the body
@@ -206,16 +207,29 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
           matchId: newMatchId // Ensure we use the match ID from state
         };
         
+        console.log("Performance data after transformation:", performanceData);
+        
         const response = await fetch(`/api/users/${user.username}/matches/${newMatchId}/performance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(performanceData),
+          credentials: 'same-origin' // Include credentials for authenticated requests
         });
 
         console.log("Performance API response status:", response.status);
+        console.log("Performance API response headers:", Object.fromEntries([...response.headers.entries()]));
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
+          const errorText = await response.text();
+          console.error("Performance API error response text:", errorText);
+          
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch (e) {
+            errorData = { message: errorText || "Unknown error" };
+          }
+          
           console.error("Performance API error:", errorData);
           throw new Error(errorData.message || `Failed with status ${response.status}`);
         }
@@ -715,15 +729,18 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   Back
                 </Button>
                 <Button 
-                  type="submit" 
+                  type="button" 
                   className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
                   disabled={submitting || addPerformanceMutation.isPending}
                   onClick={() => {
                     console.log("Save Performance button clicked directly");
                     if (!submitting && !addPerformanceMutation.isPending) {
+                      // Use manual submission instead of form's onSubmit
                       const formData = performanceForm.getValues();
                       console.log("Form data from button click:", formData);
-                      // The form onSubmit will handle the actual submission
+                      
+                      // Manually call the submission handler
+                      onPerformanceSubmit(formData);
                     }
                   }}
                 >
