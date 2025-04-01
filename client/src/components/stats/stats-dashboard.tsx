@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Award, TrendingUp, Target, Users, Cricket, Timer, Star } from "lucide-react";
+import { Award, TrendingUp, Target, Users, Timer, Star, CircleDot, Clipboard } from "lucide-react";
 import { PerformanceChart } from "./performance-chart";
 
 export function StatsDashboard({ stats, performanceData }: any) {
@@ -17,7 +17,7 @@ export function StatsDashboard({ stats, performanceData }: any) {
           title="Batting Average"
           value={stats.battingAverage || "0.00"}
           description="Runs per innings"
-          icon={<Cricket className="h-4 w-4 text-muted-foreground" />}
+          icon={<CircleDot className="h-4 w-4 text-muted-foreground" />}
         />
         <StatCard
           title="Highest Score"
@@ -56,7 +56,7 @@ export function StatsDashboard({ stats, performanceData }: any) {
           title="Bowling Average"
           value={stats.bowlingAverage || "0.00"}
           description="Runs per wicket"
-          icon={<Cricket className="h-4 w-4 text-muted-foreground" />}
+          icon={<Clipboard className="h-4 w-4 text-muted-foreground" />}
         />
       </div>
       
