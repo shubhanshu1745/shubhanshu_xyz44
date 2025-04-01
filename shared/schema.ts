@@ -420,6 +420,7 @@ export const createPlayerStatsSchema = insertPlayerStatsSchema.extend({
   position: z.string().min(1, "Position is required"),
   battingStyle: z.string().optional(),
   bowlingStyle: z.string().optional(),
+  playerOfMatchAwards: z.number().optional(),
 });
 
 export const createPlayerMatchSchema = insertPlayerMatchSchema.extend({
@@ -432,6 +433,9 @@ export const createPlayerMatchSchema = insertPlayerMatchSchema.extend({
   teamScore: z.string().optional(),
   opponentScore: z.string().optional(),
   result: z.string().optional(),
+  matchDescription: z.string().optional(),
+  tossResult: z.string().optional(),
+  firstInnings: z.boolean().optional(),
 });
 
 export const createPlayerMatchPerformanceSchema = insertPlayerMatchPerformanceSchema.extend({
