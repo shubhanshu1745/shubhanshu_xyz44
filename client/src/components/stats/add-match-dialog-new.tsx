@@ -345,15 +345,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     };
 
     // Prepare data for API
-    // Ensure numeric fields are properly parsed
-  const parseNumber = (value: any): number => {
-
-    if (value === null || value === undefined || value === '') return 0;
-    const parsed = Number(value);
-    return isNaN(parsed) ? 0 : parsed;
-  };
-
-  const performanceData: CreatePlayerMatchPerformanceFormData = {
+    const performanceData: CreatePlayerMatchPerformanceFormData = {
       ...formData,
       userId: user.id,
       matchId: newMatchId,
