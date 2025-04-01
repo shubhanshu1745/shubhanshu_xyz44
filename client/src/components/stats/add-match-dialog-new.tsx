@@ -603,7 +603,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Runs</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -617,7 +622,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Balls</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -631,7 +641,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>4s</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -645,7 +660,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>6s</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -678,7 +698,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Runs Conceded</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -692,7 +717,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Wickets</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -706,7 +736,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Maidens</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -725,7 +760,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Catches</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -739,7 +779,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Run Outs</FormLabel>
                         <FormControl>
-                          <Input type="number" min="0" {...field} />
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
