@@ -1,7 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
-import { PlayerStats, PlayerMatch, PlayerMatchPerformance, User } from "@shared/schema";
+import { PlayerStats, PlayerMatch, PlayerMatchPerformance, User, CreatePlayerMatchFormData, CreatePlayerMatchPerformanceFormData } from "@shared/schema";
+import { format } from "date-fns";
+import { Award, Flag, Clock, MapPin, Calendar, ChevronRight, ChevronLeft } from "lucide-react";
+import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,13 +27,15 @@ const matchFormSchema = z.object({
   opponent: z.string().min(1, "Opponent name is required"),
   venue: z.string().min(1, "Venue is required"),
   matchDate: z.string(),
-  matchType: z.enum(["T20", "ODI", "Test", "Other"]),
+  matchType: z.enum(["T20", "ODI", "Test", "Other", "Practice"]),
   result: z.enum(["Win", "Loss", "Draw", "In Progress"]),
   teamScore: z.string().min(1, "Team score is required"),
   opponentScore: z.string().min(1, "Opponent score is required"),
   matchDescription: z.string().optional(),
   tossResult: z.string().optional(),
   firstInnings: z.boolean().optional(),
+  matchName: z.string().optional(),
+  userId: z.number().optional()
 });
 
 const performanceFormSchema = z.object({
@@ -213,8 +218,8 @@ export default function StatsPage() {
 
   // Add a new match
   const addMatchMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("POST", "/api/player-matches", data);
+    mutationFn: async (data: CreatePlayerMatchFormData) => {
+      return await apiRequest("POST", `/api/users/${user?.username}/matches`, data);
     },
     onSuccess: (response) => {
       try {
@@ -250,9 +255,12 @@ export default function StatsPage() {
 
   // Add match performance
   const addPerformanceMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: CreatePlayerMatchPerformanceFormData) => {
       console.log("Adding performance with data:", data);
-      return await apiRequest("POST", "/api/player-match-performances", data);
+      if (!user?.username || !newMatchId) {
+        throw new Error("Missing required data");
+      }
+      return await apiRequest("POST", `/api/users/${user.username}/matches/${newMatchId}/performance`, data);
     },
     onSuccess: (response) => {
       console.log("Performance added successfully, server response:", response);
@@ -329,19 +337,19 @@ export default function StatsPage() {
   function onMatchSubmit(values: MatchFormValues) {
     if (!user) return;
 
-    const matchData = {
+    const matchData: CreatePlayerMatchFormData = {
       userId: user.id,
       opponent: values.opponent,
       venue: values.venue,
-      matchDate: values.matchDate,
+      matchDate: new Date(values.matchDate),
       matchType: values.matchType,
       result: values.result,
       matchName: `${user.username} vs ${values.opponent}`,
       teamScore: values.teamScore,
       opponentScore: values.opponentScore,
-      matchDescription: values.matchDescription,
-      tossResult: values.tossResult,
-      firstInnings: values.firstInnings,
+      matchDescription: values.matchDescription || "",
+      tossResult: values.tossResult || "",
+      firstInnings: values.firstInnings || false
     };
 
     console.log('Submitting match data:', matchData);
