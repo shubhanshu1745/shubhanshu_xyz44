@@ -309,8 +309,9 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         return;
       }
       
-      // Submit to API with validation.data - handles transformation of date into Date object
-      addMatchMutation.mutate(validation.data);
+      // Use the original formData which already has matchDate as string
+      // Instead of validation.data which has matchDate as Date
+      addMatchMutation.mutate(matchData);
     } catch (error) {
       console.error("Match submission error:", error);
       toast({
@@ -349,74 +350,39 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
 
-    // Ensure numeric fields are properly parsed
-    const parseNumber = (value: any): number => {
-      if (value === null || value === undefined || value === '') return 0;
-      const parsed = Number(value);
-      return isNaN(parsed) ? 0 : parsed;
-    };
-
-    // Prepare data for API
-    const performanceData: CreatePlayerMatchPerformanceFormData = {
+    // Prepare data for API with correct field types
+    // Fields are already pre-processed by zod schema with z.coerce.number()
+    const performanceData = {
       userId: user.id,
       matchId: newMatchId,
-      runsScored: Number(formData.runsScored),
-      ballsFaced: Number(formData.ballsFaced),
-      fours: Number(formData.fours),
-      sixes: Number(formData.sixes),
-      battingStatus: formData.battingStatus,
+      runsScored: formData.runsScored,
+      ballsFaced: formData.ballsFaced,
+      fours: formData.fours,
+      sixes: formData.sixes,
+      battingStatus: formData.battingStatus || "Not Out",
+      // Ensure oversBowled is a string in correct format
       oversBowled: formData.oversBowled?.toString() || "0",
-      runsConceded: Number(formData.runsConceded),
-      wicketsTaken: Number(formData.wicketsTaken),
-      maidens: Number(formData.maidens),
-      catches: Number(formData.catches),
-      runOuts: Number(formData.runOuts),
-      stumpings: Number(formData.stumpings || 0),
-      battingPosition: formData.battingPosition ? Number(formData.battingPosition) : undefined,
-      bowlingPosition: formData.bowlingPosition ? Number(formData.bowlingPosition) : undefined,
+      runsConceded: formData.runsConceded,
+      wicketsTaken: formData.wicketsTaken,
+      maidens: formData.maidens,
+      catches: formData.catches,
+      runOuts: formData.runOuts,
+      stumpings: formData.stumpings || 0,
+      // Optional fields
+      battingPosition: formData.battingPosition,
+      bowlingPosition: formData.bowlingPosition,
       battingStyle: formData.battingStyle,
       bowlingStyle: formData.bowlingStyle,
-      economyRate: formData.economyRate ? Number(formData.economyRate) : undefined,
-      strikeRate: formData.strikeRate ? Number(formData.strikeRate) : undefined,
+      economyRate: formData.economyRate,
+      strikeRate: formData.strikeRate,
       playerOfMatch: Boolean(formData.playerOfMatch)
     };
 
-    console.log("Final performance data:", performanceData);
+    console.log("Prepared performance data:", performanceData);
 
-    // Final validation before API call
-    try {
-      const validation = createPlayerMatchPerformanceSchema.safeParse(performanceData);
-      if (!validation.success) {
-        console.error("Performance validation failed:", validation.error);
-        const errors = validation.error.flatten();
-        
-        // Set field errors in the form
-        Object.entries(errors.fieldErrors).forEach(([field, messages]) => {
-          if (messages && messages.length > 0) {
-            performanceForm.setError(field as any, { message: messages[0] });
-          }
-        });
-        
-        toast({
-          title: "Validation Error",
-          description: "Please fix the highlighted fields.",
-          variant: "destructive",
-        });
-        setSubmitting(false);
-        return;
-      }
-      
-      // Submit data to API
-      addPerformanceMutation.mutate(validation.data);
-    } catch (error) {
-      console.error("Performance submission error:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
-      setSubmitting(false);
-    }
+    // Skip double validation since the form already validates the data
+    // and we've intentionally formatted the special fields correctly
+    addPerformanceMutation.mutate(performanceData);
   };
 
   // Handle manual dialog open
