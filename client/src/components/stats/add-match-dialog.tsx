@@ -265,10 +265,10 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       return;
     }
 
-    // Prepare data for API
+    // Prepare data for API with string date
     const matchData: CreatePlayerMatchFormData = {
       ...formData,
-      matchDate,
+      matchDate: formData.matchDate, // Keep as string
       userId: user.id,
     };
 
