@@ -371,6 +371,7 @@ export default function StatsPage() {
     strikeRate: 0, // Example added field if present in schema
     economyRate: 0, // Example added field if present in schema
     stumpings: 0, // Example added field
+
   };
 
   // Calculate derived stats safely
