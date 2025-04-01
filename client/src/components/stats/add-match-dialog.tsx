@@ -346,19 +346,27 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
     // Prepare data for API
     const performanceData: CreatePlayerMatchPerformanceFormData = {
-      ...formData,
       userId: user.id,
       matchId: newMatchId,
-      runsScored: parseNumber(formData.runsScored),
-      ballsFaced: parseNumber(formData.ballsFaced),
-      fours: parseNumber(formData.fours),
-      sixes: parseNumber(formData.sixes),
-      runsConceded: parseNumber(formData.runsConceded),
-      wicketsTaken: parseNumber(formData.wicketsTaken),
-      maidens: parseNumber(formData.maidens),
-      catches: parseNumber(formData.catches),
-      runOuts: parseNumber(formData.runOuts),
-      stumpings: parseNumber(formData.stumpings || 0),
+      runsScored: Number(formData.runsScored),
+      ballsFaced: Number(formData.ballsFaced),
+      fours: Number(formData.fours),
+      sixes: Number(formData.sixes),
+      battingStatus: formData.battingStatus,
+      oversBowled: formData.oversBowled?.toString() || "0",
+      runsConceded: Number(formData.runsConceded),
+      wicketsTaken: Number(formData.wicketsTaken),
+      maidens: Number(formData.maidens),
+      catches: Number(formData.catches),
+      runOuts: Number(formData.runOuts),
+      stumpings: Number(formData.stumpings || 0),
+      battingPosition: formData.battingPosition ? Number(formData.battingPosition) : undefined,
+      bowlingPosition: formData.bowlingPosition ? Number(formData.bowlingPosition) : undefined,
+      battingStyle: formData.battingStyle,
+      bowlingStyle: formData.bowlingStyle,
+      economyRate: formData.economyRate ? Number(formData.economyRate) : undefined,
+      strikeRate: formData.strikeRate ? Number(formData.strikeRate) : undefined,
+      playerOfMatch: Boolean(formData.playerOfMatch)
     };
 
     console.log("Final performance data:", performanceData);
