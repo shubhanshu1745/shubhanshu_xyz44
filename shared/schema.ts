@@ -330,6 +330,41 @@ export type User = typeof users.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
 
+// Ensure PlayerStats includes all fields from the table
+export type PlayerStats = {
+  id: number;
+  userId: number;
+  position: string | null;
+  battingStyle: string | null;
+  bowlingStyle: string | null;
+  totalMatches: number;
+  totalRuns: number;
+  totalWickets: number;
+  totalCatches: number;
+  totalSixes: number;
+  totalFours: number;
+  highestScore: number;
+  bestBowling: string | null;
+  battingAverage: string | number;
+  bowlingAverage: string | number;
+  innings: number;
+  notOuts: number;
+  ballsFaced: number;
+  oversBowled: string;
+  runsConceded: number;
+  maidens: number;
+  fifties: number;
+  hundreds: number;
+  totalRunOuts: number;
+  playerOfMatchAwards: number;
+  highestScoreNotOut: boolean;
+  strikeRate: number | null;
+  economyRate: string | number | null;
+  stumpings: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export type InsertLike = z.infer<typeof insertLikeSchema>;
 export type Like = typeof likes.$inferSelect;
 
