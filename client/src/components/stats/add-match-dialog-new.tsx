@@ -20,7 +20,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   const [currentStep, setCurrentStep] = useState<'match' | 'performance'>('match');
   const [newMatchId, setNewMatchId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Hooks
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -74,7 +74,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     if (onOpenChange) {
       onOpenChange(newOpen);
     }
-    
+
     if (!newOpen) {
       resetDialogState();
     }
@@ -120,7 +120,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       }
 
       console.log("Match data to submit:", data);
-      
+
       try {
         const response = await fetch(`/api/users/${user.username}/matches`, {
           method: 'POST',
@@ -129,7 +129,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         });
 
         console.log("Match API response status:", response.status);
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
           console.error("Match API error:", errorData);
@@ -138,7 +138,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
         const responseData = await response.json();
         console.log("Match API response data:", responseData);
-        
+
         if (!responseData.id || typeof responseData.id !== 'number') {
           throw new Error("Server did not return a valid match ID");
         }
@@ -183,7 +183,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       }
 
       console.log("Performance data to submit:", data);
-      
+
       try {
         const response = await fetch(`/api/users/${user.username}/matches/${newMatchId}/performance`, {
           method: 'POST',
@@ -192,7 +192,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         });
 
         console.log("Performance API response status:", response.status);
-        
+
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
           console.error("Performance API error:", errorData);
@@ -201,7 +201,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
 
         const responseData = await response.json();
         console.log("Performance API response data:", responseData);
-        
+
         return responseData;
       } catch (error) {
         console.error("Performance submission error:", error);
@@ -234,9 +234,9 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   const onMatchSubmit = (formData: Omit<CreatePlayerMatchFormData, 'matchDate' | 'userId'> & { matchDate: string }) => {
     if (submitting) return;
     setSubmitting(true);
-    
+
     console.log("Match form submitted:", formData);
-    
+
     if (!user || !user.id) {
       toast({
         title: "Authentication Error",
@@ -280,14 +280,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       if (!validation.success) {
         console.error("Match validation failed:", validation.error);
         const errors = validation.error.flatten();
-        
+
         // Set field errors in the form
         Object.entries(errors.fieldErrors).forEach(([field, messages]) => {
           if (messages && messages.length > 0) {
             matchForm.setError(field as any, { message: messages[0] });
           }
         });
-        
+
         toast({
           title: "Validation Error",
           description: "Please fix the highlighted fields.",
@@ -296,7 +296,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         setSubmitting(false);
         return;
       }
-      
+
       // Submit data to API
       addMatchMutation.mutate(validation.data);
     } catch (error) {
@@ -314,9 +314,9 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
   const onPerformanceSubmit = (formData: CreatePlayerMatchPerformanceFormData) => {
     if (submitting) return;
     setSubmitting(true);
-    
+
     console.log("Performance form submitted:", formData);
-    
+
     if (!user || !user.id) {
       toast({
         title: "Authentication Error",
@@ -369,14 +369,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       if (!validation.success) {
         console.error("Performance validation failed:", validation.error);
         const errors = validation.error.flatten();
-        
+
         // Set field errors in the form
         Object.entries(errors.fieldErrors).forEach(([field, messages]) => {
           if (messages && messages.length > 0) {
             performanceForm.setError(field as any, { message: messages[0] });
           }
         });
-        
+
         toast({
           title: "Validation Error",
           description: "Please fix the highlighted fields.",
@@ -385,7 +385,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
         setSubmitting(false);
         return;
       }
-      
+
       // Submit data to API
       addPerformanceMutation.mutate(validation.data);
     } catch (error) {
@@ -420,8 +420,8 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>
-            {currentStep === 'match' 
-              ? 'Add New Match' 
+            {currentStep === 'match'
+              ? 'Add New Match'
               : `Add Performance Details ${newMatchId ? `(Match #${newMatchId})` : ''}`}
           </DialogTitle>
           <DialogDescription>
@@ -447,7 +447,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={matchForm.control}
                 name="matchDate"
@@ -461,7 +461,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={matchForm.control}
                 name="venue"
@@ -475,7 +475,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={matchForm.control}
                 name="opponent"
@@ -489,7 +489,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={matchForm.control}
                 name="matchType"
@@ -513,13 +513,64 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   </FormItem>
                 )}
               />
-              
+
+              <FormField
+                control={matchForm.control}
+                name="teamScore"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Team Score</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 150/6" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={matchForm.control}
+                name="opponentScore"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Opponent Score</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. 140/8" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={matchForm.control}
+                name="result"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Result</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select result" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Win">Win</SelectItem>
+                        <SelectItem value="Loss">Loss</SelectItem>
+                        <SelectItem value="Draw">Draw</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
                   disabled={submitting || addMatchMutation.isPending}
                 >
@@ -548,7 +599,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="ballsFaced"
@@ -562,7 +613,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="fours"
@@ -576,7 +627,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="sixes"
@@ -592,7 +643,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   />
                 </div>
               </div>
-  
+
               <div>
                 <h3 className="text-lg font-medium mb-3">Bowling</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -609,7 +660,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="runsConceded"
@@ -623,7 +674,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="wicketsTaken"
@@ -637,7 +688,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="maidens"
@@ -653,7 +704,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   />
                 </div>
               </div>
-  
+
               <div>
                 <h3 className="text-lg font-medium mb-3">Fielding</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -670,7 +721,7 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       </FormItem>
                     )}
                   />
-  
+
                   <FormField
                     control={performanceForm.control}
                     name="runOuts"
@@ -686,19 +737,19 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                   />
                 </div>
               </div>
-  
+
               <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={handleBackToMatch}
                   className="mr-auto"
                 >
                   <ChevronLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="bg-[#2E8B57] hover:bg-[#1F3B4D]"
                   disabled={submitting || addPerformanceMutation.isPending}
                 >
