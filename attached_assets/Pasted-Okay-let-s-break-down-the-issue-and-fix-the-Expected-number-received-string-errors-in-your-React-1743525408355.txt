@@ -1,0 +1,14 @@
+Okay, let's break down the issue and fix the "Expected number, received string" errors in your React performance form.
+
+Based on the code and the screenshot, the primary reason for these errors is the mismatch between what the HTML <Input> elements provide and what your Zod schema (createPlayerMatchPerformanceSchema) expects at the time of validation.
+
+Root Cause Analysis:
+
+HTML Input Behavior: Even when you use <Input type="number">, the value React Hook Form receives from the input element's onChange event (e.target.value) is often a string, especially when the field is empty ("") or contains the numerical text ("10", "0").
+Zod Validation Timing: react-hook-form uses the zodResolver to validate fields. This validation typically runs on field changes or blur before your custom onPerformanceSubmit function is called. The resolver takes the raw value received from the input (which is often a string) and validates it against your Zod schema.
+Schema Expectation: Your createPlayerMatchPerformanceSchema likely defines fields like runsScored, ballsFaced, etc., using z.number(). When Zod receives a string like "" or "10" for a field expecting z.number(), it throws the "Expected number, received string" error.
+parseNumber Function: Your parseNumber function inside onPerformanceSubmit does correctly convert the values to numbers, but this happens too late – only during the final submission attempt, after the field-level validation errors have already appeared.
+oversBowled Specific Issue: As suspected, the oversBowled field is missing type="number" in its <Input> component, which compounds the problem for that specific field. It's also defaulted to a string '0', suggesting it might be treated differently, but the error indicates Zod still expects a number.
+Solution: Use Zod Coercion
+
+The most robust and idiomatic way to handle this with Zod and React Hook Form is to use Zod's coercion feature directly in your schema. This tells Zod to attempt converting the incoming value to the target type before validating.

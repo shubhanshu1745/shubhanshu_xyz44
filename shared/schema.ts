@@ -315,6 +315,8 @@ export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatch
     runOuts: z.coerce.number().min(0),
     stumpings: z.coerce.number().min(0),
     oversBowled: z.string().regex(/^\d+(\.\d)?$/, "Invalid overs format"),
+    userId: z.coerce.number().int().positive(),
+    matchId: z.coerce.number().int().positive(),
   });
 
 // Story Schema
@@ -329,41 +331,6 @@ export type User = typeof users.$inferSelect;
 
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type Post = typeof posts.$inferSelect;
-
-// Ensure PlayerStats includes all fields from the table
-export type PlayerStats = {
-  id: number;
-  userId: number;
-  position: string | null;
-  battingStyle: string | null;
-  bowlingStyle: string | null;
-  totalMatches: number;
-  totalRuns: number;
-  totalWickets: number;
-  totalCatches: number;
-  totalSixes: number;
-  totalFours: number;
-  highestScore: number;
-  bestBowling: string | null;
-  battingAverage: string | number;
-  bowlingAverage: string | number;
-  innings: number;
-  notOuts: number;
-  ballsFaced: number;
-  oversBowled: string;
-  runsConceded: number;
-  maidens: number;
-  fifties: number;
-  hundreds: number;
-  totalRunOuts: number;
-  playerOfMatchAwards: number;
-  highestScoreNotOut: boolean;
-  strikeRate: number | null;
-  economyRate: string | number | null;
-  stumpings: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 export type InsertLike = z.infer<typeof insertLikeSchema>;
 export type Like = typeof likes.$inferSelect;
@@ -486,25 +453,28 @@ export const createPlayerMatchSchema = insertPlayerMatchSchema.extend({
 });
 
 export const createPlayerMatchPerformanceSchema = insertPlayerMatchPerformanceSchema.extend({
-  runsScored: z.number().min(0, "Runs scored must be a positive number").optional(),
-  ballsFaced: z.number().min(0, "Balls faced must be a positive number").optional(),
-  fours: z.number().min(0, "Fours must be a positive number").optional(),
-  sixes: z.number().min(0, "Sixes must be a positive number").optional(),
+  runsScored: z.coerce.number().min(0, "Runs scored must be a positive number").optional(),
+  ballsFaced: z.coerce.number().min(0, "Balls faced must be a positive number").optional(),
+  fours: z.coerce.number().min(0, "Fours must be a positive number").optional(),
+  sixes: z.coerce.number().min(0, "Sixes must be a positive number").optional(),
   battingStatus: z.string().optional(),
-  battingPosition: z.number().min(1).max(11).optional(),
+  battingPosition: z.coerce.number().min(1).max(11).optional(),
   battingStyle: z.string().optional(),
-  strikeRate: z.number().min(0).optional(),
+  strikeRate: z.coerce.number().min(0).optional(),
   oversBowled: z.string().optional(),
-  runsConceded: z.number().min(0, "Runs conceded must be a positive number").optional(),
-  wicketsTaken: z.number().min(0, "Wickets taken must be a positive number").optional(),
-  maidens: z.number().min(0, "Maidens must be a positive number").optional(),
-  bowlingPosition: z.number().min(1).max(11).optional(),
+  runsConceded: z.coerce.number().min(0, "Runs conceded must be a positive number").optional(),
+  wicketsTaken: z.coerce.number().min(0, "Wickets taken must be a positive number").optional(),
+  maidens: z.coerce.number().min(0, "Maidens must be a positive number").optional(),
+  bowlingPosition: z.coerce.number().min(1).max(11).optional(),
   bowlingStyle: z.string().optional(),
-  economyRate: z.number().min(0).optional(),
-  catches: z.number().min(0, "Catches must be a positive number").optional(),
-  runOuts: z.number().min(0, "Run outs must be a positive number").optional(),
-  stumpings: z.number().min(0, "Stumpings must be a positive number").optional(),
-  playerOfMatch: z.boolean().optional().default(false),
+  economyRate: z.coerce.number().min(0).optional(),
+  catches: z.coerce.number().min(0, "Catches must be a positive number").optional(),
+  runOuts: z.coerce.number().min(0, "Run outs must be a positive number").optional(),
+  stumpings: z.coerce.number().min(0, "Stumpings must be a positive number").optional(),
+  playerOfMatch: z.preprocess(
+    (val) => val === "true" || val === true,
+    z.boolean().optional().default(false)
+  ),
 });
 
 // Story Schema

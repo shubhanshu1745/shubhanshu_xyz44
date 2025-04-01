@@ -623,7 +623,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
                       <FormItem>
                         <FormLabel>Overs</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. 4.0" {...field} />
+                          <Input 
+                            placeholder="e.g. 4.0" 
+                            pattern="^\d+(\.\d)?$"
+                            title="Format: Whole number or number with one decimal place (e.g. 4 or 4.5)"
+                            {...field} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
