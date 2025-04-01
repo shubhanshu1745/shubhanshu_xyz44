@@ -1,0 +1,612 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+// Assuming createPlayerMatchSchema includes matchName, venue, opponent, matchType, and matchDate (as Date)
+// Assuming createPlayerMatchPerformanceSchema includes all the performance fields
+import { createPlayerMatchSchema, createPlayerMatchPerformanceSchema } from "@shared/schema";
+import type { CreatePlayerMatchFormData, CreatePlayerMatchPerformanceFormData } from "@shared/schema";
+import { useToast } from "../ui/use-toast";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { ChevronRight, ChevronLeft } from "lucide-react";
+
+// Define a specific schema for the Match form part, handling the date as a string initially
+const addMatchFormSchema = createPlayerMatchSchema
+  .omit({ userId: true, matchDate: true }) // Omit fields not directly in the form or handled differently
+  .extend({
+    // Keep date as string for the form input, validate it's a non-empty string
+    matchDate: z.string().min(1, "Match date is required"),
+    // Ensure matchName is required if not already in the base schema
+    matchName: z.string().min(1, "Match Name is required"),
+    venue: z.string().min(1, "Venue is required"),
+    opponent: z.string().min(1, "Opponent is required"),
+    matchType: z.enum(["T20", "ODI", "Test", "Practice", "Other"]), // Ensure 'Other' is valid if used
+});
+
+// Type for the form values based on the specific form schema
+type AddMatchFormValues = z.infer<typeof addMatchFormSchema>;
+
+// Keep performance form type as derived from the shared schema
+type AddPerformanceFormValues = z.infer<typeof createPlayerMatchPerformanceSchema>;
+
+
+export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
+  const [open, setOpen] = useState(false);
+  const [currentStep, setCurrentStep] = useState<'match' | 'performance'>('match');
+  const [newMatchId, setNewMatchId] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Centralized logic for opening/closing and resetting state
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (onOpenChange) {
+      onOpenChange(newOpen);
+    }
+    // Reset state *only* when the dialog is closing
+    if (!newOpen) {
+      setCurrentStep('match');
+      setNewMatchId(null);
+      // Reset forms to default values when closing
+      matchForm.reset();
+      performanceForm.reset();
+    }
+  };
+
+  // Get today's date in YYYY-MM-DD format for the date input default
+  const today = new Date().toISOString().split('T')[0];
+
+  // Setup Match Form
+  const matchForm = useForm<AddMatchFormValues>({
+    resolver: zodResolver(addMatchFormSchema),
+    defaultValues: {
+      matchName: '',
+      matchDate: today, // Default to today's date string
+      venue: '',
+      opponent: '',
+      matchType: 'T20', // Default match type
+    },
+  });
+
+  // Setup Performance Form
+  const performanceForm = useForm<AddPerformanceFormValues>({
+    resolver: zodResolver(createPlayerMatchPerformanceSchema),
+    // Default numeric values to 0, string for oversBowled
+    defaultValues: {
+      runsScored: 0,
+      ballsFaced: 0,
+      fours: 0,
+      sixes: 0,
+      oversBowled: '0', // Default as string
+      runsConceded: 0,
+      wicketsTaken: 0,
+      maidens: 0,
+      catches: 0,
+      runOuts: 0,
+      // Explicitly default potentially optional fields if needed by schema/API
+      // battingStatus: "Out", // Example if needed
+      // stumpings: 0,       // Example if needed
+      // playerOfMatch: false,// Example if needed
+    },
+  });
+
+  // Mutation for adding a match
+  const addMatchMutation = useMutation({
+    mutationFn: async (data: CreatePlayerMatchFormData) => {
+      // Ensure user and username are available before making the request
+      if (!user?.username) {
+        throw new Error("Username is required to add a match.");
+      }
+      console.log("Submitting match data to API:", JSON.stringify(data));
+      const response = await fetch(`/api/users/${user.username}/matches`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      console.log("Add match API response status:", response.status);
+
+      if (!response.ok) {
+        let errorData = { message: `Request failed with status ${response.status}` };
+        try {
+          errorData = await response.json(); // Try to get detailed error message
+        } catch (e) {
+          console.warn("Could not parse error response as JSON");
+        }
+        console.error("Add match API error:", errorData);
+        throw new Error(errorData?.message || 'Failed to add match');
+      }
+      return response.json(); // Return parsed JSON response on success
+    },
+    onSuccess: (data) => {
+      console.log("Match added successfully, API response:", data);
+      // Check if the response includes a valid ID
+      if (data && typeof data.id === 'number') {
+        setNewMatchId(data.id); // Store the ID of the newly created match
+        setCurrentStep('performance'); // Move to the next step
+        toast({
+          title: "Match Details Saved",
+          description: "Now enter your performance stats.",
+        });
+        // Invalidate queries to refetch match list
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
+      } else {
+        // Handle cases where the API succeeds but returns unexpected data
+        console.error("Invalid response structure from add match API:", data);
+        toast({
+          title: "Server Error",
+          description: "Received invalid data after saving match.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Error submitting match:", error);
+      toast({
+        title: "Error Adding Match",
+        description: error.message || "Could not save match details. Please check input or network.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation for adding performance details
+  const addPerformanceMutation = useMutation({
+    mutationFn: async (data: CreatePlayerMatchPerformanceFormData) => {
+      // Ensure necessary IDs are present
+      if (!user?.username || !newMatchId) {
+        throw new Error("User or Match ID is missing for adding performance.");
+      }
+      console.log("Submitting performance data to API:", JSON.stringify(data));
+      const response = await fetch(`/api/users/${user.username}/matches/${newMatchId}/performance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      console.log("Add performance API response status:", response.status);
+
+      if (!response.ok) {
+        let errorData = { message: `Request failed with status ${response.status}` };
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          console.warn("Could not parse performance error response as JSON");
+        }
+        console.error("Add performance API error:", errorData);
+        throw new Error(errorData?.message || 'Failed to add performance');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      console.log("Performance added successfully.");
+      toast({
+        title: "Success",
+        description: "Match and performance recorded successfully.",
+      });
+      // Invalidate relevant queries to update UI
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/matches`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.username}/player-stats`] });
+      handleOpenChange(false); // Close the dialog on final success
+      // State reset is handled within handleOpenChange
+    },
+    onError: (error: Error) => {
+      console.error("Error submitting performance:", error);
+      toast({
+        title: "Error Saving Performance",
+        description: error.message || "Failed to add performance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Handler for the first step (Match Form submission)
+  const onMatchSubmit = (values: AddMatchFormValues) => {
+    console.log("Match form validated:", values);
+    if (!user?.id) {
+      toast({ title: "Error", description: "User not identified.", variant: "destructive" });
+      console.error("User ID missing for match submission.");
+      return;
+    }
+
+    // Convert date string to Date object for the API
+    let matchDateObject: Date;
+    try {
+        // Attempt to create a Date object. Input type="date" provides YYYY-MM-DD.
+        // Adding T00:00:00 helps avoid potential timezone shifts if backend expects UTC.
+        matchDateObject = new Date(values.matchDate + 'T00:00:00Z'); // Specify UTC timezone
+        if (isNaN(matchDateObject.getTime())) { // Check if the date is valid
+            throw new Error("Invalid date created");
+        }
+    } catch (e) {
+        console.error("Invalid date input:", values.matchDate, e);
+        matchForm.setError("matchDate", { type: "manual", message: "Invalid date format." });
+        toast({ title: "Invalid Date", description: "Please select a valid date.", variant: "destructive" });
+        return;
+    }
+
+
+    // Construct the data payload matching the API's expected schema (CreatePlayerMatchFormData)
+    const apiData: CreatePlayerMatchFormData = {
+      ...values, // Spread the validated form values
+      matchDate: matchDateObject, // Use the Date object
+      userId: user.id, // Add the current user's ID
+      // Add any other fields required by CreatePlayerMatchFormData not present in the form schema
+      // result: "Unknown", // Example: If result is required by API but not in form
+    };
+
+    addMatchMutation.mutate(apiData); // Trigger the mutation
+  };
+
+  // Handler for the second step (Performance Form submission)
+  const onPerformanceSubmit = (values: AddPerformanceFormValues) => {
+    console.log("Performance form validated:", values);
+    if (!newMatchId || !user?.id) {
+        toast({ title: "Error", description: "Missing required IDs.", variant: "destructive"});
+        console.error("Cannot submit performance without matchId or userId", { newMatchId, userId: user?.id });
+        return;
+    }
+
+    // Construct the data payload matching the API's expected schema (CreatePlayerMatchPerformanceFormData)
+    const apiData: CreatePlayerMatchPerformanceFormData = {
+        ...values, // Spread validated form values
+        matchId: newMatchId,
+        userId: user.id,
+         // Ensure numeric fields are numbers (Zod resolver usually handles this for type="number")
+         // Explicit conversion might be needed if using text inputs for numbers sometimes
+         runsScored: Number(values.runsScored) || 0,
+         ballsFaced: Number(values.ballsFaced) || 0,
+         fours: Number(values.fours) || 0,
+         sixes: Number(values.sixes) || 0,
+         runsConceded: Number(values.runsConceded) || 0,
+         wicketsTaken: Number(values.wicketsTaken) || 0,
+         maidens: Number(values.maidens) || 0,
+         catches: Number(values.catches) || 0,
+         runOuts: Number(values.runOuts) || 0,
+         // Keep oversBowled as string if API expects that, otherwise parse/validate
+    };
+
+    addPerformanceMutation.mutate(apiData); // Trigger the performance mutation
+  };
+
+  // Derived states for disabling buttons during API calls
+  const isSavingMatch = addMatchMutation.isPending;
+  const isSavingPerformance = addPerformanceMutation.isPending;
+
+  // Handler to open the dialog and reset state (called by DialogTrigger)
+  const openDialog = () => {
+    setCurrentStep('match');
+    setNewMatchId(null);
+    matchForm.reset(); // Reset to default values
+    performanceForm.reset(); // Reset to default values
+    setOpen(true); // Explicitly set open state
+  };
+
+  return (
+    // Use onOpenChange for dialog state, handleOpenChange ensures resets on close
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        {/* Button that opens the dialog */}
+        <Button variant="default" className="bg-[#2E8B57] hover:bg-[#1F3B4D]">
+          Add New Match
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>
+            {/* Dynamic title based on the current step */}
+            {currentStep === 'match' ? 'Add New Match' : 'Add Performance Details'}
+          </DialogTitle>
+          <DialogDescription>
+            {/* Dynamic description based on the current step */}
+            {currentStep === 'match'
+              ? 'Enter the details of your cricket match'
+              : 'Record your performance in this match'
+            }
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Conditional rendering based on the current step */}
+        {currentStep === 'match' ? (
+          // Match Form (Step 1)
+          <Form {...matchForm}>
+            <form onSubmit={matchForm.handleSubmit(onMatchSubmit)} className="space-y-4">
+              {/* Match Name Input */}
+              <FormField
+                control={matchForm.control}
+                name="matchName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. Friendly Match vs Team X" {...field} />
+                    </FormControl>
+                    <FormMessage /> {/* Displays validation errors */}
+                  </FormItem>
+                )}
+              />
+
+              {/* Match Date Input */}
+              <FormField
+                control={matchForm.control}
+                name="matchDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Date</FormLabel>
+                    <FormControl>
+                      {/* HTML5 date input provides YYYY-MM-DD string */}
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Venue Input */}
+              <FormField
+                control={matchForm.control}
+                name="venue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Venue</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Match location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Opponent Input */}
+              <FormField
+                control={matchForm.control}
+                name="opponent"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Opponent</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Opponent team name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Match Type Select */}
+              <FormField
+                control={matchForm.control}
+                name="matchType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Match Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select match type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="T20">T20</SelectItem>
+                        <SelectItem value="ODI">ODI</SelectItem>
+                        <SelectItem value="Test">Test</SelectItem>
+                        <SelectItem value="Practice">Practice</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Dialog Actions for Match Form */}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSavingMatch}>
+                  Cancel
+                </Button>
+                {/* Submit button triggers onMatchSubmit */}
+                <Button type="submit" className="bg-[#2E8B57] hover:bg-[#1F3B4D]" disabled={isSavingMatch}>
+                  {/* Show loading state */}
+                  {isSavingMatch ? "Saving..." : "Next: Add Performance"}
+                  {!isSavingMatch && <ChevronRight className="ml-2 h-4 w-4" />}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        ) : (
+          // Performance Form (Step 2)
+          <Form {...performanceForm}>
+            <form onSubmit={performanceForm.handleSubmit(onPerformanceSubmit)} className="space-y-6">
+              {/* Batting Section */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Batting</h3>
+                <div className="grid grid-cols-2 gap-4">
+                   {/* Runs Scored */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="runsScored"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Runs</FormLabel>
+                        <FormControl>
+                          {/* Use type="number", min ensures non-negative */}
+                           <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Balls Faced */}
+                  <FormField
+                    control={performanceForm.control}
+                    name="ballsFaced"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Balls</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Fours */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="fours"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>4s</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Sixes */}
+                  <FormField
+                    control={performanceForm.control}
+                    name="sixes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>6s</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Bowling Section */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Bowling</h3>
+                <div className="grid grid-cols-2 gap-4">
+                   {/* Overs Bowled */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="oversBowled" // Keep as string for format like "4.5"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Overs</FormLabel>
+                        <FormControl>
+                          {/* Use text input for flexible format */}
+                          <Input type="text" placeholder="e.g. 4 or 3.5" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Runs Conceded */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="runsConceded"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Runs Conceded</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Wickets Taken */}
+                  <FormField
+                    control={performanceForm.control}
+                    name="wicketsTaken"
+                     render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wickets</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Maidens */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="maidens"
+                     render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maidens</FormLabel>
+                        <FormControl>
+                           <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Fielding Section */}
+              <div>
+                <h3 className="text-lg font-medium mb-3">Fielding</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Catches */}
+                   <FormField
+                    control={performanceForm.control}
+                    name="catches"
+                     render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Catches</FormLabel>
+                        <FormControl>
+                           <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Run Outs */}
+                  <FormField
+                    control={performanceForm.control}
+                    name="runOuts"
+                     render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Run Outs</FormLabel>
+                        <FormControl>
+                           <Input type="number" min="0" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Dialog Actions for Performance Form */}
+              <DialogFooter>
+                {/* Back button goes to the previous step */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCurrentStep('match')} // Go back to match form
+                  className="mr-auto" // Push to the left
+                   disabled={isSavingPerformance} // Disable while saving
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                {/* Submit button triggers onPerformanceSubmit */}
+                <Button type="submit" className="bg-[#2E8B57] hover:bg-[#1F3B4D]" disabled={isSavingPerformance}>
+                  {/* Show loading state */}
+                  {isSavingPerformance ? "Saving..." : "Save Performance"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
