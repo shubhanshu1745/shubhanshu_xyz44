@@ -241,7 +241,7 @@ export default function StatsPage() {
   // --- Form Handlers ---
 
   // Handle match form submission
-  function onMatchSubmit(values: MatchFormValues) {
+  async function onMatchSubmit(values: MatchFormValues) {
     if (!user) {
       toast({ title: "Error", description: "You must be logged in.", variant: "destructive" });
       return;
@@ -251,19 +251,32 @@ export default function StatsPage() {
       userId: user.id,
       opponent: values.opponent,
       venue: values.venue,
-      matchDate: new Date(values.matchDate), // Convert string date to Date object
+      matchDate: new Date(values.matchDate),
       matchType: values.matchType,
       result: values.result,
-      matchName: values.matchName || `${user.username || 'My Team'} vs ${values.opponent}`, // Default match name
+      matchName: values.matchName || `${user.username || 'My Team'} vs ${values.opponent}`,
       teamScore: values.teamScore,
       opponentScore: values.opponentScore,
-      matchDescription: values.matchDescription || "", // Ensure empty string if undefined
+      matchDescription: values.matchDescription || "",
       tossResult: values.tossResult || "",
-      firstInnings: values.firstInnings || false, // Ensure boolean
+      firstInnings: values.firstInnings || false,
     };
 
-    console.log('Submitting match data:', matchData);
-    addMatchMutation.mutate(matchData);
+    try {
+      console.log('Submitting match data:', matchData);
+      await addMatchMutation.mutateAsync(matchData);
+      // Only proceed if mutation was successful
+      if (addMatchMutation.isSuccess) {
+        setCurrentStep("performance");
+      }
+    } catch (error) {
+      console.error('Error submitting match:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add match. Please try again.",
+        variant: "destructive"
+      });
+    }
   }
 
   // Handle performance form submission
