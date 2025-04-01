@@ -153,15 +153,23 @@ export const playerMatchPerformance = pgTable("player_match_performance", {
   fours: integer("fours").default(0),
   sixes: integer("sixes").default(0),
   battingStatus: text("batting_status"), // e.g., "Not Out", "Bowled", "Caught"
+  battingPosition: integer("batting_position"),
+  battingStyle: text("batting_style"),
+  strikeRate: numeric("strike_rate", { precision: 2 }),
   // Bowling
   oversBowled: numeric("overs_bowled").default("0"),
   runsConceded: integer("runs_conceded").default(0),
   wicketsTaken: integer("wickets_taken").default(0),
   maidens: integer("maidens").default(0),
+  bowlingPosition: integer("bowling_position"),
+  bowlingStyle: text("bowling_style"),
+  economyRate: numeric("economy_rate", { precision: 2 }),
   // Fielding
   catches: integer("catches").default(0),
   runOuts: integer("run_outs").default(0),
   stumpings: integer("stumpings").default(0),
+  // Additional fields
+  playerOfMatch: boolean("player_of_match").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -444,13 +452,20 @@ export const createPlayerMatchPerformanceSchema = insertPlayerMatchPerformanceSc
   fours: z.number().min(0, "Fours must be a positive number").optional(),
   sixes: z.number().min(0, "Sixes must be a positive number").optional(),
   battingStatus: z.string().optional(),
+  battingPosition: z.number().min(1).max(11).optional(),
+  battingStyle: z.string().optional(),
+  strikeRate: z.number().min(0).optional(),
   oversBowled: z.string().optional(),
   runsConceded: z.number().min(0, "Runs conceded must be a positive number").optional(),
   wicketsTaken: z.number().min(0, "Wickets taken must be a positive number").optional(),
   maidens: z.number().min(0, "Maidens must be a positive number").optional(),
+  bowlingPosition: z.number().min(1).max(11).optional(),
+  bowlingStyle: z.string().optional(),
+  economyRate: z.number().min(0).optional(),
   catches: z.number().min(0, "Catches must be a positive number").optional(),
   runOuts: z.number().min(0, "Run outs must be a positive number").optional(),
   stumpings: z.number().min(0, "Stumpings must be a positive number").optional(),
+  playerOfMatch: z.boolean().optional().default(false),
 });
 
 // Story Schema
