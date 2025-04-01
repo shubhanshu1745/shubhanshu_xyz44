@@ -28,10 +28,12 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     if (onOpenChange) {
       onOpenChange(newOpen);
     }
+    // Only reset when closing the dialog
     if (!newOpen) {
-      // Reset state when dialog is closed
       setCurrentStep('match');
       setNewMatchId(null);
+      matchForm.reset();
+      performanceForm.reset();
     }
   };
 
@@ -133,10 +135,14 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
     }
   };
 
+  const openDialog = () => {
+    setOpen(true);
+  };
+  
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="default" className="bg-[#2E8B57] hover:bg-[#1F3B4D]">
+        <Button variant="default" onClick={openDialog} className="bg-[#2E8B57] hover:bg-[#1F3B4D]">
           Add New Match
         </Button>
       </DialogTrigger>

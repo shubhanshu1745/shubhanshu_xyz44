@@ -76,7 +76,7 @@ export default function StatsPage() {
           <div className="px-6">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-primary">
-                <AvatarImage src={user?.profilePicture} alt={user?.username} />
+                <AvatarImage src={user?.profileImage || undefined} alt={user?.username} />
                 <AvatarFallback>{user?.username?.[0]?.toUpperCase()}</AvatarFallback>
               </Avatar>
               <div>
