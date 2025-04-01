@@ -198,14 +198,18 @@ export function AddMatchDialog({ onOpenChange }: { onOpenChange?: (open: boolean
       console.log("Performance data to submit:", data);
       
       try {
-        // The API route will extract userId and matchId from authentication and URL params
-        // So we don't need to send them in the body, which could cause conflicts
-        const { userId, matchId, ...performanceFields } = data;
+        // Important: The server API expects userId and matchId in the body
+        // We need to ensure matchId is set to newMatchId for consistency
+        const performanceData = {
+          ...data,
+          userId: user.id, // Ensure we always have the current user ID
+          matchId: newMatchId // Ensure we use the match ID from state
+        };
         
         const response = await fetch(`/api/users/${user.username}/matches/${newMatchId}/performance`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(performanceFields),
+          body: JSON.stringify(performanceData),
         });
 
         console.log("Performance API response status:", response.status);

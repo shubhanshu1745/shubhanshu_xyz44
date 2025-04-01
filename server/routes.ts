@@ -1616,22 +1616,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return isNaN(parsed) ? 0 : parsed;
       };
       
+      // Ensure consistent user and match IDs
+      // This handles cases where the client sent different IDs in the body than in the URL
       const performanceData = {
-        userId: user.id,
+        // Always use the authenticated user ID and URL matchId
+        userId: userId,
         matchId: matchId,
+        // Use the request body for all other fields with proper type conversion
         runsScored: parseNumber(req.body.runsScored),
         ballsFaced: parseNumber(req.body.ballsFaced),
         fours: parseNumber(req.body.fours),
         sixes: parseNumber(req.body.sixes),
         battingStatus: req.body.battingStatus || "Not Out",
+        // Special handling for overs bowled as a string in format "X.Y"
         oversBowled: req.body.oversBowled?.toString() || "0",
         runsConceded: parseNumber(req.body.runsConceded),
         wicketsTaken: parseNumber(req.body.wicketsTaken),
         maidens: parseNumber(req.body.maidens),
         catches: parseNumber(req.body.catches),
         runOuts: parseNumber(req.body.runOuts),
-        stumpings: parseNumber(req.body.stumpings),
-        playerOfMatch: req.body.playerOfMatch === true
+        stumpings: parseNumber(req.body.stumpings), 
+        playerOfMatch: req.body.playerOfMatch === true,
+        // Handle optional fields
+        battingPosition: req.body.battingPosition ? parseNumber(req.body.battingPosition) : undefined,
+        bowlingPosition: req.body.bowlingPosition ? parseNumber(req.body.bowlingPosition) : undefined,
+        battingStyle: req.body.battingStyle || undefined,
+        bowlingStyle: req.body.bowlingStyle || undefined,
+        economyRate: req.body.economyRate ? parseNumber(req.body.economyRate) : undefined,
+        strikeRate: req.body.strikeRate ? parseNumber(req.body.strikeRate) : undefined
       };
       
       const performance = await storage.createPlayerMatchPerformance(performanceData);
