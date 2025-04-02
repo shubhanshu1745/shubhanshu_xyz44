@@ -11,6 +11,7 @@ import ReelsPage from "@/pages/reels-page";
 import PlayerStatsPage from "@/pages/player-stats-page";
 import StatsPage from "@/pages/stats-page-simplified";
 import LiveScoring from "@/pages/live-scoring";
+import LiveScoringEnhanced from "@/pages/live-scoring-enhanced";
 import SuggestionsPage from "@/pages/suggestions-page";
 import SettingsPage from "@/pages/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
@@ -33,6 +34,8 @@ function Router() {
       <ProtectedRoute path="/suggestions" component={SuggestionsPage} />
       <ProtectedRoute path="/scoring" component={LiveScoring} />
       <ProtectedRoute path="/scoring/:matchId" component={LiveScoring} />
+      <ProtectedRoute path="/enhanced-scoring" component={LiveScoringEnhanced} />
+      <ProtectedRoute path="/enhanced-scoring/:matchId" component={LiveScoringEnhanced} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
