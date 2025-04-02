@@ -251,3 +251,60 @@
     transform: rotate(25deg);
   }
 }
+
+/* Story Filters Animations */
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-falling-particle {
+  animation: fall 2s linear infinite;
+}
+
+.animate-falling-particle-delay {
+  animation: fall 2.3s linear infinite;
+  animation-delay: 0.3s;
+}
+
+.animate-falling-particle-delay-2 {
+  animation: fall 1.7s linear infinite;
+  animation-delay: 0.5s;
+}
+
+.animate-falling-particle-delay-3 {
+  animation: fall 2.5s linear infinite;
+  animation-delay: 0.7s;
+}
+
+@keyframes fall {
+  0% {
+    transform: translateY(-10px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(300px);
+    opacity: 0;
+  }
+}
+
+.filter-glow {
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px -5px rgba(255, 255, 255, 0.5);
+  }
+  to {
+    box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.5);
+  }
+}

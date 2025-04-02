@@ -113,6 +113,96 @@ export class StoryFiltersService {
         },
         usageCount: 542,
         created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Cricket Ball Face',
+        description: 'Transform your face into a spinning cricket ball',
+        imageUrl: '/assets/filters/cricket-ball-face.png',
+        previewUrl: '/assets/filters/previews/cricket-ball-face.gif',
+        category: 'gameplay',
+        settings: {
+          spinSpeed: 0.5,
+          ballTexture: 'red-leather',
+          addSeam: true
+        },
+        usageCount: 1876,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Century Celebration',
+        description: 'Add fireworks and celebration effects when you score a century',
+        imageUrl: '/assets/filters/century-celebration.png',
+        previewUrl: '/assets/filters/previews/century-celebration.gif',
+        category: 'celebration',
+        settings: {
+          fireworksIntensity: 0.8,
+          showBadge: true,
+          animateBat: true
+        },
+        usageCount: 2543,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Team Australia',
+        description: 'Show your support for Team Australia with face paint and jersey',
+        imageUrl: '/assets/filters/team-australia.png',
+        previewUrl: '/assets/filters/previews/team-australia.gif',
+        category: 'team',
+        teamId: 2,
+        settings: {
+          facePaintIntensity: 0.7,
+          jerseyType: 'home'
+        },
+        usageCount: 1876,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Pitch Report',
+        description: 'Add pitch details and weather overlay to your cricket stories',
+        imageUrl: '/assets/filters/pitch-report.png',
+        previewUrl: '/assets/filters/previews/pitch-report.gif',
+        category: 'stadium',
+        settings: {
+          showWeather: true,
+          pitchDetails: 'full',
+          commentaryStyle: 'expert'
+        },
+        usageCount: 1242,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Cricket Avatar',
+        description: 'Transform yourself into a 3D cricket player avatar',
+        imageUrl: '/assets/filters/cricket-avatar.png',
+        previewUrl: '/assets/filters/previews/cricket-avatar.gif',
+        category: 'gameplay',
+        settings: {
+          playerStyle: 'batter',
+          equipmentType: 'premium',
+          animationType: 'batting'
+        },
+        usageCount: 3184,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Lords Stadium',
+        description: 'Transport yourself to the iconic Lords Cricket Ground',
+        imageUrl: '/assets/filters/lords-stadium.png',
+        previewUrl: '/assets/filters/previews/lords-stadium.gif',
+        category: 'stadium',
+        settings: {
+          viewPosition: 'pavilion',
+          ambientSound: true,
+          timeOfDay: 'day'
+        },
+        usageCount: 1467,
+        created: new Date()
       }
     ];
     
@@ -190,6 +280,120 @@ export class StoryFiltersService {
           '/assets/effects/tap-to-hit/hit-sound.mp3',
         ],
         usageCount: 1204,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Cricket Scoreboard',
+        description: 'Add a live updating scoreboard to your stories that viewers can interact with',
+        previewUrl: '/assets/effects/previews/cricket-scoreboard.gif',
+        category: 'interactive',
+        settings: {
+          scoreboardStyle: 'modern',
+          autoUpdate: true,
+          showPlayerStats: true
+        },
+        assetUrls: [
+          '/assets/effects/cricket-scoreboard/scoreboard-bg.png',
+          '/assets/effects/cricket-scoreboard/numbers.png',
+          '/assets/effects/cricket-scoreboard/update-sound.mp3',
+        ],
+        usageCount: 2187,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Slow Motion Ball',
+        description: 'Create a Matrix-style slow motion effect around a cricket ball',
+        previewUrl: '/assets/effects/previews/slow-motion-ball.gif',
+        category: 'animation',
+        settings: {
+          slowdownFactor: 0.2,
+          rotationSpeed: 0.5,
+          particleEffects: true
+        },
+        assetUrls: [
+          '/assets/effects/slow-motion-ball/particle.png',
+          '/assets/effects/slow-motion-ball/time-warp.mp3',
+          '/assets/effects/slow-motion-ball/ball-trail.png',
+        ],
+        usageCount: 1756,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Cricket Commentary',
+        description: 'Add professional cricket commentary to your story videos',
+        previewUrl: '/assets/effects/previews/cricket-commentary.gif',
+        category: 'sound',
+        settings: {
+          commentatorVoice: 'british',
+          excitementLevel: 'high',
+          includeBackgroundNoise: true
+        },
+        assetUrls: [
+          '/assets/effects/cricket-commentary/commentary-excited.mp3',
+          '/assets/effects/cricket-commentary/commentary-calm.mp3',
+          '/assets/effects/cricket-commentary/background-ambience.mp3',
+        ],
+        usageCount: 984,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'AR Pitch Analyzer',
+        description: 'Analyze any surface to see if it would make a good cricket pitch',
+        previewUrl: '/assets/effects/previews/ar-pitch-analyzer.gif',
+        category: 'ar',
+        settings: {
+          analysisDetail: 'high',
+          showBouncePredictor: true,
+          recommendBall: true
+        },
+        assetUrls: [
+          '/assets/effects/ar-pitch-analyzer/scanner.glb',
+          '/assets/effects/ar-pitch-analyzer/pitch-grid.png',
+          '/assets/effects/ar-pitch-analyzer/scan-sound.mp3',
+        ],
+        usageCount: 624,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'LBW Predictor',
+        description: 'Interactive AR effect that predicts if a ball would result in LBW',
+        previewUrl: '/assets/effects/previews/lbw-predictor.gif',
+        category: 'interactive',
+        settings: {
+          showTrajectory: true,
+          hawkEyeStyle: true,
+          detailLevel: 'professional'
+        },
+        assetUrls: [
+          '/assets/effects/lbw-predictor/ball-path.glb',
+          '/assets/effects/lbw-predictor/stumps.glb',
+          '/assets/effects/lbw-predictor/decision-sound.mp3',
+        ],
+        usageCount: 1532,
+        created: new Date()
+      },
+      {
+        id: crypto.randomUUID(),
+        name: 'Trophy Celebration',
+        description: 'Hold and celebrate with famous cricket trophies using AR',
+        previewUrl: '/assets/effects/previews/trophy-celebration.gif',
+        category: 'ar',
+        settings: {
+          trophyType: 'world-cup',
+          addConfetti: true,
+          victoryMusic: true
+        },
+        assetUrls: [
+          '/assets/effects/trophy-celebration/world-cup.glb',
+          '/assets/effects/trophy-celebration/ipl-trophy.glb',
+          '/assets/effects/trophy-celebration/celebration-music.mp3',
+        ],
+        usageCount: 2145,
         created: new Date()
       }
     ];
