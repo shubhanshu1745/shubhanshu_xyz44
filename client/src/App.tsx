@@ -55,6 +55,7 @@ function Router() {
       <ProtectedRoute path="/highlights" component={MatchHighlights} />
       <ProtectedRoute path="/story-filters" component={StoryFilters} />
       <ProtectedRoute path="/venues" component={VenueDiscovery} />
+      <ProtectedRoute path="/polls" component={PollsPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
@@ -69,10 +70,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
         <AuthProvider>
-          <SocketProvider>
-            <Router />
-            <Toaster />
-          </SocketProvider>
+          <UserProvider>
+            <SocketProvider>
+              <Router />
+              <Toaster />
+            </SocketProvider>
+          </UserProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

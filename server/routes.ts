@@ -2193,6 +2193,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Update cricket profile
+  app.patch("/api/cricket-profile", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      
+      // Extract all cricket-specific profile attributes from request
+      const {
+        isPlayer,
+        isCoach,
+        isFan,
+        battingStyle,
+        bowlingStyle,
+        position,
+        preferredRole,
+        playingExperience,
+        favoriteTeam,
+        favoritePlayer,
+        favoriteTournament,
+        cricketingAchievements
+      } = req.body;
+      
+      // Build the cricket profile attributes object
+      const cricketAttributes: Record<string, any> = {};
+      
+      if (isPlayer !== undefined) cricketAttributes.isPlayer = !!isPlayer;
+      if (isCoach !== undefined) cricketAttributes.isCoach = !!isCoach;
+      if (isFan !== undefined) cricketAttributes.isFan = !!isFan;
+      if (battingStyle) cricketAttributes.battingStyle = battingStyle;
+      if (bowlingStyle) cricketAttributes.bowlingStyle = bowlingStyle;
+      if (position) cricketAttributes.position = position;
+      if (preferredRole) cricketAttributes.preferredRole = preferredRole;
+      if (playingExperience !== undefined) cricketAttributes.playingExperience = playingExperience;
+      if (favoriteTeam) cricketAttributes.favoriteTeam = favoriteTeam;
+      if (favoritePlayer) cricketAttributes.favoritePlayer = favoritePlayer;
+      if (favoriteTournament) cricketAttributes.favoriteTournament = favoriteTournament;
+      if (cricketingAchievements) cricketAttributes.cricketingAchievements = cricketingAchievements;
+      
+      if (Object.keys(cricketAttributes).length === 0) {
+        return res.status(400).json({ message: "No valid cricket profile attributes to update" });
+      }
+      
+      // Update the user with cricket-specific attributes
+      const updatedUser = await storage.updateUser(userId, cricketAttributes);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // If user is a player and player-related attributes are provided,
+      // update or create their player stats record
+      if (cricketAttributes.isPlayer) {
+        const statsData: Record<string, any> = {
+          userId,
+        };
+        
+        if (battingStyle) statsData.battingStyle = battingStyle;
+        if (bowlingStyle) statsData.bowlingStyle = bowlingStyle;
+        if (position) statsData.position = position;
+        
+        const existingStats = await storage.getPlayerStats(userId);
+        
+        if (existingStats) {
+          // Update existing stats
+          await storage.updatePlayerStats(userId, statsData);
+        } else {
+          // Create new player stats with default values
+          await storage.createPlayerStats({
+            ...statsData,
+            totalMatches: 0,
+            totalRuns: 0,
+            totalWickets: 0,
+            totalCatches: 0,
+            totalStumpings: 0,
+            highestScore: 0,
+            bestBowling: "0/0",
+            battingAverage: 0,
+            bowlingAverage: 0
+          });
+        }
+      }
+      
+      // Don't send password to client
+      const { password, ...userWithoutPassword } = updatedUser;
+      
+      res.json({ 
+        message: "Cricket profile updated successfully", 
+        user: userWithoutPassword 
+      });
+    } catch (error) {
+      console.error("Error updating cricket profile:", error);
+      res.status(500).json({ message: "Failed to update cricket profile" });
+    }
+  });
+  
   // Player Match endpoints
   app.get("/api/users/:username/matches", async (req, res) => {
     try {

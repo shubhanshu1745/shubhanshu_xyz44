@@ -9,6 +9,7 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CricketProfileEditor } from "@/components/cricket-profile-editor";
 import { 
   Grid3X3, 
   Bookmark, 
@@ -40,6 +41,17 @@ type UserProfileData = User & {
   isBlocked: boolean;
   name?: string;
   website?: string;
+  // Cricket-specific attributes
+  isPlayer?: boolean;
+  isCoach?: boolean; 
+  isFan?: boolean;
+  battingStyle?: string | null;
+  bowlingStyle?: string | null;
+  preferredRole?: string | null;
+  position?: string | null;
+  favoriteTeam?: string | null;
+  favoritePlayer?: string | null;
+  favoriteTournament?: string | null;
 };
 
 export default function ProfilePage() {
@@ -471,20 +483,70 @@ export default function ProfilePage() {
                         <h3 className="text-xl font-bold">Cricket Statistics</h3>
                         <p className="text-muted-foreground">View detailed cricket performance metrics</p>
                       </div>
+                      
+                      {isOwnProfile && (
+                        <div className="ml-auto">
+                          <CricketProfileEditor />
+                        </div>
+                      )}
                     </div>
                     
-                    <p className="mb-6">
-                      View comprehensive cricket statistics including batting averages, bowling figures, 
-                      match-by-match performance data, and career highlights.
-                    </p>
-                    
-                    <Button
-                      onClick={() => setLocation(`/player-stats/${username}`)}
-                      className="bg-primary hover:bg-primary/90"
-                    >
-                      <Trophy className="mr-2 h-4 w-4" />
-                      View Cricket Stats Dashboard
-                    </Button>
+                    {profile?.isPlayer ? (
+                      <>
+                        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="p-4 border rounded-md text-center">
+                            <h4 className="font-semibold text-lg">Batting Style</h4>
+                            <p>{profile.battingStyle ? profile.battingStyle.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Not specified'}</p>
+                          </div>
+                          <div className="p-4 border rounded-md text-center">
+                            <h4 className="font-semibold text-lg">Bowling Style</h4>
+                            <p>{profile.bowlingStyle ? profile.bowlingStyle.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Not specified'}</p>
+                          </div>
+                          <div className="p-4 border rounded-md text-center">
+                            <h4 className="font-semibold text-lg">Preferred Role</h4>
+                            <p>{profile.preferredRole ? profile.preferredRole.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Not specified'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-6">
+                          <h4 className="font-semibold text-lg mb-2">Cricket Preferences</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="p-3 border rounded-md">
+                              <span className="block text-sm text-muted-foreground">Favorite Team</span>
+                              <span>{profile.favoriteTeam || 'Not specified'}</span>
+                            </div>
+                            <div className="p-3 border rounded-md">
+                              <span className="block text-sm text-muted-foreground">Favorite Player</span>
+                              <span>{profile.favoritePlayer || 'Not specified'}</span>
+                            </div>
+                            <div className="p-3 border rounded-md">
+                              <span className="block text-sm text-muted-foreground">Favorite Tournament</span>
+                              <span>{profile.favoriteTournament || 'Not specified'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          onClick={() => setLocation(`/player-stats/${username}`)}
+                          className="bg-primary hover:bg-primary/90"
+                        >
+                          <Trophy className="mr-2 h-4 w-4" />
+                          View Cricket Stats Dashboard
+                        </Button>
+                      </>
+                    ) : isOwnProfile ? (
+                      <div className="text-center py-8">
+                        <p className="mb-4 text-gray-600">You haven't set up your cricket profile yet.</p>
+                        <p className="mb-6">
+                          Complete your cricket profile to track your cricket stats, performance, 
+                          and connect with other players and coaches.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-gray-600">This user hasn't set up their cricket profile yet.</p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
