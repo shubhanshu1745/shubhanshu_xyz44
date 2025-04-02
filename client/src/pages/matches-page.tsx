@@ -8,9 +8,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle, Check, Bell, Play, Video } from "lucide-react";
+import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle, Check, Bell, Play, Video, MessageSquare, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getQueryFn } from "@/lib/queryClient";
+import { LiveStreamingDialog } from "@/components/live-match-streaming";
+import { MatchGroupDiscussionDialog } from "@/components/match-discussion-groups";
 
 type Match = {
   id: string;
@@ -301,26 +303,50 @@ function MatchCard({ match }: { match: Match }) {
           <Badge variant="outline" className="text-xs">{match.type}</Badge>
         </div>
         
-        <Button 
-          className="w-full mt-3" 
-          variant={match.status === "upcoming" && reminderSet ? "default" : "outline"}
-          onClick={handleButtonClick}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : match.status === "live" ? (
-            <><Play className="h-4 w-4 mr-2" /> Watch Live</>
-          ) : match.status === "upcoming" ? (
-            reminderSet ? (
-              <><Check className="h-4 w-4 mr-2" /> Reminder Set</>
-            ) : (
-              <><Bell className="h-4 w-4 mr-2" /> Set Reminder</>
-            )
-          ) : (
-            <><Video className="h-4 w-4 mr-2" /> View Highlights</>
+        <div className="flex flex-col space-y-2">
+          {match.status === "live" && (
+            <div className="flex space-x-2">
+              <LiveStreamingDialog 
+                match={{
+                  id: parseInt(match.id),
+                  title: match.title,
+                  team1: match.teams.team1.name,
+                  team2: match.teams.team2.name,
+                  team1Logo: match.teams.team1.logo,
+                  team2Logo: match.teams.team2.logo,
+                  venue: match.venue,
+                  format: match.type,
+                  startTime: new Date(match.date + " " + match.time),
+                  status: match.status
+                }}
+                isHost={false}
+              />
+              
+              <MatchGroupDiscussionDialog matchId={parseInt(match.id)} />
+            </div>
           )}
-        </Button>
+          
+          <Button 
+            className="w-full" 
+            variant={match.status === "upcoming" && reminderSet ? "default" : match.status === "live" ? "default" : "outline"}
+            onClick={handleButtonClick}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : match.status === "live" ? (
+              <><Play className="h-4 w-4 mr-2" /> Watch Live</>
+            ) : match.status === "upcoming" ? (
+              reminderSet ? (
+                <><Check className="h-4 w-4 mr-2" /> Reminder Set</>
+              ) : (
+                <><Bell className="h-4 w-4 mr-2" /> Set Reminder</>
+              )
+            ) : (
+              <><Video className="h-4 w-4 mr-2" /> View Highlights</>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
