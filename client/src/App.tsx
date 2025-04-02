@@ -23,6 +23,7 @@ import MatchHighlights from "@/pages/match-highlights";
 import StoryFilters from "@/pages/story-filters";
 import VenueDiscovery from "@/pages/venue-discovery";
 import PollsPage from "@/pages/polls";
+import StoriesPage from "@/pages/stories";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -56,6 +57,7 @@ function Router() {
       <ProtectedRoute path="/story-filters" component={StoryFilters} />
       <ProtectedRoute path="/venues" component={VenueDiscovery} />
       <ProtectedRoute path="/polls" component={PollsPage} />
+      <ProtectedRoute path="/stories" component={StoriesPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
