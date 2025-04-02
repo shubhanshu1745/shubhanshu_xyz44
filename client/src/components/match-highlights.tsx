@@ -15,7 +15,7 @@ interface MatchClip {
   shares: number;
 }
 
-const MatchHighlights: React.FC = () => {
+export const MatchHighlights: React.FC = () => {
   const [selectedClip, setSelectedClip] = useState<MatchClip | null>(null);
 
   const { data: matches = [], isLoading, error } = useQuery({

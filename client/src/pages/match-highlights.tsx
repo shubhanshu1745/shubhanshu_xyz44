@@ -593,7 +593,7 @@ export default function MatchHighlights() {
                   {selectedClip.views}
                 </Badge>
                 <Badge variant="outline">
-                  <Heart className="h-3 w-3 mr-1" className="fill-current" />
+                  <Heart className="h-3 w-3 mr-1 fill-current" />
                   {selectedClip.likes}
                 </Badge>
               </div>
