@@ -1,0 +1,67 @@
+hook.js:608 
+ The above error occurred in the <SelectItem> component:
+
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…rkspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ff925e1e:843:7
+    at _c11 (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/components/ui/select.tsx:207:13)
+    at div
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=ff925e1e:41:13
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:52:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:33:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-OKX5DAGM.js?v=ff925e1e:98:15
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…kspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ff925e1e:754:13
+    at div
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:52:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:33:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-OKX5DAGM.js?v=ff925e1e:98:15
+    at Provider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=ff925e1e:38:15)
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…kspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ff925e1e:298:58
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:52:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-DKHUMOWT.js?v=ff925e1e:33:11
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-CPFL7ZFD.js?v=ff925e1e:41:13
+    at https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…nner/workspace/node_modules/.vite/deps/chunk-BQXMF7ST.js?v=ff925e1e:260:22
+    at SelectPortal
+    at _c7 (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/components/ui/select.tsx:122:12)
+    at Provider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=ff925e1e:38:15)
+    at Provider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-OKX5DAGM.js?v=ff925e1e:28:15)
+    at CollectionProvider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-OKX5DAGM.js?v=ff925e1e:89:13)
+    at Provider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…unner/workspace/node_modules/.vite/deps/chunk-LSQNWB54.js?v=ff925e1e:38:15)
+    at Provider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…ner/workspace/node_modules/.vite/deps/chunk-NBIVFTP4.js?v=ff925e1e:1915:15)
+    at Popper (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…ner/workspace/node_modules/.vite/deps/chunk-NBIVFTP4.js?v=ff925e1e:1972:11)
+    at Select (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…orkspace/node_modules/.vite/deps/@radix-ui_react-select.js?v=ff925e1e:86:5)
+    at div
+    at div
+    at _c9 (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/components/ui/card.tsx:108:12)
+    at div
+    at _c (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at div
+    at AnalyticsDashboard (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/pages/analytics-dashboard.tsx:58:20)
+    at Route (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ff925e1e:323:16)
+    at ProtectedRoute (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ff925e1e:379:17)
+    at Router
+    at SocketProvider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/hooks/use-socket.tsx:25:34)
+    at AuthProvider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at ThemeProvider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/src/hooks/use-theme.tsx:25:3)
+    at QueryClientProvider (https://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.de…rkspace/node_modules/.vite/deps/@tanstack_react-query.js?v=ff925e1e:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+react-dom.development.js:12056 
+ Uncaught Error: A <Select.Item /> must have a value prop that is not an empty string. This is because the Select value can be set to an empty string to clear the selection and show the placeholder.
+    at Select.tsx:1239:13
+    at renderWithHooks (react-dom.development.js:15486:18)
+    at updateForwardRef (react-dom.development.js:19245:20)
+    at beginWork (react-dom.development.js:21675:16)
+    at beginWork$1 (react-dom.development.js:27465:14)
+    at performUnitOfWork (react-dom.development.js:26596:12)
+    at workLoopSync (react-dom.development.js:26505:5)
+    at renderRootSync (react-dom.development.js:26473:7)
+    at recoverFromConcurrentError (react-dom.development.js:25889:20)
+    at performSyncWorkOnRoot (react-dom.development.js:26135:20)
+use-socket.tsx:65 
+ WebSocket connection to 'wss://b09b3464-494a-414e-bf74-d44021202610-00-v3b97axwx8kq.pike.replit.dev/socket.io/?EIO=4&transport=websocket' failed: WebSocket is closed before the connection is established.
+﻿
+
