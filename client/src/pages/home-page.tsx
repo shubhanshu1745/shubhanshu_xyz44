@@ -87,14 +87,20 @@ export default function HomePage() {
         <div className="container mx-auto max-w-5xl px-0 md:px-4 flex flex-col md:flex-row">
           {/* Feed Section */}
           <div className="w-full md:w-2/3 bg-white md:bg-transparent">
-            {/* Match Highlights */}
+            {/* Match Highlights - Coming Soon */}
             <div className="px-4 py-4 md:mt-4">
-              <MatchHighlights />
+              <div className="bg-[#1F3B4D] rounded-lg p-6 text-white text-center">
+                <h2 className="text-xl font-bold mb-2">Match Highlights</h2>
+                <p className="text-lg">Coming Soon</p>
+              </div>
             </div>
             
-            {/* Recent Matches */}
+            {/* Recent Matches - Coming Soon */}
             <div className="px-4 py-4">
-              <MatchHistory />
+              <div className="bg-[#1F3B4D] rounded-lg p-6 text-white text-center">
+                <h2 className="text-xl font-bold mb-2">Recent Matches</h2>
+                <p className="text-lg">Coming Soon</p>
+              </div>
             </div>
 
             {/* Stories */}

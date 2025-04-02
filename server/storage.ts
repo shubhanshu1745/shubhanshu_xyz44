@@ -125,6 +125,24 @@ export interface IStorage {
   getUserStories(userId: number): Promise<Story[]>;
   getStoriesForFeed(userId: number): Promise<(Story & { user: User })[]>;
   deleteExpiredStories(): Promise<void>;
+  getStoryById(storyId: number): Promise<Story | null>;
+  
+  // Story Views
+  createStoryView(view: InsertStoryView): Promise<StoryView>;
+  incrementStoryViewCount(storyId: number): Promise<Story | null>;
+  
+  // Story Reactions
+  createStoryReaction(reaction: InsertStoryReaction): Promise<StoryReaction>;
+  getStoryReaction(storyId: number, userId: number): Promise<StoryReaction | null>;
+  updateStoryReaction(reactionId: number, data: Partial<InsertStoryReaction>): Promise<StoryReaction | null>;
+  deleteStoryReaction(reactionId: number): Promise<void>;
+  getStoryReactions(storyId: number): Promise<StoryReaction[]>;
+  
+  // Story Comments
+  createStoryComment(comment: InsertStoryComment): Promise<StoryComment>;
+  getStoryComments(storyId: number): Promise<StoryComment[]>;
+  getStoryCommentById(commentId: number): Promise<StoryComment | null>;
+  deleteStoryComment(commentId: number): Promise<void>;
   
   // Player Stats methods
   createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
@@ -268,6 +286,9 @@ export class MemStorage implements IStorage {
   private polls: Map<number, Poll>;
   private pollOptions: Map<number, PollOption>;
   private pollVotes: Map<string, PollVote>; // Composite key: `${userId}-${pollId}`
+  private storyViews: Map<number, StoryView>;
+  private storyReactions: Map<number, StoryReaction>;
+  private storyComments: Map<number, StoryComment>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -297,6 +318,9 @@ export class MemStorage implements IStorage {
   pollCurrentId: number;
   pollOptionCurrentId: number;
   pollVoteCurrentId: number;
+  storyViewCurrentId: number;
+  storyReactionCurrentId: number;
+  storyCommentCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -309,6 +333,9 @@ export class MemStorage implements IStorage {
     this.conversations = new Map();
     this.messages = new Map();
     this.stories = new Map();
+    this.storyViews = new Map();
+    this.storyReactions = new Map();
+    this.storyComments = new Map();
     this.playerStats = new Map();
     this.playerMatches = new Map();
     this.playerMatchPerformances = new Map();
@@ -360,6 +387,9 @@ export class MemStorage implements IStorage {
     this.pollCurrentId = 1;
     this.pollOptionCurrentId = 1;
     this.pollVoteCurrentId = 1;
+    this.storyViewCurrentId = 1;
+    this.storyReactionCurrentId = 1;
+    this.storyCommentCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -958,6 +988,126 @@ export class MemStorage implements IStorage {
       .filter(story => story.expiresAt && new Date(story.expiresAt) <= now);
     
     expiredStories.forEach(story => this.stories.delete(story.id));
+  }
+  
+  async getStoryById(storyId: number): Promise<Story | null> {
+    const story = this.stories.get(storyId);
+    return story || null;
+  }
+  
+  // Story Views methods
+  async createStoryView(view: InsertStoryView): Promise<StoryView> {
+    const id = this.storyViewCurrentId++;
+    
+    const storyView: StoryView = {
+      id,
+      storyId: view.storyId,
+      userId: view.userId,
+      createdAt: new Date()
+    };
+    
+    this.storyViews.set(id, storyView);
+    return storyView;
+  }
+  
+  async incrementStoryViewCount(storyId: number): Promise<Story | null> {
+    const story = await this.getStoryById(storyId);
+    if (!story) return null;
+    
+    const updatedStory = { 
+      ...story, 
+      viewCount: (story.viewCount || 0) + 1 
+    };
+    
+    this.stories.set(storyId, updatedStory);
+    return updatedStory;
+  }
+  
+  // Story Reactions methods
+  async createStoryReaction(reaction: InsertStoryReaction): Promise<StoryReaction> {
+    // Check if reaction already exists, update it if it does
+    const existingReaction = await this.getStoryReaction(reaction.storyId, reaction.userId);
+    if (existingReaction) {
+      return await this.updateStoryReaction(existingReaction.id, reaction) as StoryReaction;
+    }
+    
+    const id = this.storyReactionCurrentId++;
+    
+    const storyReaction: StoryReaction = {
+      id,
+      storyId: reaction.storyId,
+      userId: reaction.userId,
+      reactionType: reaction.reactionType,
+      createdAt: new Date()
+    };
+    
+    this.storyReactions.set(id, storyReaction);
+    return storyReaction;
+  }
+  
+  async getStoryReaction(storyId: number, userId: number): Promise<StoryReaction | null> {
+    const reaction = Array.from(this.storyReactions.values()).find(
+      reaction => reaction.storyId === storyId && reaction.userId === userId
+    );
+    
+    return reaction || null;
+  }
+  
+  async updateStoryReaction(reactionId: number, data: Partial<InsertStoryReaction>): Promise<StoryReaction | null> {
+    const reaction = this.storyReactions.get(reactionId);
+    if (!reaction) return null;
+    
+    const updatedReaction = {
+      ...reaction,
+      ...data,
+      // Don't update id or createdAt
+      id: reaction.id,
+      createdAt: reaction.createdAt
+    };
+    
+    this.storyReactions.set(reactionId, updatedReaction);
+    return updatedReaction;
+  }
+  
+  async deleteStoryReaction(reactionId: number): Promise<void> {
+    this.storyReactions.delete(reactionId);
+  }
+  
+  async getStoryReactions(storyId: number): Promise<StoryReaction[]> {
+    return Array.from(this.storyReactions.values())
+      .filter(reaction => reaction.storyId === storyId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  // Story Comments methods
+  async createStoryComment(comment: InsertStoryComment): Promise<StoryComment> {
+    const id = this.storyCommentCurrentId++;
+    
+    const storyComment: StoryComment = {
+      id,
+      storyId: comment.storyId,
+      userId: comment.userId,
+      content: comment.content,
+      createdAt: new Date()
+    };
+    
+    this.storyComments.set(id, storyComment);
+    return storyComment;
+  }
+  
+  async getStoryComments(storyId: number): Promise<StoryComment[]> {
+    return Array.from(this.storyComments.values())
+      .filter(comment => comment.storyId === storyId)
+      .sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
+  }
+  
+  async getStoryCommentById(commentId: number): Promise<StoryComment | null> {
+    const comment = this.storyComments.get(commentId);
+    return comment || null;
+  }
+  
+  async deleteStoryComment(commentId: number): Promise<void> {
+    this.storyComments.delete(commentId);
   }
 
   // Player Stats methods

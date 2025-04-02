@@ -2071,6 +2071,302 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Story Views API Routes
+  app.post("/api/stories/:storyId/view", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      const userId = req.user.id;
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      // Record view
+      await storage.createStoryView({
+        storyId,
+        userId
+      });
+      
+      // Increment view count on story
+      await storage.incrementStoryViewCount(storyId);
+      
+      res.status(200).json({ message: "View recorded" });
+    } catch (error) {
+      console.error("Error recording story view:", error);
+      res.status(500).json({ message: "Failed to record story view" });
+    }
+  });
+  
+  // Story Reactions API Routes
+  app.post("/api/stories/:storyId/react", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      const userId = req.user.id;
+      const { reactionType } = req.body;
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      if (!reactionType) {
+        return res.status(400).json({ message: "Reaction type is required" });
+      }
+      
+      const validReactionTypes = ["like", "howzat", "six", "four", "clap", "wow"];
+      if (!validReactionTypes.includes(reactionType)) {
+        return res.status(400).json({ 
+          message: "Invalid reaction type",
+          validTypes: validReactionTypes
+        });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      // Check if user already reacted and update if so
+      const existingReaction = await storage.getStoryReaction(storyId, userId);
+      
+      if (existingReaction) {
+        const updatedReaction = await storage.updateStoryReaction(
+          existingReaction.id, 
+          { reactionType }
+        );
+        return res.json(updatedReaction);
+      }
+      
+      // Create new reaction
+      const reaction = await storage.createStoryReaction({
+        storyId,
+        userId,
+        reactionType
+      });
+      
+      res.status(201).json(reaction);
+    } catch (error) {
+      console.error("Error creating story reaction:", error);
+      res.status(500).json({ message: "Failed to create story reaction" });
+    }
+  });
+  
+  app.delete("/api/stories/:storyId/react", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      const userId = req.user.id;
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      const existingReaction = await storage.getStoryReaction(storyId, userId);
+      
+      if (!existingReaction) {
+        return res.status(404).json({ message: "Reaction not found" });
+      }
+      
+      await storage.deleteStoryReaction(existingReaction.id);
+      
+      res.status(200).json({ message: "Reaction removed" });
+    } catch (error) {
+      console.error("Error removing story reaction:", error);
+      res.status(500).json({ message: "Failed to remove story reaction" });
+    }
+  });
+  
+  app.get("/api/stories/:storyId/reactions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      const reactions = await storage.getStoryReactions(storyId);
+      
+      // Get counts by reaction type
+      const reactionCounts = reactions.reduce((counts, reaction) => {
+        const type = reaction.reactionType;
+        counts[type] = (counts[type] || 0) + 1;
+        return counts;
+      }, {});
+      
+      // Get user's reaction if any
+      const userReaction = reactions.find(reaction => reaction.userId === req.user.id);
+      
+      res.json({
+        counts: reactionCounts,
+        totalCount: reactions.length,
+        userReaction: userReaction || null
+      });
+    } catch (error) {
+      console.error("Error getting story reactions:", error);
+      res.status(500).json({ message: "Failed to get story reactions" });
+    }
+  });
+  
+  // Story Comments API Routes
+  app.post("/api/stories/:storyId/comments", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      const userId = req.user.id;
+      const { content } = req.body;
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      if (!content || content.trim() === "") {
+        return res.status(400).json({ message: "Comment content is required" });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      const comment = await storage.createStoryComment({
+        storyId,
+        userId,
+        content: content.trim()
+      });
+      
+      // Add user info to the response
+      const user = await storage.getUser(userId);
+      const commentWithUser = {
+        ...comment,
+        user: {
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          profileImage: user.profileImage
+        }
+      };
+      
+      res.status(201).json(commentWithUser);
+    } catch (error) {
+      console.error("Error creating story comment:", error);
+      res.status(500).json({ message: "Failed to create story comment" });
+    }
+  });
+  
+  app.get("/api/stories/:storyId/comments", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      
+      if (isNaN(storyId)) {
+        return res.status(400).json({ message: "Invalid story ID" });
+      }
+      
+      const story = await storage.getStoryById(storyId);
+      if (!story) {
+        return res.status(404).json({ message: "Story not found" });
+      }
+      
+      const comments = await storage.getStoryComments(storyId);
+      
+      // Add user info to comments
+      const commentsWithUsers = await Promise.all(comments.map(async (comment) => {
+        const user = await storage.getUser(comment.userId);
+        return {
+          ...comment,
+          user: {
+            id: user.id,
+            username: user.username,
+            fullName: user.fullName,
+            profileImage: user.profileImage
+          }
+        };
+      }));
+      
+      res.json(commentsWithUsers);
+    } catch (error) {
+      console.error("Error getting story comments:", error);
+      res.status(500).json({ message: "Failed to get story comments" });
+    }
+  });
+  
+  app.delete("/api/stories/:storyId/comments/:commentId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const storyId = parseInt(req.params.storyId);
+      const commentId = parseInt(req.params.commentId);
+      const userId = req.user.id;
+      
+      if (isNaN(storyId) || isNaN(commentId)) {
+        return res.status(400).json({ message: "Invalid ID format" });
+      }
+      
+      const comment = await storage.getStoryCommentById(commentId);
+      
+      if (!comment) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+      
+      if (comment.storyId !== storyId) {
+        return res.status(400).json({ message: "Comment does not belong to the specified story" });
+      }
+      
+      // Only allow the comment author to delete it
+      if (comment.userId !== userId) {
+        // Allow story owner to delete comments on their story too
+        const story = await storage.getStoryById(storyId);
+        if (story.userId !== userId) {
+          return res.status(403).json({ message: "You can only delete your own comments" });
+        }
+      }
+      
+      await storage.deleteStoryComment(commentId);
+      
+      res.status(200).json({ message: "Comment deleted" });
+    } catch (error) {
+      console.error("Error deleting story comment:", error);
+      res.status(500).json({ message: "Failed to delete story comment" });
+    }
+  });
+  
   // Player Stats endpoints
   app.get("/api/users/:username/player-stats", async (req, res) => {
     try {

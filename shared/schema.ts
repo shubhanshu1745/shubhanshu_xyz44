@@ -108,9 +108,56 @@ export const stories = pgTable("stories", {
   userId: integer("user_id").notNull(),
   imageUrl: text("image_url"),
   caption: text("caption"),
+  filterId: text("filter_id"), // ID of the applied filter
+  effectIds: text("effect_ids"), // Comma-separated IDs of applied effects
+  mediaType: text("media_type").default("image").notNull(), // "image", "video"
+  videoUrl: text("video_url"), // URL for video stories
+  musicTrackId: text("music_track_id"), // Optional background music
+  matchId: integer("match_id"), // Optional match reference
+  isHighlight: boolean("is_highlight").default(false), // Whether to keep after 24 hours
+  viewCount: integer("view_count").default(0), // Number of views
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at"), // 24 hours after creation
 });
+
+export type Story = typeof stories.$inferSelect;
+export type InsertStory = typeof stories.$inferInsert;
+export const createInsertStorySchema = createInsertSchema(stories).omit({ id: true, createdAt: true, expiresAt: true, viewCount: true });
+
+export const storyViews = pgTable("story_views", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryView = typeof storyViews.$inferSelect;
+export type InsertStoryView = typeof storyViews.$inferInsert;
+export const createInsertStoryViewSchema = createInsertSchema(storyViews).omit({ id: true, createdAt: true });
+
+export const storyReactions = pgTable("story_reactions", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  userId: integer("user_id").notNull(),
+  reactionType: text("reaction_type").default("like").notNull(), // "like", "howzat", "six", "four", "clap", "wow" 
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryReaction = typeof storyReactions.$inferSelect;
+export type InsertStoryReaction = typeof storyReactions.$inferInsert;
+export const createInsertStoryReactionSchema = createInsertSchema(storyReactions).omit({ id: true, createdAt: true });
+
+export const storyComments = pgTable("story_comments", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  userId: integer("user_id").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryComment = typeof storyComments.$inferSelect;
+export type InsertStoryComment = typeof storyComments.$inferInsert;
+export const createInsertStoryCommentSchema = createInsertSchema(storyComments).omit({ id: true, createdAt: true });
 
 export const playerStats = pgTable("player_stats", {
   id: serial("id").primaryKey(),
@@ -763,8 +810,9 @@ export type Conversation = typeof conversations.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 
-export type InsertStory = z.infer<typeof insertStorySchema>;
-export type Story = typeof stories.$inferSelect;
+// These types are already defined above
+// export type InsertStory = z.infer<typeof insertStorySchema>;
+// export type Story = typeof stories.$inferSelect;
 
 export type InsertPlayerStats = z.infer<typeof insertPlayerStatsSchema>;
 export type PlayerStats = typeof playerStats.$inferSelect;
