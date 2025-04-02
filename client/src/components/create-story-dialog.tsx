@@ -36,7 +36,6 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       imageUrl: "",
       caption: "",
     },
-    mode: "onChange"
   });
 
   // Reset form when dialog closes
@@ -102,11 +101,9 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       setPreviewUrl("");
       form.reset();
       
-      // Invalidate stories queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      // Force refetch stories
-      queryClient.refetchQueries({ queryKey: ["/api/stories"] });
+      // Force immediate refetch of stories
+      await queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/stories"] });
     },
     onError: (error) => {
       console.error("Error creating story:", error);
