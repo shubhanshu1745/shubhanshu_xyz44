@@ -1,25 +1,23 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Header } from "@/components/header";
-import { MobileNav } from "@/components/mobile-nav";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, Trophy, MapPin, Filter, Search, Loader2, AlertCircle, Check, Bell, Play, Video, MessageSquare, Users } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getQueryFn } from "@/lib/queryClient";
-import { LiveStreamingDialog } from "@/components/live-match-streaming";
-import { MatchGroupDiscussionDialog } from "@/components/match-discussion-groups";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MatchHistory } from "@/components/match-history";
+import { Calendar, MapPin, Clock, Trophy, AlertCircle } from "lucide-react";
 
-type Match = {
+interface Team {
+  name: string;
+  logo: string;
+  score?: string;
+}
+
+interface MatchData {
   id: string;
   title: string;
   teams: {
-    team1: { name: string; logo: string; score?: string };
-    team2: { name: string; logo: string; score?: string };
+    team1: Team;
+    team2: Team;
   };
   status: "upcoming" | "live" | "completed";
   result?: string;
@@ -28,324 +26,212 @@ type Match = {
   venue: string;
   type: string;
   imageUrl?: string;
-};
+}
 
 export default function MatchesPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [matchType, setMatchType] = useState("all");
+  const [filterType, setFilterType] = useState('all');
   
-  // Fetch matches data from API
-  const { data: matches, isLoading, error } = useQuery<Match[]>({
-    queryKey: ["/api/cricket/matches"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+  // Fetch live matches
+  const { 
+    data: liveMatches, 
+    isLoading: isLoadingLive, 
+    error: liveError
+  } = useQuery<MatchData[]>({
+    queryKey: ['/api/match/live'],
+    staleTime: 60 * 1000, // 1 minute
   });
   
-  // Filter matches based on search query and match type
-  const filteredMatches = matches ? matches.filter(match => {
-    const matchesSearch = 
-      match.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      match.teams.team1.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      match.teams.team2.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      match.venue.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (matchType === "all") return matchesSearch;
-    return matchesSearch && match.type.toLowerCase() === matchType.toLowerCase();
-  }) : [];
-
+  // Apply filters to matches
+  const filteredLiveMatches = liveMatches ? 
+    (filterType === 'all' ? 
+      liveMatches : 
+      liveMatches.filter(match => match.type.toLowerCase().includes(filterType.toLowerCase()))
+    ) : [];
+  
   return (
-    <div className="flex flex-col min-h-screen bg-neutral-50">
-      <Header />
+    <div className="container max-w-6xl mx-auto p-4 mt-4">
+      <h1 className="text-3xl font-bold mb-6">Cricket Matches</h1>
       
-      <main className="flex-grow pt-16 pb-16 md:pb-0">
-        <div className="container mx-auto max-w-5xl px-4 py-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2">Cricket Matches</h1>
-            <p className="text-neutral-500">Follow live matches, upcoming fixtures, and recent results</p>
-          </div>
-          
-          {/* Search and Filter */}
-          <div className="mb-6 flex flex-col md:flex-row gap-4">
-            <div className="relative flex-grow">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 h-4 w-4" />
-              <Input 
-                placeholder="Search matches, teams, venues..." 
-                className="pl-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <div className="w-full md:w-48">
-              <Select value={matchType} onValueChange={setMatchType}>
-                <SelectTrigger>
-                  <div className="flex items-center">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Filter by type" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Formats</SelectItem>
-                  <SelectItem value="T20">T20</SelectItem>
-                  <SelectItem value="ODI">ODI</SelectItem>
-                  <SelectItem value="Test">Test</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          {/* Matches */}
-          {isLoading ? (
-            <div className="flex justify-center items-center py-16">
-              <Loader2 className="h-12 w-12 animate-spin text-[#FF5722]" />
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center border border-red-100 bg-red-50 rounded-md">
-              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-              <h3 className="text-xl font-bold text-red-700 mb-2">Unable to load match data</h3>
-              <p className="text-red-600 max-w-md">We're experiencing issues retrieving the latest match information. Please check your connection and try again later.</p>
-              <Button onClick={() => window.location.reload()} variant="outline" className="mt-6">
-                Retry
-              </Button>
-            </div>
-          ) : filteredMatches.length === 0 && !searchQuery && matchType === "all" ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
-              <Trophy className="h-12 w-12 text-neutral-300 mb-4" />
-              <h3 className="text-xl font-medium text-neutral-700 mb-2">No matches available</h3>
-              <p className="text-neutral-500 max-w-md">We don't have any cricket matches to display at the moment. Please check back later for updates.</p>
-            </div>
-          ) : filteredMatches.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center border border-neutral-200 bg-white rounded-md">
-              <Search className="h-12 w-12 text-neutral-300 mb-4" />
-              <h3 className="text-xl font-medium text-neutral-700 mb-2">No matches found</h3>
-              <p className="text-neutral-500 max-w-md">We couldn't find any matches matching your search criteria. Try adjusting your filters or search terms.</p>
-              <div className="flex gap-3 mt-6">
-                <Button onClick={() => {setSearchQuery(""); setMatchType("all");}} variant="outline">
-                  Clear all filters
-                </Button>
+      {/* Match type filter */}
+      <div className="mb-8">
+        <Tabs value={filterType} onValueChange={setFilterType}>
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-3 md:grid-cols-5">
+            <TabsTrigger value="all">All Formats</TabsTrigger>
+            <TabsTrigger value="test">Test</TabsTrigger>
+            <TabsTrigger value="odi">ODI</TabsTrigger>
+            <TabsTrigger value="t20">T20</TabsTrigger>
+            <TabsTrigger value="league">Leagues</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+      
+      {/* Live matches section */}
+      <section className="mb-10">
+        <h2 className="text-2xl font-bold mb-4">Live Matches</h2>
+        {liveError ? (
+          <Card>
+            <CardContent className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-lg font-medium">Failed to load live matches</p>
+                <p className="text-muted-foreground">Please try again later</p>
               </div>
-            </div>
-          ) : (
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="mb-6 w-full justify-start bg-white border border-neutral-200 rounded-md p-1">
-                <TabsTrigger value="all" className="flex-1">All</TabsTrigger>
-                <TabsTrigger value="live" className="flex-1">Live</TabsTrigger>
-                <TabsTrigger value="upcoming" className="flex-1">Upcoming</TabsTrigger>
-                <TabsTrigger value="completed" className="flex-1">Results</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="all">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredMatches.map(match => (
-                    <MatchCard key={match.id} match={match} />
-                  ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="live">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredMatches
-                    .filter(match => match.status === "live")
-                    .map(match => (
-                      <MatchCard key={match.id} match={match} />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {isLoadingLive ? (
+              // Loading skeletons
+              <div className="grid grid-cols-1 gap-4">
+                {Array(2).fill(0).map((_, i) => (
+                  <LiveMatchSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <>
+                {filteredLiveMatches.length === 0 ? (
+                  <Card>
+                    <CardContent className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <p className="text-lg font-medium">No live matches right now</p>
+                        <p className="text-muted-foreground">Check back later for live match updates</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {filteredLiveMatches.map(match => (
+                      <LiveMatchCard key={match.id} match={match} />
                     ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="upcoming">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredMatches
-                    .filter(match => match.status === "upcoming")
-                    .map(match => (
-                      <MatchCard key={match.id} match={match} />
-                    ))}
-                </div>
-              </TabsContent>
-              
-              <TabsContent value="completed">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredMatches
-                    .filter(match => match.status === "completed")
-                    .map(match => (
-                      <MatchCard key={match.id} match={match} />
-                    ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
-        </div>
-      </main>
+                  </div>
+                )}
+              </>
+            )}
+          </>
+        )}
+      </section>
       
-      <MobileNav />
+      {/* Recent matches section */}
+      <section>
+        <h2 className="text-2xl font-bold mb-4">Recent Matches</h2>
+        <MatchHistory />
+      </section>
     </div>
   );
 }
 
-function MatchCard({ match }: { match: Match }) {
-  const [expanded, setExpanded] = useState(false);
-  const [reminderSet, setReminderSet] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  const handleButtonClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLoading(true);
-    
-    if (match.status === "upcoming") {
-      // Simulate setting a reminder
-      setTimeout(() => {
-        setReminderSet(!reminderSet);
-        setLoading(false);
-      }, 500);
-    } else {
-      // Simulate opening a modal or starting a live stream
-      setTimeout(() => {
-        setLoading(false);
-      }, 500);
-    }
-  };
-  
+function LiveMatchCard({ match }: { match: MatchData }) {
   return (
-    <Card 
-      className="overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer"
-      onClick={() => setExpanded(!expanded)}
-    >
-      <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="text-sm font-medium">{match.title}</CardTitle>
-          <div className="flex items-center text-xs text-neutral-500 mt-1">
-            <CalendarDays className="h-3 w-3 mr-1" />
-            <span>{new Date(match.date).toLocaleDateString()}</span>
-            <span className="mx-2">•</span>
+    <Card className="overflow-hidden hover:shadow-md transition-shadow">
+      <CardHeader className="bg-primary/5 pb-2">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-lg">{match.title}</CardTitle>
+          <span className="px-3 py-1 rounded-full bg-red-500 text-white text-xs font-medium animate-pulse">
+            LIVE
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
+          <div className="flex items-center">
+            <Calendar className="h-3 w-3 mr-1" />
+            <span>{match.date}</span>
+          </div>
+          <div className="flex items-center">
             <Clock className="h-3 w-3 mr-1" />
             <span>{match.time}</span>
           </div>
-        </div>
-        {match.status === "live" ? (
-          <Badge className="bg-red-500 animate-pulse">LIVE</Badge>
-        ) : match.status === "upcoming" ? (
-          <Badge variant="outline" className="text-neutral-500">Upcoming</Badge>
-        ) : (
-          <Badge variant="outline" className="text-neutral-500">Completed</Badge>
-        )}
-      </CardHeader>
-      
-      <CardContent className="p-4 pt-0">
-        <div className="flex items-center my-3">
-          <div className="flex items-center justify-end w-5/12">
-            <div className="text-right mr-3">
-              <p className="font-semibold">{match.teams.team1.name}</p>
-              {match.teams.team1.score && (
-                <p className="text-xs font-bold text-neutral-700">{match.teams.team1.score}</p>
-              )}
-            </div>
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={match.teams.team1.logo} alt={match.teams.team1.name} />
-              <AvatarFallback>{match.teams.team1.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-          </div>
-          
-          <div className="w-2/12 flex items-center justify-center">
-            <div className="h-10 w-10 rounded-full bg-neutral-100 flex items-center justify-center">
-              <span className="text-xs font-semibold">VS</span>
-            </div>
-          </div>
-          
-          <div className="flex items-center w-5/12">
-            <Avatar className="h-12 w-12 mr-3">
-              <AvatarImage src={match.teams.team2.logo} alt={match.teams.team2.name} />
-              <AvatarFallback>{match.teams.team2.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-semibold">{match.teams.team2.name}</p>
-              {match.teams.team2.score && (
-                <p className="text-xs font-bold text-neutral-700">{match.teams.team2.score}</p>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {match.result && (
-          <p className="text-sm text-center text-[#FF5722] font-medium mb-3">{match.result}</p>
-        )}
-        
-        {expanded && match.status === "upcoming" && (
-          <div className="my-3 p-3 bg-blue-50 rounded-md border border-blue-100">
-            <h4 className="text-sm font-medium text-blue-700 mb-1">Match Details</h4>
-            <p className="text-xs text-blue-600">
-              Don't miss the exciting cricket action between {match.teams.team1.name} and {match.teams.team2.name}. 
-              Set a reminder to get notified when the match starts.
-            </p>
-          </div>
-        )}
-        
-        {expanded && match.status === "live" && (
-          <div className="my-3 p-3 bg-red-50 rounded-md border border-red-100">
-            <h4 className="text-sm font-medium text-red-700 mb-1">Live Match</h4>
-            <p className="text-xs text-red-600">
-              The match is currently in progress. Click "Watch Live" to stream the match and follow ball-by-ball updates.
-            </p>
-          </div>
-        )}
-        
-        {expanded && match.status === "completed" && match.imageUrl && (
-          <div className="my-3 flex justify-center">
-            <img 
-              src={match.imageUrl} 
-              alt={match.title} 
-              className="max-h-36 rounded-md object-cover"
-            />
-          </div>
-        )}
-        
-        <div className="flex items-center justify-between mt-3 border-t border-neutral-100 pt-3">
-          <div className="flex items-center text-xs text-neutral-500">
+          <div className="flex items-center">
             <MapPin className="h-3 w-3 mr-1" />
             <span>{match.venue}</span>
           </div>
-          <Badge variant="outline" className="text-xs">{match.type}</Badge>
         </div>
-        
-        <div className="flex flex-col space-y-2">
-          {match.status === "live" && (
-            <div className="flex space-x-2">
-              <LiveStreamingDialog 
-                match={{
-                  id: parseInt(match.id),
-                  title: match.title,
-                  team1: match.teams.team1.name,
-                  team2: match.teams.team2.name,
-                  team1Logo: match.teams.team1.logo,
-                  team2Logo: match.teams.team2.logo,
-                  venue: match.venue,
-                  format: match.type,
-                  startTime: new Date(match.date + " " + match.time),
-                  status: match.status
-                }}
-                isHost={false}
-              />
-              
-              <MatchGroupDiscussionDialog matchId={parseInt(match.id)} />
-            </div>
-          )}
-          
-          <Button 
-            className="w-full" 
-            variant={match.status === "upcoming" && reminderSet ? "default" : match.status === "live" ? "default" : "outline"}
-            onClick={handleButtonClick}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : match.status === "live" ? (
-              <><Play className="h-4 w-4 mr-2" /> Watch Live</>
-            ) : match.status === "upcoming" ? (
-              reminderSet ? (
-                <><Check className="h-4 w-4 mr-2" /> Reminder Set</>
-              ) : (
-                <><Bell className="h-4 w-4 mr-2" /> Set Reminder</>
-              )
-            ) : (
-              <><Video className="h-4 w-4 mr-2" /> View Highlights</>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto_1fr]">
+          {/* Team 1 */}
+          <div className="flex flex-col items-center md:items-end text-center md:text-right">
+            <img 
+              src={match.teams.team1.logo} 
+              alt={match.teams.team1.name} 
+              className="w-16 h-16 object-contain mb-2"
+            />
+            <h3 className="font-semibold text-lg">{match.teams.team1.name}</h3>
+            {match.teams.team1.score && (
+              <p className="text-lg font-bold text-primary">{match.teams.team1.score}</p>
             )}
-          </Button>
+          </div>
+          
+          {/* Match status */}
+          <div className="flex flex-col items-center justify-center text-center px-4">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3 text-lg font-bold">
+              vs
+            </div>
+            {match.result && (
+              <div className="p-2 border rounded mb-2 text-sm max-w-[200px] text-center">
+                {match.result}
+              </div>
+            )}
+            <a 
+              href={`/matches/${match.id}`} 
+              className="text-primary text-sm font-medium hover:underline mt-2"
+            >
+              View details
+            </a>
+          </div>
+          
+          {/* Team 2 */}
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <img 
+              src={match.teams.team2.logo} 
+              alt={match.teams.team2.name} 
+              className="w-16 h-16 object-contain mb-2"
+            />
+            <h3 className="font-semibold text-lg">{match.teams.team2.name}</h3>
+            {match.teams.team2.score && (
+              <p className="text-lg font-bold text-primary">{match.teams.team2.score}</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LiveMatchSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
+        <div className="flex gap-3 mt-1">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto_1fr]">
+          {/* Team 1 skeleton */}
+          <div className="flex flex-col items-center md:items-end">
+            <Skeleton className="w-16 h-16 rounded-full mb-2" />
+            <Skeleton className="h-6 w-32 mb-1" />
+            <Skeleton className="h-7 w-24" />
+          </div>
+          
+          {/* Middle skeleton */}
+          <div className="flex flex-col items-center justify-center">
+            <Skeleton className="w-10 h-10 rounded-full mb-3" />
+            <Skeleton className="h-10 w-32 rounded mb-2" />
+            <Skeleton className="h-5 w-24 mt-2" />
+          </div>
+          
+          {/* Team 2 skeleton */}
+          <div className="flex flex-col items-center md:items-start">
+            <Skeleton className="w-16 h-16 rounded-full mb-2" />
+            <Skeleton className="h-6 w-32 mb-1" />
+            <Skeleton className="h-7 w-24" />
+          </div>
         </div>
       </CardContent>
     </Card>

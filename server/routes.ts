@@ -32,6 +32,7 @@ import {
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
+import { cricketAPIClient } from "./services/cricket-api-client";
 import { Server as SocketServer } from "socket.io";
 import session from "express-session";
 import multer from "multer";
@@ -3800,6 +3801,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error adding match to tournament:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Cricket API routes
+  
+  // Get live matches
+  app.get("/api/match/live", async (req, res) => {
+    try {
+      const liveMatches = await cricketAPIClient.getLiveMatches();
+      res.json(liveMatches);
+    } catch (error) {
+      console.error("Error fetching live matches:", error);
+      res.status(500).json({ error: "Failed to fetch live matches", message: error.message });
+    }
+  });
+  
+  // Get match highlights
+  app.get("/api/match/highlights", async (req, res) => {
+    try {
+      const highlights = await cricketAPIClient.getMatchHighlights();
+      res.json(highlights);
+    } catch (error) {
+      console.error("Error fetching match highlights:", error);
+      res.status(500).json({ error: "Failed to fetch match highlights", message: error.message });
+    }
+  });
+  
+  // Get match details
+  app.get("/api/match/details/:id", async (req, res) => {
+    try {
+      const matchId = req.params.id;
+      const matchDetails = await cricketAPIClient.getMatchDetails(matchId);
+      
+      if (!matchDetails) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      
+      res.json(matchDetails);
+    } catch (error) {
+      console.error(`Error fetching match details for ${req.params.id}:`, error);
+      res.status(500).json({ error: "Failed to fetch match details", message: error.message });
+    }
+  });
+  
+  // Get recent matches
+  app.get("/api/match/recent", async (req, res) => {
+    try {
+      const recentMatches = await cricketAPIClient.getRecentMatches();
+      res.json(recentMatches);
+    } catch (error) {
+      console.error("Error fetching recent matches:", error);
+      res.status(500).json({ error: "Failed to fetch recent matches", message: error.message });
     }
   });
 

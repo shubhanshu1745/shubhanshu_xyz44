@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/sidebar";
 import { PostCard } from "@/components/post-card";
 import { StoryCircle } from "@/components/story-circle";
 import { MatchHighlights } from "@/components/match-highlights";
+import { MatchHistory } from "@/components/match-history";
 import { CommentsDialog } from "@/components/comments-dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Loader2, AlertCircle, Plus } from "lucide-react";
@@ -89,6 +90,11 @@ export default function HomePage() {
             {/* Match Highlights */}
             <div className="px-4 py-4 md:mt-4">
               <MatchHighlights />
+            </div>
+            
+            {/* Recent Matches */}
+            <div className="px-4 py-4">
+              <MatchHistory />
             </div>
 
             {/* Stories */}

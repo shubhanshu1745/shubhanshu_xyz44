@@ -5,6 +5,7 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import ProfilePage from "@/pages/profile-page";
 import MatchesPage from "@/pages/matches-page";
+import MatchDetailsPage from "@/pages/match-details-page";
 import TeamsPage from "@/pages/teams-page";
 import ChatPage from "@/pages/chat-page";
 import ReelsPage from "@/pages/reels-page";
@@ -34,6 +35,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/profile/:username" component={ProfilePage} />
       <ProtectedRoute path="/matches" component={MatchesPage} />
+      <ProtectedRoute path="/matches/:id" component={MatchDetailsPage} />
       <ProtectedRoute path="/teams" component={TeamsPage} />
       <ProtectedRoute path="/reels" component={ReelsPage} />
       <ProtectedRoute path="/stats" component={StatsPage} />
