@@ -29,6 +29,7 @@ import {
   Share2,
   Trophy,
   Users,
+  User,
   Activity,
   TrendingUp,
   Target,
