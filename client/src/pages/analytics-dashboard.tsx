@@ -592,7 +592,7 @@ export default function AnalyticsDashboard() {
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Teams</SelectItem>
+                    <SelectItem value="all">All Teams</SelectItem>
                     {teams?.map(team => (
                       <SelectItem key={team.id} value={team.id.toString()}>
                         {team.name}
@@ -635,7 +635,7 @@ export default function AnalyticsDashboard() {
                     <SelectValue placeholder="All Players" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Players</SelectItem>
+                    <SelectItem value="all">All Players</SelectItem>
                     {players?.map(player => (
                       <SelectItem key={player.id} value={player.id.toString()}>
                         {player.name}
