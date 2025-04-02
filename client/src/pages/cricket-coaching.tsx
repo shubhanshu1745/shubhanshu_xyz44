@@ -19,6 +19,9 @@ import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GraduationCap, Video, Camera, Upload, Play, Shield, Award, FileText, Calendar as CalendarIcon, Clock, ArrowRight, Check, X, AlertCircle, Users, User, PlayCircle, ChevronRight, MessageSquare, ThumbsUp, Share2, Download, RotateCcw } from "lucide-react";
+import { BecomeCoachDialog } from "@/components/become-coach-dialog";
+import { VideoAnalysisForm } from "@/components/video-analysis-form";
+import { BookCoachingSession } from "@/components/book-coaching-session";
 
 export default function CricketCoaching() {
   const { user } = useAuth();
@@ -975,11 +978,149 @@ export default function CricketCoaching() {
         </TabsContent>
         
         <TabsContent value="video-analysis" className="space-y-4">
-          {renderVideoAnalysis()}
+          <div className="space-y-6">
+            <div className="flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <h2 className="text-xl font-bold">Video Analysis</h2>
+                <p className="text-muted-foreground">Upload and analyze your cricket technique</p>
+              </div>
+              
+              <div className="flex gap-3">
+                <Select value={selectedSkill || ""} onValueChange={setSelectedSkill}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="All Skills" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Skills</SelectItem>
+                    <SelectItem value="batting">Batting</SelectItem>
+                    <SelectItem value="bowling">Bowling</SelectItem>
+                    <SelectItem value="fielding">Fielding</SelectItem>
+                    <SelectItem value="wicketkeeping">Wicketkeeping</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <VideoAnalysisForm />
+            
+            <div>
+              <h2 className="text-xl font-bold mb-4">Your Recent Analysis</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* The existing card components for analysis history */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Cover Drive Analysis</CardTitle>
+                    <CardDescription>Analyzed on April 1, 2023</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="aspect-video rounded-md bg-muted mb-3 overflow-hidden">
+                      <img 
+                        src="https://cricketcoaching.nz/wp-content/uploads/2019/06/cricket-coaching-batting-stance.jpg" 
+                        alt="Cover Drive" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Stance</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Backswing</span>
+                        <Badge variant="outline">Needs Work</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Follow Through</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2">
+                    <Button variant="outline" size="sm" className="w-full">View Analysis</Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Pull Shot Analysis</CardTitle>
+                    <CardDescription>Analyzed on March 25, 2023</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="aspect-video rounded-md bg-muted mb-3 overflow-hidden">
+                      <img 
+                        src="https://static.toiimg.com/thumb/msid-102664581,width-1280,height-720,resizemode-4/102664581.jpg" 
+                        alt="Pull Shot" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Weight Transfer</span>
+                        <Badge variant="outline">Excellent</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Head Position</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Timing</span>
+                        <Badge variant="outline">Needs Work</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2">
+                    <Button variant="outline" size="sm" className="w-full">View Analysis</Button>
+                  </CardFooter>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">Bowling Action</CardTitle>
+                    <CardDescription>Analyzed on March 10, 2023</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="aspect-video rounded-md bg-muted mb-3 overflow-hidden">
+                      <img 
+                        src="https://static.wixstatic.com/media/761262_db0e44a59c7e49a0a53c748d30d16cd0~mv2.jpg/v1/fill/w_640,h_360,al_c,q_80,usm_0.66_1.00_0.01,enc_auto/761262_db0e44a59c7e49a0a53c748d30d16cd0~mv2.jpg" 
+                        alt="Bowling Action" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Run-up</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Arm Action</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Follow Through</span>
+                        <Badge variant="outline">Good</Badge>
+                      </div>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="pt-2">
+                    <Button variant="outline" size="sm" className="w-full">View Analysis</Button>
+                  </CardFooter>
+                </Card>
+              </div>
+            </div>
+          </div>
         </TabsContent>
         
         <TabsContent value="book-coach" className="space-y-4">
-          {renderBookCoach()}
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-xl font-bold">Cricket Coaching</h2>
+              <p className="text-muted-foreground">Book sessions with expert cricket coaches</p>
+            </div>
+            
+            <BecomeCoachDialog />
+          </div>
+          
+          <BookCoachingSession />
         </TabsContent>
       </Tabs>
       

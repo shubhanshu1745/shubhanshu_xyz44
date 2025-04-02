@@ -3,9 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import { z } from "zod";
-import { CoachingService } from "./services/coaching";
-import { HighlightService } from "./services/highlights";
-import { StoryFiltersService } from "./services/story-filters";
+import * as CoachingService from "./services/coaching";
+import * as HighlightService from "./services/highlights";
+import * as StoryFiltersService from "./services/story-filters";
 import { 
   insertCommentSchema, 
   insertPostSchema, 
@@ -2621,9 +2621,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Initialize new services
-  const coachingService = new CoachingService(storage);
-  const highlightService = new HighlightService(storage);
-  const storyFiltersService = new StoryFiltersService(storage);
+  // These are imported as modules with functions, not as classes
+  const coachingService = CoachingService;
+  const highlightService = HighlightService;
+  const storyFiltersService = StoryFiltersService;
 
   // COACHING SERVICE ROUTES
   app.get("/api/coaching/tips", async (req, res) => {
@@ -2997,6 +2998,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create custom filter" });
     }
   });
+
+  // Coaching API routes
+  // Get coaches 
+  app.get("/api/coaching/coaches", CoachingService.getCoachesHandler);
+  
+  // Get coach by ID
+  app.get("/api/coaching/coaches/:id", CoachingService.getCoachByIdHandler);
+  
+  // Apply to be a coach
+  app.post("/api/coaching/apply", CoachingService.applyToBeCoach);
+  
+  // Get coach application status
+  app.get("/api/coaching/application", CoachingService.getCoachApplication);
+  
+  // Book coaching session
+  app.post("/api/coaching/sessions", CoachingService.bookSession);
+  
+  // Get user's coaching sessions
+  app.get("/api/coaching/sessions", CoachingService.getSessions);
+  
+  // Get session by ID
+  app.get("/api/coaching/sessions/:id", CoachingService.getSessionById);
+  
+  // Update session
+  app.patch("/api/coaching/sessions/:id", CoachingService.updateSession);
+  
+  // Get user's training plans
+  app.get("/api/coaching/training-plans", CoachingService.getTrainingPlansHandler);
+  
+  // Create training plan
+  app.post("/api/coaching/training-plans", CoachingService.createTrainingPlanHandler);
+  
+  // Get analysis videos
+  app.get("/api/coaching/analysis-videos", CoachingService.getAnalysisVideosHandler);
+  
+  // Analyze video
+  app.post("/api/coaching/analyze-video", upload.single("video"), CoachingService.analyzeVideoHandler);
 
   return httpServer;
 }
