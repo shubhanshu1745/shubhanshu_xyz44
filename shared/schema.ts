@@ -405,6 +405,10 @@ export const polls = pgTable("polls", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export type Poll = typeof polls.$inferSelect;
+export type InsertPoll = typeof polls.$inferInsert;
+export const createInsertPollSchema = createInsertSchema(polls).omit({ id: true, createdAt: true, updatedAt: true });
+
 export const pollOptions = pgTable("poll_options", {
   id: serial("id").primaryKey(),
   pollId: integer("poll_id").notNull(),
@@ -413,6 +417,10 @@ export const pollOptions = pgTable("poll_options", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export type PollOption = typeof pollOptions.$inferSelect;
+export type InsertPollOption = typeof pollOptions.$inferInsert;
+export const createInsertPollOptionSchema = createInsertSchema(pollOptions).omit({ id: true, createdAt: true });
+
 export const pollVotes = pgTable("poll_votes", {
   id: serial("id").primaryKey(),
   pollId: integer("poll_id").notNull(),
@@ -420,6 +428,10 @@ export const pollVotes = pgTable("poll_votes", {
   userId: integer("user_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export type PollVote = typeof pollVotes.$inferSelect;
+export type InsertPollVote = typeof pollVotes.$inferInsert;
+export const createInsertPollVoteSchema = createInsertSchema(pollVotes).omit({ id: true, createdAt: true });
 
 // Content rewards and recognition system
 export const contentRewards = pgTable("content_rewards", {

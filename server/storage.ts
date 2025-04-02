@@ -22,7 +22,10 @@ import {
   venueBookings, type VenueBooking, type InsertVenueBooking,
   tournaments, type Tournament, type InsertTournament,
   tournamentTeams, type TournamentTeam, type InsertTournamentTeam,
-  tournamentMatches, type TournamentMatch, type InsertTournamentMatch
+  tournamentMatches, type TournamentMatch, type InsertTournamentMatch,
+  polls, type Poll, type InsertPoll,
+  pollOptions, type PollOption, type InsertPollOption,
+  pollVotes, type PollVote, type InsertPollVote
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -207,6 +210,28 @@ export interface IStorage {
   updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined>;
   deleteTournamentMatch(id: number): Promise<boolean>;
   
+  // Poll methods
+  createPoll(poll: InsertPoll): Promise<Poll>;
+  getPoll(id: number): Promise<(Poll & { options: PollOption[], creator: User }) | undefined>;
+  getPolls(limit?: number, type?: string): Promise<(Poll & { options: PollOption[], creator: User })[]>;
+  getUserPolls(userId: number): Promise<(Poll & { options: PollOption[] })[]>;
+  updatePoll(id: number, data: Partial<Poll>): Promise<Poll | undefined>;
+  deletePoll(id: number): Promise<boolean>;
+  
+  // Poll option methods
+  createPollOption(option: InsertPollOption): Promise<PollOption>;
+  getPollOption(id: number): Promise<PollOption | undefined>;
+  getPollOptions(pollId: number): Promise<PollOption[]>;
+  updatePollOption(id: number, data: Partial<PollOption>): Promise<PollOption | undefined>;
+  deletePollOption(id: number): Promise<boolean>;
+  
+  // Poll vote methods
+  createPollVote(vote: InsertPollVote): Promise<PollVote>;
+  getUserVote(userId: number, pollId: number): Promise<PollVote | undefined>;
+  getPollVotes(pollId: number): Promise<(PollVote & { user: User })[]>;
+  getPollResults(pollId: number): Promise<{ optionId: number, option: string, count: number, percentage: number }[]>;
+  deletePollVote(userId: number, pollId: number): Promise<boolean>;
+  
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
 }
@@ -240,6 +265,9 @@ export class MemStorage implements IStorage {
   private tournaments: Map<number, Tournament>;
   private tournamentTeams: Map<string, TournamentTeam>; // Composite key: `${tournamentId}-${teamId}`
   private tournamentMatches: Map<number, TournamentMatch>;
+  private polls: Map<number, Poll>;
+  private pollOptions: Map<number, PollOption>;
+  private pollVotes: Map<string, PollVote>; // Composite key: `${userId}-${pollId}`
   
   userCurrentId: number;
   postCurrentId: number;
@@ -266,6 +294,9 @@ export class MemStorage implements IStorage {
   venueBookingCurrentId: number;
   tournamentCurrentId: number;
   tournamentMatchCurrentId: number;
+  pollCurrentId: number;
+  pollOptionCurrentId: number;
+  pollVoteCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -297,6 +328,9 @@ export class MemStorage implements IStorage {
     this.tournaments = new Map();
     this.tournamentTeams = new Map();
     this.tournamentMatches = new Map();
+    this.polls = new Map();
+    this.pollOptions = new Map();
+    this.pollVotes = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -323,6 +357,9 @@ export class MemStorage implements IStorage {
     this.venueBookingCurrentId = 1;
     this.tournamentCurrentId = 1;
     this.tournamentMatchCurrentId = 1;
+    this.pollCurrentId = 1;
+    this.pollOptionCurrentId = 1;
+    this.pollVoteCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -2129,6 +2166,214 @@ export class MemStorage implements IStorage {
     return postsWithScore
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
       .slice(0, limit);
+  }
+  
+  // Poll methods
+  async createPoll(insertPoll: InsertPoll): Promise<Poll> {
+    const id = this.pollCurrentId++;
+    const poll: Poll = {
+      id,
+      userId: insertPoll.userId,
+      question: insertPoll.question,
+      pollType: insertPoll.pollType,
+      matchId: insertPoll.matchId || null,
+      playerId: insertPoll.playerId || null,
+      teamId: insertPoll.teamId || null,
+      endTime: insertPoll.endTime || null,
+      isActive: insertPoll.isActive !== undefined ? insertPoll.isActive : true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.polls.set(id, poll);
+    return poll;
+  }
+  
+  async getPoll(id: number): Promise<(Poll & { options: PollOption[], creator: User }) | undefined> {
+    const poll = this.polls.get(id);
+    if (!poll) return undefined;
+    
+    const options = await this.getPollOptions(id);
+    const creator = await this.getUser(poll.userId) as User;
+    
+    return {
+      ...poll,
+      options,
+      creator
+    };
+  }
+  
+  async getPolls(limit: number = 10, type?: string): Promise<(Poll & { options: PollOption[], creator: User })[]> {
+    let polls = Array.from(this.polls.values())
+      .filter(poll => poll.isActive && (!type || poll.pollType === type))
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, limit);
+    
+    return Promise.all(polls.map(async poll => {
+      const options = await this.getPollOptions(poll.id);
+      const creator = await this.getUser(poll.userId) as User;
+      
+      return {
+        ...poll,
+        options,
+        creator
+      };
+    }));
+  }
+  
+  async getUserPolls(userId: number): Promise<(Poll & { options: PollOption[] })[]> {
+    const userPolls = Array.from(this.polls.values())
+      .filter(poll => poll.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    return Promise.all(userPolls.map(async poll => {
+      const options = await this.getPollOptions(poll.id);
+      
+      return {
+        ...poll,
+        options
+      };
+    }));
+  }
+  
+  async updatePoll(id: number, data: Partial<Poll>): Promise<Poll | undefined> {
+    const poll = this.polls.get(id);
+    if (!poll) return undefined;
+    
+    const updatedPoll = { 
+      ...poll, 
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.polls.set(id, updatedPoll);
+    return updatedPoll;
+  }
+  
+  async deletePoll(id: number): Promise<boolean> {
+    // Delete all poll options and votes first
+    const options = await this.getPollOptions(id);
+    for (const option of options) {
+      await this.deletePollOption(option.id);
+    }
+    
+    // Delete all votes for this poll
+    const votes = Array.from(this.pollVotes.values())
+      .filter(vote => vote.pollId === id);
+    
+    for (const vote of votes) {
+      this.pollVotes.delete(`${vote.userId}-${vote.pollId}`);
+    }
+    
+    return this.polls.delete(id);
+  }
+  
+  // Poll option methods
+  async createPollOption(insertOption: InsertPollOption): Promise<PollOption> {
+    const id = this.pollOptionCurrentId++;
+    const option: PollOption = {
+      id,
+      pollId: insertOption.pollId,
+      option: insertOption.option,
+      imageUrl: insertOption.imageUrl || null,
+      createdAt: new Date()
+    };
+    this.pollOptions.set(id, option);
+    return option;
+  }
+  
+  async getPollOption(id: number): Promise<PollOption | undefined> {
+    return this.pollOptions.get(id);
+  }
+  
+  async getPollOptions(pollId: number): Promise<PollOption[]> {
+    return Array.from(this.pollOptions.values())
+      .filter(option => option.pollId === pollId);
+  }
+  
+  async updatePollOption(id: number, data: Partial<PollOption>): Promise<PollOption | undefined> {
+    const option = this.pollOptions.get(id);
+    if (!option) return undefined;
+    
+    const updatedOption = { ...option, ...data };
+    this.pollOptions.set(id, updatedOption);
+    return updatedOption;
+  }
+  
+  async deletePollOption(id: number): Promise<boolean> {
+    // Delete all votes for this option
+    const option = this.pollOptions.get(id);
+    if (!option) return false;
+    
+    const votes = Array.from(this.pollVotes.values())
+      .filter(vote => vote.optionId === id);
+    
+    for (const vote of votes) {
+      this.pollVotes.delete(`${vote.userId}-${vote.pollId}`);
+    }
+    
+    return this.pollOptions.delete(id);
+  }
+  
+  // Poll vote methods
+  async createPollVote(insertVote: InsertPollVote): Promise<PollVote> {
+    // Check if user already voted on this poll
+    const existingVote = await this.getUserVote(insertVote.userId, insertVote.pollId);
+    if (existingVote) {
+      // If changing vote, delete the old one
+      this.pollVotes.delete(`${existingVote.userId}-${existingVote.pollId}`);
+    }
+    
+    const id = this.pollVoteCurrentId++;
+    const vote: PollVote = {
+      id,
+      pollId: insertVote.pollId,
+      optionId: insertVote.optionId,
+      userId: insertVote.userId,
+      createdAt: new Date()
+    };
+    
+    // Use composite key for faster lookups
+    this.pollVotes.set(`${vote.userId}-${vote.pollId}`, vote);
+    return vote;
+  }
+  
+  async getUserVote(userId: number, pollId: number): Promise<PollVote | undefined> {
+    return this.pollVotes.get(`${userId}-${pollId}`);
+  }
+  
+  async getPollVotes(pollId: number): Promise<(PollVote & { user: User })[]> {
+    const pollVotes = Array.from(this.pollVotes.values())
+      .filter(vote => vote.pollId === pollId);
+    
+    return Promise.all(pollVotes.map(async vote => {
+      const user = await this.getUser(vote.userId) as User;
+      return { ...vote, user };
+    }));
+  }
+  
+  async getPollResults(pollId: number): Promise<{ optionId: number, option: string, count: number, percentage: number }[]> {
+    const options = await this.getPollOptions(pollId);
+    const votes = Array.from(this.pollVotes.values())
+      .filter(vote => vote.pollId === pollId);
+    
+    const totalVotes = votes.length;
+    
+    return options.map(option => {
+      const optionVotes = votes.filter(vote => vote.optionId === option.id);
+      const count = optionVotes.length;
+      const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      
+      return {
+        optionId: option.id,
+        option: option.option,
+        count,
+        percentage
+      };
+    });
+  }
+  
+  async deletePollVote(userId: number, pollId: number): Promise<boolean> {
+    return this.pollVotes.delete(`${userId}-${pollId}`);
   }
 }
 

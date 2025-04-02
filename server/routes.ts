@@ -28,7 +28,11 @@ import {
   insertPostTagSchema,
   insertContentCategorySchema,
   insertUserInterestSchema,
-  insertContentEngagementSchema
+  insertContentEngagementSchema,
+  // Poll schemas
+  createInsertPollSchema,
+  createInsertPollOptionSchema,
+  createInsertPollVoteSchema
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
 import { CricketAPIClient } from "./services/cricket-api-client";
@@ -919,6 +923,285 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Poll endpoints
+  app.get("/api/polls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const type = req.query.type as string | undefined;
+      
+      const polls = await storage.getPolls(limit, type);
+      res.json(polls);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch polls" });
+    }
+  });
+
+  app.post("/api/polls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      
+      const pollData = createInsertPollSchema.parse({
+        ...req.body,
+        userId
+      });
+      
+      const poll = await storage.createPoll(pollData);
+      
+      // Create options if provided
+      if (req.body.options && Array.isArray(req.body.options)) {
+        for (const optionText of req.body.options) {
+          await storage.createPollOption({
+            pollId: poll.id,
+            option: optionText
+          });
+        }
+      }
+      
+      const createdPoll = await storage.getPoll(poll.id);
+      res.status(201).json(createdPoll);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create poll" });
+    }
+  });
+
+  app.get("/api/polls/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const poll = await storage.getPoll(pollId);
+      
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      res.json(poll);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch poll" });
+    }
+  });
+
+  app.get("/api/polls/:id/results", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const poll = await storage.getPoll(pollId);
+      
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      const results = await storage.getPollResults(pollId);
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch poll results" });
+    }
+  });
+
+  app.get("/api/users/:id/polls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = parseInt(req.params.id);
+      const polls = await storage.getUserPolls(userId);
+      
+      res.json(polls);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user polls" });
+    }
+  });
+
+  app.post("/api/polls/:id/vote", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const userId = req.user.id;
+      const { optionId } = req.body;
+      
+      if (!optionId) {
+        return res.status(400).json({ message: "Option ID is required" });
+      }
+      
+      const poll = await storage.getPoll(pollId);
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      if (!poll.isActive) {
+        return res.status(400).json({ message: "Poll is no longer active" });
+      }
+      
+      if (poll.endTime && new Date(poll.endTime) < new Date()) {
+        return res.status(400).json({ message: "Poll has ended" });
+      }
+      
+      const option = await storage.getPollOption(optionId);
+      if (!option || option.pollId !== pollId) {
+        return res.status(404).json({ message: "Option not found for this poll" });
+      }
+      
+      const voteData = createInsertPollVoteSchema.parse({
+        pollId,
+        optionId,
+        userId
+      });
+      
+      const vote = await storage.createPollVote(voteData);
+      res.status(201).json(vote);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to vote on poll" });
+    }
+  });
+
+  app.delete("/api/polls/:id/vote", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const poll = await storage.getPoll(pollId);
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      if (!poll.isActive) {
+        return res.status(400).json({ message: "Poll is no longer active" });
+      }
+      
+      const success = await storage.deletePollVote(userId, pollId);
+      if (!success) {
+        return res.status(404).json({ message: "Vote not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove vote" });
+    }
+  });
+
+  app.get("/api/polls/:id/user-vote", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const vote = await storage.getUserVote(userId, pollId);
+      if (!vote) {
+        return res.status(404).json({ message: "No vote found" });
+      }
+      
+      res.json(vote);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user vote" });
+    }
+  });
+
+  // Poll option endpoints
+  app.post("/api/polls/:id/options", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const pollId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const poll = await storage.getPoll(pollId);
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      // Only poll creator can add options
+      if (poll.userId !== userId) {
+        return res.status(403).json({ message: "Only poll creator can add options" });
+      }
+      
+      const optionData = createInsertPollOptionSchema.parse({
+        ...req.body,
+        pollId
+      });
+      
+      const option = await storage.createPollOption(optionData);
+      res.status(201).json(option);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create poll option" });
+    }
+  });
+
+  app.delete("/api/polls/options/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const optionId = parseInt(req.params.id);
+      const userId = req.user.id;
+      
+      const option = await storage.getPollOption(optionId);
+      if (!option) {
+        return res.status(404).json({ message: "Option not found" });
+      }
+      
+      const poll = await storage.getPoll(option.pollId);
+      if (!poll) {
+        return res.status(404).json({ message: "Poll not found" });
+      }
+      
+      // Only poll creator can delete options
+      if (poll.userId !== userId) {
+        return res.status(403).json({ message: "Only poll creator can delete options" });
+      }
+      
+      // Don't allow deleting if votes exist for this option
+      const votes = await storage.getPollVotes(poll.id);
+      if (votes.some(vote => vote.optionId === optionId)) {
+        return res.status(400).json({ message: "Cannot delete option with existing votes" });
+      }
+      
+      const success = await storage.deletePollOption(optionId);
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete option" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete poll option" });
+    }
+  });
+
   // Follow endpoints
   app.post("/api/users/:username/follow", async (req, res) => {
     try {
@@ -1064,10 +1347,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = req.query.status as string;
       
       if (status && ["live", "upcoming", "completed"].includes(status)) {
-        return res.json(CricketDataService.getMatchesByStatus(status as any));
+        return res.json(cricketDataService.getMatchesByStatus(status as any));
       }
       
-      res.json(CricketDataService.getAllMatches());
+      res.json(cricketDataService.getAllMatches());
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch matches" });
     }
@@ -1076,7 +1359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cricket/matches/recent", (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
-      res.json(CricketDataService.getRecentMatches(limit));
+      res.json(cricketDataService.getRecentMatches(limit));
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch recent matches" });
     }
@@ -1085,7 +1368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cricket/matches/:id", (req, res) => {
     try {
       const matchId = req.params.id;
-      const match = CricketDataService.getMatchById(matchId);
+      const match = cricketDataService.getMatchById(matchId);
       
       if (!match) {
         return res.status(404).json({ message: "Match not found" });
@@ -1104,14 +1387,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const query = req.query.query as string;
       
       if (query) {
-        return res.json(CricketDataService.searchTeams(query));
+        return res.json(cricketDataService.searchTeams(query));
       }
       
       if (type && ["international", "franchise", "domestic"].includes(type)) {
-        return res.json(CricketDataService.getTeamsByType(type as any));
+        return res.json(cricketDataService.getTeamsByType(type as any));
       }
       
-      res.json(CricketDataService.getAllTeams());
+      res.json(cricketDataService.getAllTeams());
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch teams" });
     }
@@ -1120,7 +1403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/cricket/teams/:id", (req, res) => {
     try {
       const teamId = req.params.id;
-      const team = CricketDataService.getTeamById(teamId);
+      const team = cricketDataService.getTeamById(teamId);
       
       if (!team) {
         return res.status(404).json({ message: "Team not found" });

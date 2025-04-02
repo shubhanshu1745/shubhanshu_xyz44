@@ -22,12 +22,14 @@ import CricketCoaching from "@/pages/cricket-coaching";
 import MatchHighlights from "@/pages/match-highlights";
 import StoryFilters from "@/pages/story-filters";
 import VenueDiscovery from "@/pages/venue-discovery";
+import PollsPage from "@/pages/polls";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { AuthProvider } from "./hooks/use-auth";
 import { SocketProvider } from "./hooks/use-socket";
 import { ThemeProvider } from "./hooks/use-theme";
+import { UserProvider } from "./hooks/use-user";
 
 function Router() {
   return (
