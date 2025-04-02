@@ -320,7 +320,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
             </Button>
           )}
           <DialogTitle className="text-center flex-grow">Create New Post</DialogTitle>
-          {step === "upload" && imageUrl ? (
+          {step === "upload" && (imageUrl || videoUrl) ? (
             <Button variant="ghost" onClick={handleNext}>Next</Button>
           ) : step === "details" ? (
             <Button 
