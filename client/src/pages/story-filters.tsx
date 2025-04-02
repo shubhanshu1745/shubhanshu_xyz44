@@ -70,6 +70,12 @@ export default function StoryFilters() {
   const [isPreviewingFilter, setIsPreviewingFilter] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isApplyingFilter, setIsApplyingFilter] = useState(false);
+  const [captureMode, setCaptureMode] = useState<'photo' | 'video'>('photo');
+  const [isFlashOn, setIsFlashOn] = useState(false);
+  const [isFrontCamera, setIsFrontCamera] = useState(true);
+  const [storyCaption, setStoryCaption] = useState("");
+  const [showShareOptions, setShowShareOptions] = useState(false);
+  const videoPreviewRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch story filters
@@ -591,39 +597,55 @@ export default function StoryFilters() {
     if (!isPreviewingFilter) return null;
 
     return (
-      <Dialog open={isPreviewingFilter} onOpenChange={setIsPreviewingFilter}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Try Filter</DialogTitle>
-            <DialogDescription>
-              Upload a photo to try this cricket-themed filter
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6">
-            {!previewImage ? (
-              <div 
-                className="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center gap-4 cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
+      <Dialog 
+        open={isPreviewingFilter} 
+        onOpenChange={(open) => !open && setIsPreviewingFilter(false)}
+        className="instagram-style-dialog"
+      >
+        <DialogContent className="max-w-xl p-0 overflow-hidden rounded-lg border-none">
+          <div className="flex flex-col h-[85vh] max-h-[90vh]">
+            {/* Instagram-style header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsPreviewingFilter(false)} 
+                className="text-gray-600"
               >
-                <Camera className="h-10 w-10 text-muted-foreground" />
-                <div className="text-center">
-                  <p className="font-medium">Click to upload or drag and drop</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    JPG, PNG or WEBP up to 10MB
-                  </p>
-                </div>
-                <Input 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden" 
-                  ref={fileInputRef}
-                  onChange={handleImageUpload}
-                />
-                <Button variant="outline">Select Image</Button>
+                <X className="h-5 w-5" />
+              </Button>
+              
+              <h3 className="font-semibold">Create Cricket Story</h3>
+              
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setCaptureMode(captureMode === 'photo' ? 'video' : 'photo')}
+                >
+                  {captureMode === 'photo' ? <Video className="h-5 w-5" /> : <Camera className="h-5 w-5" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setIsFlashOn(!isFlashOn)}
+                >
+                  {isFlashOn ? <ZapOff className="h-5 w-5" /> : <Zap className="h-5 w-5" />}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setIsFrontCamera(!isFrontCamera)}
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </Button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="relative aspect-square max-h-[400px] rounded-md overflow-hidden">
+            </div>
+            
+            {/* Main camera/preview area */}
+            <div className="flex-grow relative bg-black">
+              {previewImage ? (
+                <div className="relative h-full">
                   <img 
                     src={previewImage} 
                     alt="Preview" 
@@ -641,37 +663,153 @@ export default function StoryFilters() {
                       </Badge>
                     </div>
                   </div>
+                  
+                  {/* Selected filter overlay */}
+                  {selectedFilter && (
+                    <div className="absolute bottom-5 left-5 bg-black/50 text-white px-3 py-1 rounded-full text-xs">
+                      <p className="flex items-center">
+                        <Wand2 className="h-3 w-3 mr-1" />
+                        {selectedFilter.name}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Caption input */}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
+                    <div className="flex items-center bg-black/30 text-white rounded-full px-4 py-2">
+                      <input
+                        type="text"
+                        placeholder="Add a caption..."
+                        className="bg-transparent border-none focus:outline-none flex-grow text-sm"
+                        value={storyCaption}
+                        onChange={(e) => setStoryCaption(e.target.value)}
+                      />
+                      <Button variant="ghost" size="icon" className="text-white">
+                        <Smile className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4">
+              ) : (
+                <div 
+                  className="flex flex-col items-center justify-center h-full cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="bg-black/40 p-6 rounded-full mb-3">
+                    <Upload className="h-12 w-12 text-white" />
+                  </div>
+                  <p className="text-white font-medium">Tap to upload a {captureMode}</p>
+                  <p className="text-white/70 text-sm mt-1">Or drag and drop</p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    accept={captureMode === 'photo' ? "image/*" : "video/*"} 
+                    className="hidden" 
+                    onChange={handleImageUpload}
+                  />
+                </div>
+              )}
+              
+              {captureMode === 'video' && previewImage && (
+                <div className="absolute top-0 right-0 m-4">
+                  <span className="flex items-center bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                    <Circle className="h-2 w-2 mr-1 fill-current animate-pulse" /> REC
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Bottom actions */}
+            <div className="p-4 bg-white dark:bg-gray-900 flex justify-between items-center">
+              {previewImage ? (
+                <>
                   <Button 
                     variant="outline" 
-                    className="w-full"
-                    onClick={() => setPreviewImage(null)}
+                    onClick={() => {
+                      setPreviewImage(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = '';
+                      }
+                    }}
+                    className="border-red-500 text-red-500 hover:bg-red-500/10"
                   >
-                    Upload Different Image
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Discard
+                  </Button>
+                  
+                  <Button 
+                    variant="default" 
+                    className="bg-blue-500 hover:bg-blue-600"
+                    onClick={() => setShowShareOptions(true)}
+                  >
+                    <SendHorizonal className="h-4 w-4 mr-2" />
+                    Share to Story
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Apply cricket-themed filters to your stories
+                  </p>
+                  {captureMode === 'photo' ? (
+                    <Button variant="outline" className="rounded-full h-12 w-12 p-0">
+                      <Camera className="h-6 w-6" />
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="rounded-full h-12 w-12 p-0 border-red-500 text-red-500">
+                      <Circle className="h-6 w-6 fill-current" />
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+          
+          {/* Share options dialog */}
+          {showShareOptions && (
+            <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-10">
+              <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full p-5">
+                <h3 className="font-semibold text-lg mb-4">Share to</h3>
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <Button variant="outline" className="flex flex-col h-auto py-3">
+                    <Users2 className="h-6 w-6 mb-2" />
+                    <span className="text-xs">Close Friends</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-auto py-3">
+                    <Globe className="h-6 w-6 mb-2" />
+                    <span className="text-xs">Your Story</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-auto py-3">
+                    <Trophy className="h-6 w-6 mb-2" />
+                    <span className="text-xs">Cricket Group</span>
+                  </Button>
+                </div>
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowShareOptions(false)}
+                  >
+                    Cancel
                   </Button>
                   <Button 
-                    className="w-full"
-                    disabled={isApplyingFilter}
-                    onClick={handleApplyFilter}
+                    variant="default"
+                    onClick={() => {
+                      toast({
+                        title: "Story shared!",
+                        description: "Your cricket story has been shared successfully",
+                      });
+                      setIsPreviewingFilter(false);
+                      setShowShareOptions(false);
+                      setPreviewImage(null);
+                      setStoryCaption("");
+                    }}
                   >
-                    {isApplyingFilter ? (
-                      <>
-                        <RotateCcw className="h-4 w-4 mr-2 animate-spin" />
-                        Applying...
-                      </>
-                    ) : (
-                      <>
-                        <Wand2 className="h-4 w-4 mr-2" />
-                        Apply Filter
-                      </>
-                    )}
+                    Share
                   </Button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     );
