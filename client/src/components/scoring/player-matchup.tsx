@@ -1,369 +1,328 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { CircleSlash2, Flame, Swords, TrendingUp, TrendingDown, Percent, AlertTriangle, ThumbsUp } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell 
+} from 'recharts';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { GitCompare, Flame, Download, Filter } from "lucide-react";
 
 interface PlayerMatchupProps {
-  batsmanId: number;
-  bowlerId: number;
-  matchId?: number;
-  batsmanName: string;
-  bowlerName: string;
-  batsmanAvatar?: string;
-  bowlerAvatar?: string;
-  stats: {
-    ballsFaced: number;
-    runsScored: number;
-    fours: number;
-    sixes: number;
-    dotBalls: number;
-    dismissals: number;
-    strikeRate?: number;
-    controlPercentage?: number;
-    boundaryPercentage?: number;
-    dotBallPercentage?: number;
-    dismissalPercentage?: number;
-  };
+  player1Id?: number;
+  player2Id?: number;
+  matchType?: string;
 }
 
-export default function PlayerMatchup({
-  batsmanName,
-  bowlerName,
-  batsmanAvatar,
-  bowlerAvatar,
-  stats
-}: PlayerMatchupProps) {
-  const [timeFrame, setTimeFrame] = useState("allTime");
-  
-  // Calculate statistics
-  const strikeRate = stats.strikeRate || (stats.ballsFaced > 0 ? (stats.runsScored / stats.ballsFaced) * 100 : 0);
-  const controlPercentage = stats.controlPercentage || (stats.ballsFaced > 0 ? ((stats.ballsFaced - stats.dotBalls - stats.fours - stats.sixes) / stats.ballsFaced) * 100 : 0);
-  const boundaryPercentage = stats.boundaryPercentage || (stats.ballsFaced > 0 ? ((stats.fours + stats.sixes) / stats.ballsFaced) * 100 : 0);
-  const dotBallPercentage = stats.dotBallPercentage || (stats.ballsFaced > 0 ? (stats.dotBalls / stats.ballsFaced) * 100 : 0);
-  const dismissalPercentage = stats.dismissalPercentage || (stats.ballsFaced > 0 ? (stats.dismissals / stats.ballsFaced) * 100 : 0);
-  
-  // Determine advantage
-  let advantage = "neutral";
-  let advantageText = "Even contest";
-  
-  if (stats.ballsFaced < 6) {
-    advantage = "insufficient";
-    advantageText = "Insufficient data";
-  } else if (strikeRate > 150 && dismissalPercentage < 10) {
-    advantage = "batsman";
-    advantageText = "Batsman advantage";
-  } else if (dotBallPercentage > 50 && dismissalPercentage > 15) {
-    advantage = "bowler";
-    advantageText = "Bowler advantage";
-  }
-  
-  const getAdvantageColor = () => {
-    switch (advantage) {
-      case "batsman": return "text-green-600";
-      case "bowler": return "text-blue-600";
-      case "insufficient": return "text-orange-500";
-      default: return "text-gray-600";
-    }
+export default function PlayerMatchup({ player1Id, player2Id, matchType }: PlayerMatchupProps) {
+  // Mock data for player matchup
+  const player1 = {
+    id: player1Id || 1,
+    name: "Virat Kohli",
+    imageUrl: "https://github.com/shadcn.png",
+    role: "Batsman",
+    team: "Royal Challengers Bangalore",
   };
   
-  const getAdvantageIcon = () => {
-    switch (advantage) {
-      case "batsman": return <TrendingUp className="w-4 h-4 text-green-600 mr-1" />;
-      case "bowler": return <TrendingDown className="w-4 h-4 text-blue-600 mr-1" />;
-      case "insufficient": return <AlertTriangle className="w-4 h-4 text-orange-500 mr-1" />;
-      default: return <Swords className="w-4 h-4 text-gray-600 mr-1" />;
-    }
+  const player2 = {
+    id: player2Id || 2,
+    name: "Jasprit Bumrah",
+    imageUrl: "https://github.com/shadcn.png",
+    role: "Bowler",
+    team: "Mumbai Indians",
   };
-
+  
+  const headToHeadData = {
+    totalBalls: 48,
+    runs: 62,
+    dismissals: 2,
+    boundaries: 7,
+    sixes: 2,
+    dotBalls: 18,
+    strikeRate: 129.17,
+    averageRuns: 31.0,
+  };
+  
+  const deliveryData = [
+    { name: 'Yorker', count: 12, successRate: 75 },
+    { name: 'Bouncer', count: 8, successRate: 62.5 },
+    { name: 'Length', count: 15, successRate: 40 },
+    { name: 'Good Length', count: 8, successRate: 87.5 },
+    { name: 'Full Toss', count: 5, successRate: 20 },
+  ];
+  
+  const dismissalData = [
+    { name: 'Bowled', value: 1 },
+    { name: 'Caught', value: 1 },
+    { name: 'LBW', value: 0 },
+    { name: 'Stumped', value: 0 },
+    { name: 'Run Out', value: 0 },
+  ];
+  
+  const scoringZones = [
+    { name: 'Fine Leg', value: 12 },
+    { name: 'Square Leg', value: 8 },
+    { name: 'Mid-wicket', value: 15 },
+    { name: 'Mid-on', value: 5 },
+    { name: 'Straight', value: 2 },
+    { name: 'Mid-off', value: 4 },
+    { name: 'Cover', value: 10 },
+    { name: 'Point', value: 6 },
+    { name: 'Third Man', value: 0 },
+  ];
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+  
+  const matchupByVenue = [
+    { name: 'M. Chinnaswamy Stadium', strikeRate: 142.8, average: 35.0, economy: 8.2 },
+    { name: 'Wankhede Stadium', strikeRate: 121.4, average: 28.0, economy: 7.1 },
+    { name: 'Eden Gardens', strikeRate: 132.6, average: 32.0, economy: 7.8 },
+    { name: 'Arun Jaitley Stadium', strikeRate: 118.2, average: 24.0, economy: 6.9 },
+  ];
+  
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Player Matchup Analysis</CardTitle>
-        <CardDescription>Head-to-head statistics between batsman and bowler</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <Select value={timeFrame} onValueChange={setTimeFrame}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Time Frame" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="allTime">All Time</SelectItem>
-                <SelectItem value="thisMatch">This Match</SelectItem>
-                <SelectItem value="lastYear">Last Year</SelectItem>
-                <SelectItem value="lastFive">Last 5 Encounters</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <Badge className={`flex items-center ${getAdvantageColor()}`}>
-            {getAdvantageIcon()}
-            {advantageText}
-          </Badge>
-        </div>
-        
-        <div className="flex justify-center mb-6">
-          <div className="flex items-center">
-            <div className="text-center mr-6">
-              <Avatar className="h-16 w-16 mb-2 mx-auto">
-                <AvatarImage src={batsmanAvatar} />
-                <AvatarFallback>{batsmanName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="font-semibold">{batsmanName}</div>
-              <div className="text-sm text-muted-foreground">Batsman</div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <GitCompare className="h-5 w-5" />
+                Player Matchup Analysis
+              </CardTitle>
+              <CardDescription>
+                Historical performance statistics between players
+              </CardDescription>
             </div>
-            
-            <div className="text-center bg-gray-100 rounded-full p-3 flex items-center justify-center h-12 w-12">
-              <Swords className="h-6 w-6 text-gray-700" />
-            </div>
-            
-            <div className="text-center ml-6">
-              <Avatar className="h-16 w-16 mb-2 mx-auto">
-                <AvatarImage src={bowlerAvatar} />
-                <AvatarFallback>{bowlerName.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div className="font-semibold">{bowlerName}</div>
-              <div className="text-sm text-muted-foreground">Bowler</div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={player1.imageUrl} />
+                  <AvatarFallback>VK</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{player1.name}</div>
+                  <div className="text-sm text-muted-foreground">{player1.role}</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center">
+                <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                  <GitCompare className="h-4 w-4" />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={player2.imageUrl} />
+                  <AvatarFallback>JB</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">{player2.name}</div>
+                  <div className="text-sm text-muted-foreground">{player2.role}</div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <Tabs defaultValue="summary">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="details">Detailed Stats</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="summary" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Balls Faced</span>
-                  <span className="font-medium">{stats.ballsFaced}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Runs Scored</span>
-                  <span className="font-medium">{stats.runsScored}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Dismissals</span>
-                  <span className="font-medium">{stats.dismissals}</span>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Strike Rate</span>
-                  <span className="font-medium">{strikeRate.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Boundaries</span>
-                  <span className="font-medium">{stats.fours}x4s, {stats.sixes}x6s</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Dot Balls</span>
-                  <span className="font-medium">{stats.dotBalls} ({dotBallPercentage.toFixed(1)}%)</span>
-                </div>
-              </div>
-            </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="summary">
+            <TabsList className="grid grid-cols-4 mb-6">
+              <TabsTrigger value="summary">Head-to-Head</TabsTrigger>
+              <TabsTrigger value="deliveries">Delivery Analysis</TabsTrigger>
+              <TabsTrigger value="scoring">Scoring Zones</TabsTrigger>
+              <TabsTrigger value="venues">By Venue</TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-6 pt-2">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Scoring Control</span>
-                  <span className="text-sm text-muted-foreground">{controlPercentage.toFixed(1)}%</span>
-                </div>
-                <Progress value={controlPercentage} className="h-2" />
+            <TabsContent value="summary" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Total Balls</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{headToHeadData.totalBalls}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Runs Scored</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{headToHeadData.runs}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Strike Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{headToHeadData.strikeRate}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Dismissals</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{headToHeadData.dismissals}</div>
+                  </CardContent>
+                </Card>
               </div>
               
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Boundary %</span>
-                  <span className="text-sm text-muted-foreground">{boundaryPercentage.toFixed(1)}%</span>
-                </div>
-                <Progress value={boundaryPercentage} className="h-2" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Boundary Percentage</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Boundaries', value: headToHeadData.boundaries * 4 + headToHeadData.sixes * 6 },
+                            { name: 'Others', value: headToHeadData.runs - (headToHeadData.boundaries * 4 + headToHeadData.sixes * 6) }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          <Cell fill="#1F3B4D" />
+                          <Cell fill="#E5E7EB" />
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Dismissal Types</CardTitle>
+                  </CardHeader>
+                  <CardContent className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={dismissalData}
+                        layout="vertical"
+                        margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#2E8B57" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
               </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Dot Ball %</span>
-                  <span className="text-sm text-muted-foreground">{dotBallPercentage.toFixed(1)}%</span>
-                </div>
-                <Progress value={dotBallPercentage} className="h-2" />
-              </div>
-              
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm font-medium">Dismissal Risk</span>
-                  <span className="text-sm text-muted-foreground">{dismissalPercentage.toFixed(1)}%</span>
-                </div>
-                <Progress value={dismissalPercentage} className="h-2" />
-              </div>
-            </div>
+            </TabsContent>
             
-            <div className="pt-4">
-              <div className="flex justify-between items-center">
-                <div className="flex items-center">
-                  {advantage === "batsman" ? (
-                    <Flame className="h-5 w-5 text-orange-500 mr-2" />
-                  ) : advantage === "bowler" ? (
-                    <CircleSlash2 className="h-5 w-5 text-blue-600 mr-2" />
-                  ) : advantage === "insufficient" ? (
-                    <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
-                  ) : (
-                    <ThumbsUp className="h-5 w-5 text-gray-500 mr-2" />
-                  )}
-                  <span className="font-medium">Match Insight:</span>
-                </div>
-                <div className="text-sm">
-                  {stats.ballsFaced < 6 ? (
-                    <span className="text-orange-700">Not enough data for reliable analysis</span>
-                  ) : advantage === "batsman" ? (
-                    <span className="text-green-700">Favorable matchup for the batsman</span>
-                  ) : advantage === "bowler" ? (
-                    <span className="text-blue-700">Bowler has the upper hand in this contest</span>
-                  ) : (
-                    <span className="text-gray-700">Well-balanced contest between both players</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="details" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Card className="border-none shadow-none">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-base">Batsman Stats</CardTitle>
+            <TabsContent value="deliveries" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Delivery Type Analysis</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 py-2">
-                  <ul className="space-y-2">
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Total Runs</span>
-                      <span className="font-medium">{stats.runsScored}</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Strike Rate</span>
-                      <span className="font-medium">{strikeRate.toFixed(2)}</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Boundaries</span>
-                      <span className="font-medium">{stats.fours}x4s, {stats.sixes}x6s</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Boundary %</span>
-                      <span className="font-medium">{boundaryPercentage.toFixed(1)}%</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Runs per Over</span>
-                      <span className="font-medium">{((stats.runsScored / stats.ballsFaced) * 6).toFixed(2)}</span>
-                    </li>
-                  </ul>
+                <CardContent className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={deliveryData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis yAxisId="left" orientation="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="count" name="Number of Deliveries" fill="#1F3B4D" />
+                      <Bar yAxisId="right" dataKey="successRate" name="Success Rate (%)" fill="#2E8B57" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
-              
-              <Card className="border-none shadow-none">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-base">Bowler Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="px-4 py-2">
-                  <ul className="space-y-2">
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Wickets</span>
-                      <span className="font-medium">{stats.dismissals}</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Economy Rate</span>
-                      <span className="font-medium">{((stats.runsScored / stats.ballsFaced) * 6).toFixed(2)}</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Dot Balls</span>
-                      <span className="font-medium">{stats.dotBalls} ({dotBallPercentage.toFixed(1)}%)</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Strike Rate</span>
-                      <span className="font-medium">{stats.dismissals > 0 ? (stats.ballsFaced / stats.dismissals).toFixed(1) : "-"}</span>
-                    </li>
-                    <li className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Avg Runs/Wicket</span>
-                      <span className="font-medium">{stats.dismissals > 0 ? (stats.runsScored / stats.dismissals).toFixed(1) : "-"}</span>
-                    </li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
+            </TabsContent>
             
-            {stats.ballsFaced >= 6 && (
-              <Card className="mt-4">
-                <CardHeader className="p-4 pb-2">
-                  <CardTitle className="text-base">Ball-by-Ball Pattern</CardTitle>
+            <TabsContent value="scoring" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Scoring Zone Distribution</CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 py-2">
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <div className="text-sm text-muted-foreground">First 6 balls</div>
-                      <div className="flex space-x-1">
-                        {Array(6).fill(0).map((_, i) => (
-                          <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                            i % 3 === 0 ? "bg-gray-200 text-gray-800" : // Dot ball
-                            i % 3 === 1 ? "bg-green-500 text-white" : // Run
-                            "bg-blue-500 text-white" // Boundary
-                          }`}>
-                            {i % 3 === 0 ? "0" : i % 3 === 1 ? "1" : "4"}
-                          </div>
+                <CardContent className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={scoringZones}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {scoringZones.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </div>
-                    </div>
-                    
-                    {stats.ballsFaced > 12 && (
-                      <div className="space-y-1">
-                        <div className="text-sm text-muted-foreground">Next 6 balls</div>
-                        <div className="flex space-x-1">
-                          {Array(6).fill(0).map((_, i) => (
-                            <div key={i} className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                              i % 4 === 0 ? "bg-gray-200 text-gray-800" : // Dot ball 
-                              i % 4 === 1 ? "bg-green-500 text-white" : // Run
-                              i % 4 === 2 ? "bg-blue-500 text-white" : // Four
-                              "bg-amber-500 text-white" // Six
-                            }`}>
-                              {i % 4 === 0 ? "0" : i % 4 === 1 ? "2" : i % 4 === 2 ? "4" : "6"}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {stats.dismissals > 0 && (
-                      <div className="mt-2 text-sm">
-                        <span className="font-medium text-red-600">Dismissal pattern:</span> Usually gets out after {Math.floor(stats.ballsFaced / stats.dismissals)} balls
-                      </div>
-                    )}
-                  </div>
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="trends" className="space-y-4 pt-4">
-            <div className="text-center text-sm text-muted-foreground pb-4">
-              Historical performance data across all encounters
-            </div>
+            </TabsContent>
             
-            <div className="h-[200px] flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <Percent className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <p>Trend charts will be available when more</p>
-                <p>matchup data is collected</p>
+            <TabsContent value="venues" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Performance by Venue</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={matchupByVenue}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="strikeRate" name="Strike Rate" fill="#1F3B4D" />
+                      <Bar dataKey="average" name="Average" fill="#2E8B57" />
+                      <Bar dataKey="economy" name="Economy" fill="#FFC107" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+          
+          <div className="mt-6 flex justify-end">
+            <div className="flex gap-2">
+              <div className="text-sm text-muted-foreground">
+                <Flame className="h-3 w-3 inline mr-1" />
+                Based on {headToHeadData.totalBalls} balls faced over {Math.ceil(headToHeadData.totalBalls / 6)} overs
               </div>
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

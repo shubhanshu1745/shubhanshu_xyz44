@@ -15,7 +15,22 @@ import WagonWheel from "@/components/scoring/wagon-wheel";
 import HeatMap from "@/components/scoring/heat-map";
 import PlayerMatchup from "@/components/scoring/player-matchup";
 import PlayerPrediction from "@/components/stats/player-prediction";
-import { AreaChart, BarChart, LineChart, PieChart } from "recharts";
+import { 
+  AreaChart, 
+  Area, 
+  BarChart, 
+  Bar, 
+  LineChart, 
+  Line, 
+  PieChart, 
+  Pie, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from "recharts";
 import {
   BarChart2,
   CalendarDays,
