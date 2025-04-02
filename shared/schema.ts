@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, numeric, jsonb, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -323,6 +323,59 @@ export const heatMapData = pgTable("heat_map_data", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Content categorization and discovery system
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  type: text("type").notNull(), // "player", "team", "format", "skill", "location", "event", "topic"
+  popularityScore: integer("popularity_score").default(0), // dynamically updated based on usage
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const postTags = pgTable("post_tags", {
+  postId: integer("post_id").notNull(),
+  tagId: integer("tag_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.postId, table.tagId] }),
+  };
+});
+
+export const contentCategories = pgTable("content_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  iconUrl: text("icon_url"),
+  priority: integer("priority").default(0), // for display ordering
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const userInterests = pgTable("user_interests", {
+  userId: integer("user_id").notNull(),
+  tagId: integer("tag_id").notNull(),
+  interactionScore: numeric("interaction_score", { precision: 2 }).default("0"), // Weight of user's interest (0-1)
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.userId, table.tagId] }),
+  };
+});
+
+export const contentEngagement = pgTable("content_engagement", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  engagementType: text("engagement_type").notNull(), // "view", "like", "comment", "share", "save", "time_spent"
+  engagementScore: numeric("engagement_score", { precision: 2 }).default("0"), // Calculated engagement score
+  duration: integer("duration"), // Time spent in seconds if applicable
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -580,6 +633,40 @@ export const insertHeatMapDataSchema = createInsertSchema(heatMapData).pick({
   zoneData: true,
 });
 
+// New content categorization and discovery system schemas
+export const insertTagSchema = createInsertSchema(tags).pick({
+  name: true,
+  description: true,
+  type: true,
+  popularityScore: true,
+});
+
+export const insertPostTagSchema = createInsertSchema(postTags).pick({
+  postId: true,
+  tagId: true,
+});
+
+export const insertContentCategorySchema = createInsertSchema(contentCategories).pick({
+  name: true,
+  description: true,
+  iconUrl: true,
+  priority: true,
+});
+
+export const insertUserInterestSchema = createInsertSchema(userInterests).pick({
+  userId: true,
+  tagId: true,
+  interactionScore: true,
+});
+
+export const insertContentEngagementSchema = createInsertSchema(contentEngagement).pick({
+  userId: true,
+  postId: true,
+  engagementType: true,
+  engagementScore: true,
+  duration: true,
+});
+
 // Type definitions
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -644,6 +731,22 @@ export type PlayerVsPlayerStats = typeof playerVsPlayerStats.$inferSelect;
 
 export type InsertHeatMapData = z.infer<typeof insertHeatMapDataSchema>;
 export type HeatMapData = typeof heatMapData.$inferSelect;
+
+// Content categorization and discovery system types
+export type InsertTag = z.infer<typeof insertTagSchema>;
+export type Tag = typeof tags.$inferSelect;
+
+export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
+export type PostTag = typeof postTags.$inferSelect;
+
+export type InsertContentCategory = z.infer<typeof insertContentCategorySchema>;
+export type ContentCategory = typeof contentCategories.$inferSelect;
+
+export type InsertUserInterest = z.infer<typeof insertUserInterestSchema>;
+export type UserInterest = typeof userInterests.$inferSelect;
+
+export type InsertContentEngagement = z.infer<typeof insertContentEngagementSchema>;
+export type ContentEngagement = typeof contentEngagement.$inferSelect;
 
 // Token schema
 export const insertTokenSchema = createInsertSchema(tokens).pick({
@@ -873,3 +976,40 @@ export type CreateHeatMapDataFormData = z.infer<typeof createHeatMapDataSchema>;
 export type CreatePlayerVsPlayerStatsFormData = z.infer<typeof createPlayerVsPlayerStatsSchema>;
 export type CreateMatchHighlightFormData = z.infer<typeof createMatchHighlightSchema>;
 export type CreatePartnershipFormData = z.infer<typeof createPartnershipSchema>;
+
+// Content tagging and categorization validation schemas
+export const createTagSchema = insertTagSchema.extend({
+  name: z.string().min(1, "Tag name is required"),
+  description: z.string().max(200, "Description must be less than 200 characters").optional(),
+  type: z.enum([
+    "player", "team", "format", "skill", "location", "event", "topic"
+  ]),
+  popularityScore: z.coerce.number().int().min(0).default(0),
+});
+
+export const createContentCategorySchema = insertContentCategorySchema.extend({
+  name: z.string().min(1, "Category name is required"),
+  description: z.string().max(200, "Description must be less than 200 characters").optional(),
+  iconUrl: z.string().url().optional(),
+  priority: z.coerce.number().int().min(0).default(0),
+});
+
+export const createUserInterestSchema = insertUserInterestSchema.extend({
+  userId: z.coerce.number().int().positive(),
+  tagId: z.coerce.number().int().positive(),
+  interactionScore: z.coerce.number().min(0).max(1).default(0),
+});
+
+export const createContentEngagementSchema = insertContentEngagementSchema.extend({
+  userId: z.coerce.number().int().positive(),
+  postId: z.coerce.number().int().positive(),
+  engagementType: z.enum(["view", "like", "comment", "share", "save", "time_spent"]),
+  engagementScore: z.coerce.number().min(0).max(1).default(0),
+  duration: z.coerce.number().int().min(0).optional(),
+});
+
+// Types for content categorization and tagging forms
+export type CreateTagFormData = z.infer<typeof createTagSchema>;
+export type CreateContentCategoryFormData = z.infer<typeof createContentCategorySchema>;
+export type CreateUserInterestFormData = z.infer<typeof createUserInterestSchema>;
+export type CreateContentEngagementFormData = z.infer<typeof createContentEngagementSchema>;

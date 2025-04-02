@@ -23,7 +23,12 @@ import {
   insertMatchSchema,
   insertTeamSchema,
   insertMatchPlayerSchema,
-  insertBallByBallSchema
+  insertBallByBallSchema,
+  insertTagSchema,
+  insertPostTagSchema,
+  insertContentCategorySchema,
+  insertUserInterestSchema,
+  insertContentEngagementSchema
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
@@ -3035,6 +3040,305 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Analyze video
   app.post("/api/coaching/analyze-video", upload.single("video"), CoachingService.analyzeVideoHandler);
+
+  // Content categorization and discovery system endpoints
+  
+  // Tags endpoints
+  app.get("/api/tags", async (req, res) => {
+    try {
+      const type = req.query.type as string;
+      const tags = await storage.getTags(type);
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      res.status(500).json({ message: "Failed to fetch tags" });
+    }
+  });
+  
+  app.get("/api/tags/:id", async (req, res) => {
+    try {
+      const tagId = parseInt(req.params.id);
+      if (isNaN(tagId)) {
+        return res.status(400).json({ message: "Invalid tag ID" });
+      }
+      
+      const tag = await storage.getTagById(tagId);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+      
+      res.json(tag);
+    } catch (error) {
+      console.error("Error fetching tag:", error);
+      res.status(500).json({ message: "Failed to fetch tag" });
+    }
+  });
+  
+  app.post("/api/tags", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Ensure only admins can create new tags (simplified for demo)
+      // In a real app, you would have proper role-based access control
+      const userId = req.user.id;
+      const user = await storage.getUser(userId);
+      
+      const tagData = insertTagSchema.parse(req.body);
+      const tag = await storage.createTag(tagData);
+      
+      res.status(201).json(tag);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating tag:", error);
+      res.status(500).json({ message: "Failed to create tag" });
+    }
+  });
+  
+  // Post tags endpoints
+  app.get("/api/posts/:postId/tags", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      if (isNaN(postId)) {
+        return res.status(400).json({ message: "Invalid post ID" });
+      }
+      
+      const post = await storage.getPost(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      const tags = await storage.getPostTags(postId);
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching post tags:", error);
+      res.status(500).json({ message: "Failed to fetch post tags" });
+    }
+  });
+  
+  app.post("/api/posts/:postId/tags", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const postId = parseInt(req.params.postId);
+      if (isNaN(postId)) {
+        return res.status(400).json({ message: "Invalid post ID" });
+      }
+      
+      // Verify post exists and user has permission
+      const post = await storage.getPost(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      // Only post owner can add tags to their posts
+      if (post.userId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to add tags to this post" });
+      }
+      
+      const tagId = parseInt(req.body.tagId);
+      if (isNaN(tagId)) {
+        return res.status(400).json({ message: "Invalid tag ID" });
+      }
+      
+      // Verify tag exists
+      const tag = await storage.getTagById(tagId);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+      
+      const postTag = await storage.addPostTag({
+        postId,
+        tagId
+      });
+      
+      res.status(201).json(postTag);
+    } catch (error) {
+      console.error("Error adding tag to post:", error);
+      res.status(500).json({ message: "Failed to add tag to post" });
+    }
+  });
+  
+  app.delete("/api/posts/:postId/tags/:tagId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const postId = parseInt(req.params.postId);
+      const tagId = parseInt(req.params.tagId);
+      
+      if (isNaN(postId) || isNaN(tagId)) {
+        return res.status(400).json({ message: "Invalid post ID or tag ID" });
+      }
+      
+      // Verify post exists and user has permission
+      const post = await storage.getPost(postId);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      // Only post owner can remove tags from their posts
+      if (post.userId !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to remove tags from this post" });
+      }
+      
+      const success = await storage.removePostTag(postId, tagId);
+      if (!success) {
+        return res.status(404).json({ message: "Tag not found on post" });
+      }
+      
+      res.status(200).json({ message: "Tag removed from post" });
+    } catch (error) {
+      console.error("Error removing tag from post:", error);
+      res.status(500).json({ message: "Failed to remove tag from post" });
+    }
+  });
+  
+  // Content categories endpoints
+  app.get("/api/content-categories", async (req, res) => {
+    try {
+      const categories = await storage.getContentCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching content categories:", error);
+      res.status(500).json({ message: "Failed to fetch content categories" });
+    }
+  });
+  
+  app.post("/api/content-categories", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Admin only operation (simplified for demo)
+      const categoryData = insertContentCategorySchema.parse(req.body);
+      const category = await storage.createContentCategory(categoryData);
+      
+      res.status(201).json(category);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating content category:", error);
+      res.status(500).json({ message: "Failed to create content category" });
+    }
+  });
+  
+  // User interests endpoints
+  app.get("/api/user/interests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const interests = await storage.getUserInterests(userId);
+      
+      res.json(interests);
+    } catch (error) {
+      console.error("Error fetching user interests:", error);
+      res.status(500).json({ message: "Failed to fetch user interests" });
+    }
+  });
+  
+  app.post("/api/user/interests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const tagId = parseInt(req.body.tagId);
+      const interactionScore = parseFloat(req.body.interactionScore) || 0;
+      
+      if (isNaN(tagId)) {
+        return res.status(400).json({ message: "Invalid tag ID" });
+      }
+      
+      // Verify tag exists
+      const tag = await storage.getTagById(tagId);
+      if (!tag) {
+        return res.status(404).json({ message: "Tag not found" });
+      }
+      
+      const interest = await storage.updateUserInterest({
+        userId,
+        tagId,
+        interactionScore
+      });
+      
+      res.status(200).json(interest);
+    } catch (error) {
+      console.error("Error updating user interest:", error);
+      res.status(500).json({ message: "Failed to update user interest" });
+    }
+  });
+  
+  // Content engagement endpoints
+  app.post("/api/content-engagement", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const { postId, engagementType, duration } = req.body;
+      
+      if (!postId || !engagementType) {
+        return res.status(400).json({ message: "Post ID and engagement type are required" });
+      }
+      
+      // Validate engagement type
+      const validEngagementTypes = ['view', 'like', 'comment', 'share', 'save', 'time_spent'];
+      if (!validEngagementTypes.includes(engagementType)) {
+        return res.status(400).json({ message: "Invalid engagement type" });
+      }
+      
+      // Verify post exists
+      const post = await storage.getPost(parseInt(postId));
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      const engagement = await storage.recordContentEngagement({
+        userId,
+        postId: parseInt(postId),
+        engagementType,
+        duration: duration ? parseInt(duration) : null
+      });
+      
+      res.status(201).json(engagement);
+    } catch (error) {
+      console.error("Error recording content engagement:", error);
+      res.status(500).json({ message: "Failed to record content engagement" });
+    }
+  });
+  
+  // Personalized feed endpoint
+  app.get("/api/feed/personalized", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const personalizedFeed = await storage.getPersonalizedFeed(userId, limit);
+      
+      res.json(personalizedFeed);
+    } catch (error) {
+      console.error("Error fetching personalized feed:", error);
+      res.status(500).json({ message: "Failed to fetch personalized feed" });
+    }
+  });
 
   return httpServer;
 }

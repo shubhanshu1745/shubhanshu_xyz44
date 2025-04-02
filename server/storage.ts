@@ -11,7 +11,12 @@ import {
   playerStats, type PlayerStats, type InsertPlayerStats,
   playerMatches, type PlayerMatch, type InsertPlayerMatch,
   playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance,
-  tokens, type Token, type InsertToken
+  tokens, type Token, type InsertToken,
+  tags, type Tag, type InsertTag,
+  postTags, type PostTag, type InsertPostTag,
+  contentCategories, type ContentCategory, type InsertContentCategory,
+  userInterests, type UserInterest, type InsertUserInterest,
+  contentEngagement, type ContentEngagement, type InsertContentEngagement
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -33,6 +38,29 @@ export interface IStorage {
   createToken(token: InsertToken): Promise<Token>;
   getTokenByToken(token: string): Promise<Token | undefined>;
   deleteToken(id: number): Promise<boolean>;
+  
+  // Content categorization and discovery methods
+  createTag(tag: InsertTag): Promise<Tag>;
+  getTags(type?: string): Promise<Tag[]>;
+  getTagById(id: number): Promise<Tag | undefined>;
+  updateTagPopularity(id: number, increment: number): Promise<Tag | undefined>;
+  addPostTag(postTag: InsertPostTag): Promise<PostTag>;
+  getPostTags(postId: number): Promise<Tag[]>;
+  removePostTag(postId: number, tagId: number): Promise<boolean>;
+  createContentCategory(category: InsertContentCategory): Promise<ContentCategory>;
+  getContentCategories(): Promise<ContentCategory[]>;
+  updateUserInterest(interest: InsertUserInterest): Promise<UserInterest>;
+  getUserInterests(userId: number): Promise<(UserInterest & { tag: Tag })[]>;
+  recordContentEngagement(engagement: InsertContentEngagement): Promise<ContentEngagement>;
+  getContentEngagementForUser(userId: number): Promise<ContentEngagement[]>;
+  getPersonalizedFeed(userId: number, limit?: number): Promise<(Post & { 
+    user: User, 
+    likeCount: number, 
+    commentCount: number, 
+    hasLiked: boolean,
+    tags: Tag[],
+    relevanceScore: number
+  })[]>;
   
   // Post methods
   createPost(post: InsertPost): Promise<Post>;
@@ -150,6 +178,11 @@ export class MemStorage implements IStorage {
   private teams: Map<number, Team>;
   private matchPlayers: Map<number, MatchPlayer>;
   private ballByBalls: Map<number, BallByBall>;
+  private tags: Map<number, Tag>;
+  private postTags: Map<string, PostTag>; // Composite key: `${postId}-${tagId}`
+  private contentCategories: Map<number, ContentCategory>;
+  private userInterests: Map<string, UserInterest>; // Composite key: `${userId}-${tagId}`
+  private contentEngagements: Map<number, ContentEngagement>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -168,6 +201,9 @@ export class MemStorage implements IStorage {
   teamCurrentId: number;
   matchPlayerCurrentId: number;
   ballByBallCurrentId: number;
+  tagCurrentId: number;
+  contentCategoryCurrentId: number;
+  contentEngagementCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -188,6 +224,11 @@ export class MemStorage implements IStorage {
     this.teams = new Map();
     this.matchPlayers = new Map();
     this.ballByBalls = new Map();
+    this.tags = new Map();
+    this.postTags = new Map();
+    this.contentCategories = new Map();
+    this.userInterests = new Map();
+    this.contentEngagements = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -206,6 +247,9 @@ export class MemStorage implements IStorage {
     this.teamCurrentId = 1;
     this.matchPlayerCurrentId = 1;
     this.ballByBallCurrentId = 1;
+    this.tagCurrentId = 1;
+    this.contentCategoryCurrentId = 1;
+    this.contentEngagementCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -1164,6 +1208,291 @@ export class MemStorage implements IStorage {
         }
         return a.ball - b.ball;
       });
+  }
+  
+  // Content categorization and discovery system methods
+  async createTag(insertTag: InsertTag): Promise<Tag> {
+    const id = this.tagCurrentId++;
+    const tag: Tag = {
+      id,
+      name: insertTag.name,
+      description: insertTag.description || null,
+      type: insertTag.type,
+      popularityScore: insertTag.popularityScore || 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.tags.set(id, tag);
+    return tag;
+  }
+  
+  async getTags(type?: string): Promise<Tag[]> {
+    const allTags = Array.from(this.tags.values());
+    if (type) {
+      return allTags.filter(tag => tag.type === type);
+    }
+    return allTags;
+  }
+  
+  async getTagById(id: number): Promise<Tag | undefined> {
+    return this.tags.get(id);
+  }
+  
+  async updateTagPopularity(id: number, increment: number): Promise<Tag | undefined> {
+    const tag = await this.getTagById(id);
+    if (!tag) return undefined;
+    
+    const updatedTag = { 
+      ...tag, 
+      popularityScore: tag.popularityScore + increment,
+      updatedAt: new Date()
+    };
+    this.tags.set(id, updatedTag);
+    return updatedTag;
+  }
+  
+  async addPostTag(insertPostTag: InsertPostTag): Promise<PostTag> {
+    const compositeKey = `${insertPostTag.postId}-${insertPostTag.tagId}`;
+    
+    // Check if tag association already exists
+    const existingPostTag = this.postTags.get(compositeKey);
+    if (existingPostTag) return existingPostTag;
+    
+    const postTag: PostTag = {
+      postId: insertPostTag.postId,
+      tagId: insertPostTag.tagId,
+      createdAt: new Date()
+    };
+    
+    this.postTags.set(compositeKey, postTag);
+    
+    // Increment the tag's popularity
+    await this.updateTagPopularity(insertPostTag.tagId, 1);
+    
+    return postTag;
+  }
+  
+  async getPostTags(postId: number): Promise<Tag[]> {
+    const tagIds = Array.from(this.postTags.values())
+      .filter(postTag => postTag.postId === postId)
+      .map(postTag => postTag.tagId);
+    
+    return Promise.all(tagIds.map(id => this.getTagById(id))) as Promise<Tag[]>;
+  }
+  
+  async removePostTag(postId: number, tagId: number): Promise<boolean> {
+    const compositeKey = `${postId}-${tagId}`;
+    const success = this.postTags.delete(compositeKey);
+    
+    if (success) {
+      // Decrement the tag's popularity
+      await this.updateTagPopularity(tagId, -1);
+    }
+    
+    return success;
+  }
+  
+  async createContentCategory(insertCategory: InsertContentCategory): Promise<ContentCategory> {
+    const id = this.contentCategoryCurrentId++;
+    const category: ContentCategory = {
+      id,
+      name: insertCategory.name,
+      description: insertCategory.description || null,
+      iconUrl: insertCategory.iconUrl || null,
+      priority: insertCategory.priority || 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.contentCategories.set(id, category);
+    return category;
+  }
+  
+  async getContentCategories(): Promise<ContentCategory[]> {
+    return Array.from(this.contentCategories.values())
+      .sort((a, b) => b.priority - a.priority);
+  }
+  
+  async updateUserInterest(insertInterest: InsertUserInterest): Promise<UserInterest> {
+    const compositeKey = `${insertInterest.userId}-${insertInterest.tagId}`;
+    
+    // Check if interest already exists
+    const existingInterest = this.userInterests.get(compositeKey);
+    
+    const interest: UserInterest = existingInterest ? {
+      ...existingInterest,
+      interactionScore: insertInterest.interactionScore || existingInterest.interactionScore,
+      updatedAt: new Date()
+    } : {
+      userId: insertInterest.userId,
+      tagId: insertInterest.tagId,
+      interactionScore: insertInterest.interactionScore || 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.userInterests.set(compositeKey, interest);
+    return interest;
+  }
+  
+  async getUserInterests(userId: number): Promise<(UserInterest & { tag: Tag })[]> {
+    const interests = Array.from(this.userInterests.values())
+      .filter(interest => interest.userId === userId);
+    
+    return Promise.all(interests.map(async interest => {
+      const tag = await this.getTagById(interest.tagId) as Tag;
+      return { ...interest, tag };
+    }));
+  }
+  
+  async recordContentEngagement(insertEngagement: InsertContentEngagement): Promise<ContentEngagement> {
+    const id = this.contentEngagementCurrentId++;
+    const engagement: ContentEngagement = {
+      id,
+      userId: insertEngagement.userId,
+      postId: insertEngagement.postId,
+      engagementType: insertEngagement.engagementType,
+      engagementScore: insertEngagement.engagementScore || 0,
+      duration: insertEngagement.duration || null,
+      createdAt: new Date()
+    };
+    this.contentEngagements.set(id, engagement);
+    
+    // Update user interests based on post tags
+    const postTags = await this.getPostTags(insertEngagement.postId);
+    
+    for (const tag of postTags) {
+      // Calculate an interaction score based on engagement type
+      let interactionScore = 0;
+      switch (insertEngagement.engagementType) {
+        case 'view':
+          interactionScore = 0.1;
+          break;
+        case 'like':
+          interactionScore = 0.3;
+          break;
+        case 'comment':
+          interactionScore = 0.5;
+          break;
+        case 'share':
+          interactionScore = 0.7;
+          break;
+        case 'save':
+          interactionScore = 0.8;
+          break;
+        case 'time_spent':
+          // Calculate based on duration (0-1 range)
+          const durationMinutes = (insertEngagement.duration || 0) / 60;
+          interactionScore = Math.min(durationMinutes / 5, 1) * 0.6; // Max score at 5 minutes
+          break;
+      }
+      
+      // Get existing interest or create new one
+      const existingInterest = Array.from(this.userInterests.values())
+        .find(i => i.userId === insertEngagement.userId && i.tagId === tag.id);
+      
+      if (existingInterest) {
+        // Smooth update with more weight for new interaction
+        const newScore = existingInterest.interactionScore * 0.7 + interactionScore * 0.3;
+        await this.updateUserInterest({
+          userId: insertEngagement.userId,
+          tagId: tag.id,
+          interactionScore: newScore
+        });
+      } else {
+        // Create new interest
+        await this.updateUserInterest({
+          userId: insertEngagement.userId,
+          tagId: tag.id,
+          interactionScore
+        });
+      }
+    }
+    
+    return engagement;
+  }
+  
+  async getContentEngagementForUser(userId: number): Promise<ContentEngagement[]> {
+    return Array.from(this.contentEngagements.values())
+      .filter(engagement => engagement.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  async getPersonalizedFeed(userId: number, limit: number = 20): Promise<(Post & { 
+    user: User, 
+    likeCount: number, 
+    commentCount: number, 
+    hasLiked: boolean,
+    tags: Tag[],
+    relevanceScore: number
+  })[]> {
+    // Get all user interests
+    const userInterests = await this.getUserInterests(userId);
+    
+    // Get following IDs
+    const followingIds = Array.from(this.follows.values())
+      .filter(follow => follow.followerId === userId)
+      .map(follow => follow.followingId);
+    
+    // Include user's own posts
+    followingIds.push(userId);
+    
+    // Get recent posts from all users (not just following, to expand discovery)
+    const allRecentPosts = Array.from(this.posts.values())
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, 100); // Start with a larger pool to apply personalization
+    
+    // Calculate relevance score for each post
+    const postsWithScore = await Promise.all(allRecentPosts.map(async post => {
+      const user = await this.getUser(post.userId) as User;
+      const likes = await this.getLikesForPost(post.id);
+      const comments = await this.getCommentsForPost(post.id);
+      const hasLiked = !!(await this.getLike(userId, post.id));
+      const tags = await this.getPostTags(post.id);
+      
+      // Calculate relevance score based on:
+      // 1. Creator follows (higher if you follow the creator)
+      // 2. Interest matching (based on tags)
+      // 3. Popularity (likes, comments)
+      // 4. Recency
+      
+      let relevanceScore = 0;
+      
+      // Creator follow boost (0-30 points)
+      if (followingIds.includes(post.userId)) {
+        relevanceScore += 30;
+      }
+      
+      // Interest matching (0-40 points)
+      const tagInterestScore = tags.reduce((score, tag) => {
+        const matchingInterest = userInterests.find(i => i.tagId === tag.id);
+        return score + (matchingInterest ? matchingInterest.interactionScore * 40 : 0);
+      }, 0);
+      relevanceScore += Math.min(tagInterestScore, 40); // Cap at 40
+      
+      // Popularity score (0-20 points)
+      const popularityScore = (likes.length * 2 + comments.length * 3) / 10;
+      relevanceScore += Math.min(popularityScore, 20); // Cap at 20
+      
+      // Recency score (0-10 points)
+      const ageInHours = ((new Date()).getTime() - (post.createdAt?.getTime() || 0)) / (1000 * 60 * 60);
+      const recencyScore = Math.max(0, 10 - ageInHours / 12); // Decrease score over time, lowest after 5 days
+      relevanceScore += recencyScore;
+      
+      return {
+        ...post,
+        user,
+        likeCount: likes.length,
+        commentCount: comments.length,
+        hasLiked,
+        tags,
+        relevanceScore
+      };
+    }));
+    
+    // Sort by relevance score and take the top 'limit' posts
+    return postsWithScore
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, limit);
   }
 }
 

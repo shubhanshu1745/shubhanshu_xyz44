@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { PostTags } from "@/components/post-tags";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -329,6 +330,9 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
         </div>
         
         <p className="font-semibold text-sm mb-1">{likeCount} likes</p>
+        
+        {/* Post Tags Component */}
+        <PostTags postId={post.id} isPostOwner={user?.id === post.userId} />
         
         {/* Cricket category badge */}
         {post.category && (
