@@ -4,6 +4,6 @@ import http from 'http';
 // Create and start immediately
 http.createServer((req, res) => {
   res.end('OK');
-}).listen(5000, '0.0.0.0', () => {
-  console.log('Port 5000 open');
+}).listen(3000, '0.0.0.0', () => {
+  console.log('Port 3000 open');
 });

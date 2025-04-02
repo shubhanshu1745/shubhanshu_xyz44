@@ -396,7 +396,7 @@ export default function StatsPage() {
   const bowlingAvg = calculateBowlingAverage(stats.runsConceded || 0, stats.totalWickets || 0);
 
   // Prepare chart data
-  const chartData = matches.map(match => ({
+  const chartData = matches && Array.isArray(matches) ? matches.map(match => ({
     date: format(new Date(match.matchDate!), 'MMM dd'), // Format date for chart
     runs: match.performance?.runsScored || 0,
     wicketsTaken: match.performance?.wicketsTaken || 0,
@@ -593,7 +593,7 @@ export default function StatsPage() {
               <>
                 {matches && matches.length > 0 ? (
                   <div className="space-y-4">
-                    {matches.map((match) => (
+                    {matches && Array.isArray(matches) ? matches.map((match) => (
                       <Card key={match.id} className="overflow-hidden border shadow-sm">
 
                          <div className="flex flex-wrap bg-muted/50 dark:bg-muted/30 p-2 px-4 items-center text-xs text-muted-foreground gap-x-3 gap-y-1">

@@ -763,7 +763,7 @@ export default function TournamentManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedTournament.matches.map((match) => (
+                      {selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.map((match) => (
                         <TableRow key={match.id}>
                           <TableCell className="font-medium">{match.matchNumber}</TableCell>
                           <TableCell>

@@ -235,11 +235,14 @@ export default function MatchHighlights() {
             <SelectValue placeholder="Select a match" />
           </SelectTrigger>
           <SelectContent>
-            {matches.map((match: Match) => (
-              <SelectItem key={match.id} value={match.id.toString()}>
-                {match.title} - {new Date(match.date).toLocaleDateString()}
-              </SelectItem>
-            ))}
+            {matches && Array.isArray(matches) ? 
+              matches.map((match: Match) => (
+                <SelectItem key={match.id} value={match.id.toString()}>
+                  {match.title} - {new Date(match.date).toLocaleDateString()}
+                </SelectItem>
+              ))
+            : <SelectItem value="">No matches available</SelectItem>
+            }
           </SelectContent>
         </Select>
       </div>
