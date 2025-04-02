@@ -1,7 +1,7 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, hashPassword } from "./auth";
+import { setupAuth, hashPassword, isAuthenticated } from "./auth";
 import { z } from "zod";
 import * as CoachingService from "./services/coaching";
 import * as HighlightService from "./services/highlights";
@@ -3337,6 +3337,440 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching personalized feed:", error);
       res.status(500).json({ message: "Failed to fetch personalized feed" });
+    }
+  });
+
+  // Venue Management API Routes
+  app.get("/api/venues", async (req, res) => {
+    try {
+      const query = req.query.q as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const venues = await storage.getVenues(query, limit);
+      res.json(venues);
+    } catch (error) {
+      console.error("Error getting venues:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/venues/nearby", async (req, res) => {
+    try {
+      const { lat, lng, radius } = req.query;
+      
+      if (!lat || !lng || !radius) {
+        return res.status(400).json({ error: "Missing required parameters (lat, lng, radius)" });
+      }
+      
+      const latitude = parseFloat(lat as string);
+      const longitude = parseFloat(lng as string);
+      const radiusKm = parseFloat(radius as string);
+      
+      if (isNaN(latitude) || isNaN(longitude) || isNaN(radiusKm)) {
+        return res.status(400).json({ error: "Invalid parameters format" });
+      }
+      
+      const venues = await storage.getNearbyVenues(latitude, longitude, radiusKm);
+      res.json(venues);
+    } catch (error) {
+      console.error("Error getting nearby venues:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/venues/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const venue = await storage.getVenue(id);
+      
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+      
+      res.json(venue);
+    } catch (error) {
+      console.error("Error getting venue:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/venues", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const venueData = { ...req.body, createdBy: user.id };
+      
+      const newVenue = await storage.createVenue(venueData);
+      res.status(201).json(newVenue);
+    } catch (error) {
+      console.error("Error creating venue:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.put("/api/venues/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user;
+      const venue = await storage.getVenue(id);
+      
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+      
+      // Check if user owns venue
+      if (venue.createdBy !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to edit this venue" });
+      }
+      
+      const updatedVenue = await storage.updateVenue(id, req.body);
+      res.json(updatedVenue);
+    } catch (error) {
+      console.error("Error updating venue:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/venues/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user;
+      const venue = await storage.getVenue(id);
+      
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+      
+      // Check if user owns venue
+      if (venue.createdBy !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to delete this venue" });
+      }
+      
+      await storage.deleteVenue(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting venue:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/venues/:id/availability", async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.id);
+      const availabilities = await storage.getVenueAvailabilities(venueId);
+      res.json(availabilities);
+    } catch (error) {
+      console.error("Error getting venue availabilities:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/venues/:id/availability", isAuthenticated, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.id);
+      const user = req.user;
+      const venue = await storage.getVenue(venueId);
+      
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+      
+      // Check if user owns venue
+      if (venue.createdBy !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to manage this venue" });
+      }
+      
+      const availabilityData = { ...req.body, venueId };
+      const newAvailability = await storage.createVenueAvailability(availabilityData);
+      res.status(201).json(newAvailability);
+    } catch (error) {
+      console.error("Error creating venue availability:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/venues/:id/bookings", async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.id);
+      let startDate: Date | undefined;
+      let endDate: Date | undefined;
+      
+      if (req.query.startDate) {
+        startDate = new Date(req.query.startDate as string);
+      }
+      
+      if (req.query.endDate) {
+        endDate = new Date(req.query.endDate as string);
+      }
+      
+      const bookings = await storage.getVenueBookings(venueId, startDate, endDate);
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error getting venue bookings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/venues/:id/bookings", isAuthenticated, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.id);
+      const user = req.user;
+      const venue = await storage.getVenue(venueId);
+      
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+      
+      const { date, startTime, endTime } = req.body;
+      
+      if (!date || !startTime || !endTime) {
+        return res.status(400).json({ error: "Missing required booking details" });
+      }
+      
+      const bookingDate = new Date(date);
+      
+      // Check if the venue is available
+      const isAvailable = await storage.checkVenueAvailability(
+        venueId, 
+        bookingDate, 
+        startTime, 
+        endTime
+      );
+      
+      if (!isAvailable) {
+        return res.status(400).json({ error: "Venue is not available for the requested time" });
+      }
+      
+      const bookingData = { 
+        ...req.body, 
+        venueId, 
+        userId: user.id,
+        date: bookingDate
+      };
+      
+      const newBooking = await storage.createVenueBooking(bookingData);
+      res.status(201).json(newBooking);
+    } catch (error) {
+      console.error("Error booking venue:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/user/bookings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const bookings = await storage.getUserBookings(user.id);
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error getting user bookings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/bookings/:id/cancel", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user;
+      const booking = await storage.getVenueBooking(id);
+      
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      // Check if user owns booking
+      if (booking.userId !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to cancel this booking" });
+      }
+      
+      await storage.cancelVenueBooking(id);
+      res.status(200).json({ message: "Booking cancelled successfully" });
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Tournament Management API Routes
+  app.get("/api/tournaments", async (req, res) => {
+    try {
+      const query = req.query.q as string | undefined;
+      const status = req.query.status as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      const tournaments = await storage.getTournaments(query, status, limit);
+      res.json(tournaments);
+    } catch (error) {
+      console.error("Error getting tournaments:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/tournaments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const tournament = await storage.getTournament(id);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      res.json(tournament);
+    } catch (error) {
+      console.error("Error getting tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/tournaments", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const tournamentData = { ...req.body, organizerId: user.id };
+      
+      const newTournament = await storage.createTournament(tournamentData);
+      res.status(201).json(newTournament);
+    } catch (error) {
+      console.error("Error creating tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.put("/api/tournaments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user;
+      const tournament = await storage.getTournament(id);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Check if user owns tournament
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to edit this tournament" });
+      }
+      
+      const updatedTournament = await storage.updateTournament(id, req.body);
+      res.json(updatedTournament);
+    } catch (error) {
+      console.error("Error updating tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.delete("/api/tournaments/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const user = req.user;
+      const tournament = await storage.getTournament(id);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Check if user owns tournament
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to delete this tournament" });
+      }
+      
+      await storage.deleteTournament(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/tournaments/:id/teams", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const teams = await storage.getTournamentTeams(tournamentId);
+      res.json(teams);
+    } catch (error) {
+      console.error("Error getting tournament teams:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/tournaments/:id/teams", isAuthenticated, async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const teamId = req.body.teamId;
+      
+      if (!teamId) {
+        return res.status(400).json({ error: "Missing team ID" });
+      }
+      
+      const user = req.user;
+      const tournament = await storage.getTournament(tournamentId);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Check if user owns tournament or team
+      const team = await storage.getTeamById(teamId);
+      if (!team) {
+        return res.status(404).json({ error: "Team not found" });
+      }
+      
+      if (tournament.organizerId !== user.id && team.ownerId !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to add team to this tournament" });
+      }
+      
+      const teamData = { 
+        tournamentId, 
+        teamId,
+        ...req.body
+      };
+      
+      const tournamentTeam = await storage.addTeamToTournament(teamData);
+      res.status(201).json(tournamentTeam);
+    } catch (error) {
+      console.error("Error adding team to tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/tournaments/:id/matches", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const matches = await storage.getTournamentMatches(tournamentId);
+      res.json(matches);
+    } catch (error) {
+      console.error("Error getting tournament matches:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.post("/api/tournaments/:id/matches", isAuthenticated, async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const matchId = req.body.matchId;
+      
+      if (!matchId) {
+        return res.status(400).json({ error: "Missing match ID" });
+      }
+      
+      const user = req.user;
+      const tournament = await storage.getTournament(tournamentId);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Check if user owns tournament
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Unauthorized to add match to this tournament" });
+      }
+      
+      const matchData = { 
+        tournamentId, 
+        matchId,
+        ...req.body
+      };
+      
+      const tournamentMatch = await storage.createTournamentMatch(matchData);
+      res.status(201).json(tournamentMatch);
+    } catch (error) {
+      console.error("Error adding match to tournament:", error);
+      res.status(500).json({ error: "Internal server error" });
     }
   });
 

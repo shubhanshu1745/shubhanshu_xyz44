@@ -1008,6 +1008,279 @@ export const createContentEngagementSchema = insertContentEngagementSchema.exten
   duration: z.coerce.number().int().min(0).optional(),
 });
 
+// Venue Management
+export const venues = pgTable("venues", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state"),
+  country: text("country").notNull(),
+  postalCode: text("postal_code"),
+  capacity: integer("capacity"),
+  facilities: text("facilities").array(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  pricePerHour: numeric("price_per_hour"),
+  isActive: boolean("is_active").default(true),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+});
+
+export const venueAvailability = pgTable("venue_availability", {
+  id: serial("id").primaryKey(),
+  venueId: integer("venue_id").references(() => venues.id).notNull(),
+  dayOfWeek: integer("day_of_week").notNull(), // 0-6 for Sunday-Saturday
+  startTime: text("start_time").notNull(), // Format: HH:MM in 24-hour
+  endTime: text("end_time").notNull(), // Format: HH:MM in 24-hour
+  isAvailable: boolean("is_available").default(true),
+});
+
+export const venueBookings = pgTable("venue_bookings", {
+  id: serial("id").primaryKey(),
+  venueId: integer("venue_id").references(() => venues.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  date: timestamp("date").notNull(),
+  startTime: text("start_time").notNull(), // Format: HH:MM in 24-hour
+  endTime: text("end_time").notNull(), // Format: HH:MM in 24-hour
+  purpose: text("purpose"),
+  numberOfPeople: integer("number_of_people"),
+  status: text("status").notNull().default("pending"), // pending, confirmed, cancelled, completed
+  paymentStatus: text("payment_status").default("unpaid"), // unpaid, partial, paid
+  totalAmount: numeric("total_amount"),
+  paidAmount: numeric("paid_amount").default("0"),
+  transactionId: text("transaction_id"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  tournamentId: integer("tournament_id"), // Can be null if not for a tournament
+});
+
+// Tournament Organization
+export const tournaments = pgTable("tournaments", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  registrationDeadline: timestamp("registration_deadline"),
+  maxTeams: integer("max_teams"),
+  entryFee: numeric("entry_fee").default("0"),
+  prizePool: numeric("prize_pool").default("0"),
+  format: text("format").notNull(), // league, knockout, group-stage-knockout, etc.
+  status: text("status").notNull().default("upcoming"), // upcoming, ongoing, completed, cancelled
+  organizerId: integer("organizer_id").references(() => users.id).notNull(),
+  logoUrl: text("logo_url"),
+  bannerUrl: text("banner_url"),
+  rules: text("rules"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  isPublic: boolean("is_public").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tournamentTeams = pgTable("tournament_teams", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  registrationDate: timestamp("registration_date").defaultNow(),
+  registrationStatus: text("registration_status").default("pending"), // pending, approved, rejected
+  paymentStatus: text("payment_status").default("unpaid"), // unpaid, partial, paid
+  paidAmount: numeric("paid_amount").default("0"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const tournamentMatches = pgTable("tournament_matches", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  matchId: integer("match_id").references(() => matches.id).notNull(),
+  round: integer("round"), // 1 for first round, 2 for second round, etc.
+  matchNumber: integer("match_number"), // Match number in the tournament
+  group: text("group"), // For group stage matches
+  stage: text("stage"), // group, quarter-final, semi-final, final, etc.
+  venueId: integer("venue_id").references(() => venues.id),
+  scheduledDate: timestamp("scheduled_date"),
+  scheduledTime: text("scheduled_time"), // Format: HH:MM in 24-hour
+  status: text("status").default("scheduled"), // scheduled, live, completed, postponed, cancelled
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Schema Definitions
+export const insertVenueSchema = createInsertSchema(venues).pick({
+  name: true,
+  address: true,
+  city: true,
+  state: true,
+  country: true,
+  postalCode: true,
+  capacity: true,
+  facilities: true,
+  description: true,
+  imageUrl: true,
+  contactEmail: true,
+  contactPhone: true,
+  pricePerHour: true,
+  createdBy: true,
+  latitude: true,
+  longitude: true,
+});
+
+export const insertVenueAvailabilitySchema = createInsertSchema(venueAvailability).pick({
+  venueId: true,
+  dayOfWeek: true,
+  startTime: true,
+  endTime: true,
+  isAvailable: true,
+});
+
+export const insertVenueBookingSchema = createInsertSchema(venueBookings).pick({
+  venueId: true,
+  userId: true,
+  date: true,
+  startTime: true,
+  endTime: true,
+  purpose: true,
+  numberOfPeople: true,
+  status: true,
+  paymentStatus: true,
+  totalAmount: true,
+  paidAmount: true,
+  transactionId: true,
+  notes: true,
+  tournamentId: true,
+});
+
+export const insertTournamentSchema = createInsertSchema(tournaments).pick({
+  name: true,
+  description: true,
+  startDate: true,
+  endDate: true,
+  registrationDeadline: true,
+  maxTeams: true,
+  entryFee: true,
+  prizePool: true,
+  format: true,
+  status: true,
+  organizerId: true,
+  logoUrl: true,
+  bannerUrl: true,
+  rules: true,
+  contactEmail: true,
+  contactPhone: true,
+  isPublic: true,
+});
+
+export const insertTournamentTeamSchema = createInsertSchema(tournamentTeams).pick({
+  tournamentId: true,
+  teamId: true,
+  registrationStatus: true,
+  paymentStatus: true,
+  paidAmount: true,
+  notes: true,
+});
+
+export const insertTournamentMatchSchema = createInsertSchema(tournamentMatches).pick({
+  tournamentId: true,
+  matchId: true,
+  round: true,
+  matchNumber: true,
+  group: true,
+  stage: true,
+  venueId: true,
+  scheduledDate: true,
+  scheduledTime: true,
+  status: true,
+  notes: true,
+});
+
+// Types
+export type InsertVenue = z.infer<typeof insertVenueSchema>;
+export type Venue = typeof venues.$inferSelect;
+
+export type InsertVenueAvailability = z.infer<typeof insertVenueAvailabilitySchema>;
+export type VenueAvailability = typeof venueAvailability.$inferSelect;
+
+export type InsertVenueBooking = z.infer<typeof insertVenueBookingSchema>;
+export type VenueBooking = typeof venueBookings.$inferSelect;
+
+export type InsertTournament = z.infer<typeof insertTournamentSchema>;
+export type Tournament = typeof tournaments.$inferSelect;
+
+export type InsertTournamentTeam = z.infer<typeof insertTournamentTeamSchema>;
+export type TournamentTeam = typeof tournamentTeams.$inferSelect;
+
+export type InsertTournamentMatch = z.infer<typeof insertTournamentMatchSchema>;
+export type TournamentMatch = typeof tournamentMatches.$inferSelect;
+
+// Form Schemas
+export const createVenueSchema = insertVenueSchema.extend({
+  facilities: z.string().array().optional(),
+  capacity: z.coerce.number().int().positive().optional(),
+  pricePerHour: z.coerce.number().positive().optional(),
+  latitude: z.coerce.number().optional(),
+  longitude: z.coerce.number().optional(),
+});
+
+export const createVenueAvailabilitySchema = insertVenueAvailabilitySchema.extend({
+  dayOfWeek: z.coerce.number().int().min(0).max(6),
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM in 24-hour format"),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM in 24-hour format"),
+});
+
+export const createVenueBookingSchema = insertVenueBookingSchema.extend({
+  date: z.coerce.date(),
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM in 24-hour format"),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM in 24-hour format"),
+  totalAmount: z.coerce.number().nonnegative(),
+  paidAmount: z.coerce.number().nonnegative().optional(),
+  status: z.enum(["pending", "confirmed", "cancelled", "completed"]),
+  paymentStatus: z.enum(["unpaid", "partial", "paid"]),
+});
+
+export const createTournamentSchema = insertTournamentSchema.extend({
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  registrationDeadline: z.coerce.date().optional(),
+  maxTeams: z.coerce.number().int().positive().optional(),
+  entryFee: z.coerce.number().nonnegative().optional(),
+  prizePool: z.coerce.number().nonnegative().optional(),
+  format: z.enum(["league", "knockout", "group-stage-knockout", "custom"]),
+  status: z.enum(["upcoming", "ongoing", "completed", "cancelled"]),
+  isPublic: z.boolean().default(true),
+});
+
+export const createTournamentTeamSchema = insertTournamentTeamSchema.extend({
+  registrationStatus: z.enum(["pending", "approved", "rejected"]),
+  paymentStatus: z.enum(["unpaid", "partial", "paid"]),
+  paidAmount: z.coerce.number().nonnegative().optional(),
+});
+
+export const createTournamentMatchSchema = insertTournamentMatchSchema.extend({
+  scheduledDate: z.coerce.date().optional(),
+  scheduledTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format. Use HH:MM in 24-hour format").optional(),
+  status: z.enum(["scheduled", "live", "completed", "postponed", "cancelled"]),
+  round: z.coerce.number().int().positive().optional(),
+  matchNumber: z.coerce.number().int().positive().optional(),
+});
+
+// Types for venue management and tournament forms
+export type CreateVenueFormData = z.infer<typeof createVenueSchema>;
+export type CreateVenueAvailabilityFormData = z.infer<typeof createVenueAvailabilitySchema>;
+export type CreateVenueBookingFormData = z.infer<typeof createVenueBookingSchema>;
+export type CreateTournamentFormData = z.infer<typeof createTournamentSchema>;
+export type CreateTournamentTeamFormData = z.infer<typeof createTournamentTeamSchema>;
+export type CreateTournamentMatchFormData = z.infer<typeof createTournamentMatchSchema>;
+
 // Types for content categorization and tagging forms
 export type CreateTagFormData = z.infer<typeof createTagSchema>;
 export type CreateContentCategoryFormData = z.infer<typeof createContentCategorySchema>;

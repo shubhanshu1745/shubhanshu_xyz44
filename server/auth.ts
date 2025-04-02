@@ -31,6 +31,14 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Authentication middleware
+export function isAuthenticated(req: any, res: any, next: any) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: "Unauthorized" });
+}
+
 export function setupAuth(app: Express) {
   // Simple session secret (in production, use a more secure secret from environment variables)
   const sessionSecret = process.env.SESSION_SECRET || "cricsocial-secret-key";

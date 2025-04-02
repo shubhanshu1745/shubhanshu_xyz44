@@ -16,7 +16,13 @@ import {
   postTags, type PostTag, type InsertPostTag,
   contentCategories, type ContentCategory, type InsertContentCategory,
   userInterests, type UserInterest, type InsertUserInterest,
-  contentEngagement, type ContentEngagement, type InsertContentEngagement
+  contentEngagement, type ContentEngagement, type InsertContentEngagement,
+  venues, type Venue, type InsertVenue,
+  venueAvailability, type VenueAvailability, type InsertVenueAvailability,
+  venueBookings, type VenueBooking, type InsertVenueBooking,
+  tournaments, type Tournament, type InsertTournament,
+  tournamentTeams, type TournamentTeam, type InsertTournamentTeam,
+  tournamentMatches, type TournamentMatch, type InsertTournamentMatch
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -155,6 +161,51 @@ export interface IStorage {
   // Ball-by-ball data methods
   recordBallByBall(ball: InsertBallByBall): Promise<BallByBall>;
   getMatchBalls(matchId: number): Promise<BallByBall[]>;
+
+  // Venue management methods
+  createVenue(venue: InsertVenue): Promise<Venue>;
+  getVenue(id: number): Promise<Venue | undefined>;
+  getVenues(query?: string, limit?: number): Promise<Venue[]>;
+  getNearbyVenues(lat: number, lng: number, radiusKm: number): Promise<Venue[]>;
+  updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | undefined>;
+  deleteVenue(id: number): Promise<boolean>;
+  getUserVenues(userId: number): Promise<Venue[]>;
+  
+  // Venue availability methods
+  createVenueAvailability(availability: InsertVenueAvailability): Promise<VenueAvailability>;
+  getVenueAvailabilities(venueId: number): Promise<VenueAvailability[]>;
+  updateVenueAvailability(id: number, data: Partial<VenueAvailability>): Promise<VenueAvailability | undefined>;
+  deleteVenueAvailability(id: number): Promise<boolean>;
+  
+  // Venue booking methods
+  createVenueBooking(booking: InsertVenueBooking): Promise<VenueBooking>;
+  getVenueBooking(id: number): Promise<VenueBooking | undefined>;
+  getUserBookings(userId: number): Promise<(VenueBooking & { venue: Venue })[]>;
+  getVenueBookings(venueId: number, startDate?: Date, endDate?: Date): Promise<(VenueBooking & { user: User })[]>;
+  updateVenueBooking(id: number, data: Partial<VenueBooking>): Promise<VenueBooking | undefined>;
+  cancelVenueBooking(id: number): Promise<boolean>;
+  checkVenueAvailability(venueId: number, date: Date, startTime: string, endTime: string): Promise<boolean>;
+  
+  // Tournament methods
+  createTournament(tournament: InsertTournament): Promise<Tournament>;
+  getTournament(id: number): Promise<Tournament | undefined>;
+  getTournaments(query?: string, status?: string, limit?: number): Promise<Tournament[]>;
+  getUserTournaments(userId: number): Promise<Tournament[]>;
+  updateTournament(id: number, data: Partial<Tournament>): Promise<Tournament | undefined>;
+  deleteTournament(id: number): Promise<boolean>;
+  
+  // Tournament team methods
+  addTeamToTournament(teamData: InsertTournamentTeam): Promise<TournamentTeam>;
+  getTournamentTeams(tournamentId: number): Promise<(TournamentTeam & { team: Team })[]>;
+  updateTournamentTeam(tournamentId: number, teamId: number, data: Partial<TournamentTeam>): Promise<TournamentTeam | undefined>;
+  removeTeamFromTournament(tournamentId: number, teamId: number): Promise<boolean>;
+  
+  // Tournament match methods
+  createTournamentMatch(matchData: InsertTournamentMatch): Promise<TournamentMatch>;
+  getTournamentMatch(id: number): Promise<TournamentMatch | undefined>;
+  getTournamentMatches(tournamentId: number): Promise<(TournamentMatch & { match: Match, venue?: Venue })[]>;
+  updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined>;
+  deleteTournamentMatch(id: number): Promise<boolean>;
   
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
@@ -183,6 +234,12 @@ export class MemStorage implements IStorage {
   private contentCategories: Map<number, ContentCategory>;
   private userInterests: Map<string, UserInterest>; // Composite key: `${userId}-${tagId}`
   private contentEngagements: Map<number, ContentEngagement>;
+  private venues: Map<number, Venue>;
+  private venueAvailabilities: Map<number, VenueAvailability>;
+  private venueBookings: Map<number, VenueBooking>;
+  private tournaments: Map<number, Tournament>;
+  private tournamentTeams: Map<string, TournamentTeam>; // Composite key: `${tournamentId}-${teamId}`
+  private tournamentMatches: Map<number, TournamentMatch>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -204,6 +261,11 @@ export class MemStorage implements IStorage {
   tagCurrentId: number;
   contentCategoryCurrentId: number;
   contentEngagementCurrentId: number;
+  venueCurrentId: number;
+  venueAvailabilityCurrentId: number;
+  venueBookingCurrentId: number;
+  tournamentCurrentId: number;
+  tournamentMatchCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -229,6 +291,12 @@ export class MemStorage implements IStorage {
     this.contentCategories = new Map();
     this.userInterests = new Map();
     this.contentEngagements = new Map();
+    this.venues = new Map();
+    this.venueAvailabilities = new Map();
+    this.venueBookings = new Map();
+    this.tournaments = new Map();
+    this.tournamentTeams = new Map();
+    this.tournamentMatches = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -250,6 +318,11 @@ export class MemStorage implements IStorage {
     this.tagCurrentId = 1;
     this.contentCategoryCurrentId = 1;
     this.contentEngagementCurrentId = 1;
+    this.venueCurrentId = 1;
+    this.venueAvailabilityCurrentId = 1;
+    this.venueBookingCurrentId = 1;
+    this.tournamentCurrentId = 1;
+    this.tournamentMatchCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -1209,6 +1282,314 @@ export class MemStorage implements IStorage {
         return a.ball - b.ball;
       });
   }
+
+  // Venue management methods
+  async createVenue(insertVenue: InsertVenue): Promise<Venue> {
+    const id = this.venueCurrentId++;
+    const venue: Venue = {
+      id,
+      name: insertVenue.name,
+      address: insertVenue.address,
+      city: insertVenue.city,
+      state: insertVenue.state || null,
+      country: insertVenue.country,
+      postalCode: insertVenue.postalCode || null,
+      capacity: insertVenue.capacity || null,
+      facilities: insertVenue.facilities || [],
+      description: insertVenue.description || null,
+      imageUrl: insertVenue.imageUrl || null,
+      contactEmail: insertVenue.contactEmail || null,
+      contactPhone: insertVenue.contactPhone || null,
+      pricePerHour: insertVenue.pricePerHour || null,
+      isActive: true,
+      createdBy: insertVenue.createdBy,
+      latitude: insertVenue.latitude || null,
+      longitude: insertVenue.longitude || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.venues.set(id, venue);
+    return venue;
+  }
+  
+  async getVenue(id: number): Promise<Venue | undefined> {
+    return this.venues.get(id);
+  }
+  
+  async getVenues(query?: string, limit: number = 20): Promise<Venue[]> {
+    let venues = Array.from(this.venues.values())
+      .filter(venue => venue.isActive);
+    
+    if (query) {
+      const lowerCaseQuery = query.toLowerCase();
+      venues = venues.filter(venue => 
+        venue.name.toLowerCase().includes(lowerCaseQuery) ||
+        venue.city.toLowerCase().includes(lowerCaseQuery) ||
+        (venue.state && venue.state.toLowerCase().includes(lowerCaseQuery)) ||
+        venue.country.toLowerCase().includes(lowerCaseQuery) ||
+        (venue.description && venue.description.toLowerCase().includes(lowerCaseQuery))
+      );
+    }
+    
+    return venues.slice(0, limit);
+  }
+  
+  async getNearbyVenues(lat: number, lng: number, radiusKm: number): Promise<Venue[]> {
+    // Simple distance calculation using the Haversine formula
+    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * (Math.PI / 180);
+      const dLon = (lon2 - lon1) * (Math.PI / 180);
+      const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    };
+    
+    return Array.from(this.venues.values())
+      .filter(venue => {
+        if (!venue.latitude || !venue.longitude || !venue.isActive) return false;
+        
+        const distance = calculateDistance(
+          lat, 
+          lng, 
+          Number(venue.latitude), 
+          Number(venue.longitude)
+        );
+        
+        return distance <= radiusKm;
+      })
+      .sort((a, b) => {
+        const distA = calculateDistance(
+          lat, 
+          lng, 
+          Number(a.latitude), 
+          Number(a.longitude)
+        );
+        const distB = calculateDistance(
+          lat, 
+          lng, 
+          Number(b.latitude), 
+          Number(b.longitude)
+        );
+        return distA - distB;
+      });
+  }
+  
+  async updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | undefined> {
+    const venue = await this.getVenue(id);
+    if (!venue) return undefined;
+    
+    const updatedVenue = { 
+      ...venue, 
+      ...venueData,
+      updatedAt: new Date() 
+    };
+    
+    this.venues.set(id, updatedVenue);
+    return updatedVenue;
+  }
+  
+  async deleteVenue(id: number): Promise<boolean> {
+    // Soft delete: mark as inactive instead of removing
+    const venue = await this.getVenue(id);
+    if (!venue) return false;
+    
+    const updatedVenue = { 
+      ...venue, 
+      isActive: false,
+      updatedAt: new Date() 
+    };
+    
+    this.venues.set(id, updatedVenue);
+    return true;
+  }
+  
+  async getUserVenues(userId: number): Promise<Venue[]> {
+    return Array.from(this.venues.values())
+      .filter(venue => venue.createdBy === userId && venue.isActive)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  // Venue availability methods
+  async createVenueAvailability(insertAvailability: InsertVenueAvailability): Promise<VenueAvailability> {
+    const id = this.venueAvailabilityCurrentId++;
+    const availability: VenueAvailability = {
+      id,
+      venueId: insertAvailability.venueId,
+      dayOfWeek: insertAvailability.dayOfWeek,
+      startTime: insertAvailability.startTime,
+      endTime: insertAvailability.endTime,
+      isAvailable: insertAvailability.isAvailable !== undefined ? insertAvailability.isAvailable : true
+    };
+    this.venueAvailabilities.set(id, availability);
+    return availability;
+  }
+  
+  async getVenueAvailabilities(venueId: number): Promise<VenueAvailability[]> {
+    return Array.from(this.venueAvailabilities.values())
+      .filter(avail => avail.venueId === venueId)
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek);
+  }
+  
+  async updateVenueAvailability(id: number, data: Partial<VenueAvailability>): Promise<VenueAvailability | undefined> {
+    const availability = this.venueAvailabilities.get(id);
+    if (!availability) return undefined;
+    
+    const updatedAvailability = { ...availability, ...data };
+    this.venueAvailabilities.set(id, updatedAvailability);
+    return updatedAvailability;
+  }
+  
+  async deleteVenueAvailability(id: number): Promise<boolean> {
+    return this.venueAvailabilities.delete(id);
+  }
+  
+  // Venue booking methods
+  async createVenueBooking(insertBooking: InsertVenueBooking): Promise<VenueBooking> {
+    const id = this.venueBookingCurrentId++;
+    const booking: VenueBooking = {
+      id,
+      venueId: insertBooking.venueId,
+      userId: insertBooking.userId,
+      date: insertBooking.date,
+      startTime: insertBooking.startTime,
+      endTime: insertBooking.endTime,
+      purpose: insertBooking.purpose || null,
+      numberOfPeople: insertBooking.numberOfPeople || null,
+      status: insertBooking.status || 'pending',
+      paymentStatus: insertBooking.paymentStatus || 'unpaid',
+      totalAmount: insertBooking.totalAmount || null,
+      paidAmount: insertBooking.paidAmount || null,
+      transactionId: insertBooking.transactionId || null,
+      notes: insertBooking.notes || null,
+      tournamentId: insertBooking.tournamentId || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.venueBookings.set(id, booking);
+    return booking;
+  }
+  
+  async getVenueBooking(id: number): Promise<VenueBooking | undefined> {
+    return this.venueBookings.get(id);
+  }
+  
+  async getUserBookings(userId: number): Promise<(VenueBooking & { venue: Venue })[]> {
+    const userBookings = Array.from(this.venueBookings.values())
+      .filter(booking => booking.userId === userId)
+      .sort((a, b) => {
+        // Sort by date, then by start time
+        const dateComparison = (a.date?.getTime() || 0) - (b.date?.getTime() || 0);
+        if (dateComparison !== 0) return dateComparison;
+        
+        return a.startTime.localeCompare(b.startTime);
+      });
+      
+    return Promise.all(userBookings.map(async booking => {
+      const venue = await this.getVenue(booking.venueId) as Venue;
+      return { ...booking, venue };
+    }));
+  }
+  
+  async getVenueBookings(venueId: number, startDate?: Date, endDate?: Date): Promise<(VenueBooking & { user: User })[]> {
+    let bookings = Array.from(this.venueBookings.values())
+      .filter(booking => booking.venueId === venueId);
+    
+    if (startDate) {
+      bookings = bookings.filter(booking => booking.date >= startDate);
+    }
+    
+    if (endDate) {
+      bookings = bookings.filter(booking => booking.date <= endDate);
+    }
+    
+    bookings = bookings.sort((a, b) => {
+      // Sort by date, then by start time
+      const dateComparison = (a.date?.getTime() || 0) - (b.date?.getTime() || 0);
+      if (dateComparison !== 0) return dateComparison;
+      
+      return a.startTime.localeCompare(b.startTime);
+    });
+    
+    return Promise.all(bookings.map(async booking => {
+      const user = await this.getUser(booking.userId) as User;
+      return { ...booking, user };
+    }));
+  }
+  
+  async updateVenueBooking(id: number, data: Partial<VenueBooking>): Promise<VenueBooking | undefined> {
+    const booking = await this.getVenueBooking(id);
+    if (!booking) return undefined;
+    
+    const updatedBooking = { 
+      ...booking, 
+      ...data,
+      updatedAt: new Date() 
+    };
+    
+    this.venueBookings.set(id, updatedBooking);
+    return updatedBooking;
+  }
+  
+  async cancelVenueBooking(id: number): Promise<boolean> {
+    const booking = await this.getVenueBooking(id);
+    if (!booking) return false;
+    
+    const updatedBooking = { 
+      ...booking, 
+      status: 'cancelled',
+      updatedAt: new Date() 
+    };
+    
+    this.venueBookings.set(id, updatedBooking);
+    return true;
+  }
+  
+  async checkVenueAvailability(venueId: number, date: Date, startTime: string, endTime: string): Promise<boolean> {
+    // Check venue's working hours for the given day
+    const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    const availabilities = await this.getVenueAvailabilities(venueId);
+    
+    const dayAvailability = availabilities.find(a => a.dayOfWeek === dayOfWeek && a.isAvailable);
+    if (!dayAvailability) return false;
+    
+    // Check if the requested time falls within venue's working hours
+    if (startTime < dayAvailability.startTime || endTime > dayAvailability.endTime) {
+      return false;
+    }
+    
+    // Check for conflicts with existing bookings
+    const bookingsOnDate = Array.from(this.venueBookings.values()).filter(booking => 
+      booking.venueId === venueId &&
+      booking.date.getFullYear() === date.getFullYear() &&
+      booking.date.getMonth() === date.getMonth() &&
+      booking.date.getDate() === date.getDate() &&
+      booking.status !== 'cancelled'
+    );
+    
+    // Check for time conflicts
+    for (const booking of bookingsOnDate) {
+      // If the requested start time falls within an existing booking
+      if (startTime >= booking.startTime && startTime < booking.endTime) {
+        return false;
+      }
+      
+      // If the requested end time falls within an existing booking
+      if (endTime > booking.startTime && endTime <= booking.endTime) {
+        return false;
+      }
+      
+      // If the requested booking envelops an existing booking
+      if (startTime <= booking.startTime && endTime >= booking.endTime) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
   
   // Content categorization and discovery system methods
   async createTag(insertTag: InsertTag): Promise<Tag> {
@@ -1415,6 +1796,261 @@ export class MemStorage implements IStorage {
     return Array.from(this.contentEngagements.values())
       .filter(engagement => engagement.userId === userId)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  // Tournament management methods
+  async createTournament(insertTournament: InsertTournament): Promise<Tournament> {
+    const id = this.tournamentCurrentId++;
+    const tournament: Tournament = {
+      id,
+      name: insertTournament.name,
+      description: insertTournament.description || null,
+      startDate: insertTournament.startDate,
+      endDate: insertTournament.endDate,
+      registrationDeadline: insertTournament.registrationDeadline || null,
+      maxTeams: insertTournament.maxTeams || null,
+      entryFee: insertTournament.entryFee || null,
+      prizePool: insertTournament.prizePool || null,
+      format: insertTournament.format,
+      status: insertTournament.status || 'upcoming',
+      organizerId: insertTournament.organizerId,
+      logoUrl: insertTournament.logoUrl || null,
+      bannerUrl: insertTournament.bannerUrl || null,
+      rules: insertTournament.rules || null,
+      contactEmail: insertTournament.contactEmail || null,
+      contactPhone: insertTournament.contactPhone || null,
+      isPublic: insertTournament.isPublic !== undefined ? insertTournament.isPublic : true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.tournaments.set(id, tournament);
+    return tournament;
+  }
+  
+  async getTournament(id: number): Promise<Tournament | undefined> {
+    return this.tournaments.get(id);
+  }
+  
+  async getTournaments(query?: string, status?: string, limit: number = 20): Promise<Tournament[]> {
+    let tournaments = Array.from(this.tournaments.values());
+    
+    if (status) {
+      tournaments = tournaments.filter(t => t.status === status);
+    }
+    
+    if (query) {
+      const lowerCaseQuery = query.toLowerCase();
+      tournaments = tournaments.filter(t => 
+        t.name.toLowerCase().includes(lowerCaseQuery) ||
+        (t.description && t.description.toLowerCase().includes(lowerCaseQuery))
+      );
+    }
+    
+    // Sort by start date (upcoming first)
+    tournaments.sort((a, b) => 
+      (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)
+    );
+    
+    return tournaments.slice(0, limit);
+  }
+  
+  async getUserTournaments(userId: number): Promise<Tournament[]> {
+    return Array.from(this.tournaments.values())
+      .filter(t => t.organizerId === userId)
+      .sort((a, b) => 
+        (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
+      );
+  }
+  
+  async updateTournament(id: number, data: Partial<Tournament>): Promise<Tournament | undefined> {
+    const tournament = await this.getTournament(id);
+    if (!tournament) return undefined;
+    
+    const updatedTournament = { 
+      ...tournament, 
+      ...data,
+      updatedAt: new Date() 
+    };
+    
+    this.tournaments.set(id, updatedTournament);
+    return updatedTournament;
+  }
+  
+  async deleteTournament(id: number): Promise<boolean> {
+    // Check if tournament exists
+    const tournament = await this.getTournament(id);
+    if (!tournament) return false;
+    
+    // Update status to cancelled instead of hard delete
+    const updatedTournament = { 
+      ...tournament, 
+      status: 'cancelled',
+      updatedAt: new Date() 
+    };
+    
+    this.tournaments.set(id, updatedTournament);
+    return true;
+  }
+  
+  // Tournament team methods
+  async addTeamToTournament(insertTeamData: InsertTournamentTeam): Promise<TournamentTeam> {
+    const compositeKey = `${insertTeamData.tournamentId}-${insertTeamData.teamId}`;
+    
+    // Check if team is already in tournament
+    if (this.tournamentTeams.has(compositeKey)) {
+      return this.tournamentTeams.get(compositeKey) as TournamentTeam;
+    }
+    
+    const tournamentTeam: TournamentTeam = {
+      tournamentId: insertTeamData.tournamentId,
+      teamId: insertTeamData.teamId,
+      registrationStatus: insertTeamData.registrationStatus || 'pending',
+      paymentStatus: insertTeamData.paymentStatus || 'unpaid',
+      paidAmount: insertTeamData.paidAmount || null,
+      notes: insertTeamData.notes || null,
+      registrationDate: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.tournamentTeams.set(compositeKey, tournamentTeam);
+    return tournamentTeam;
+  }
+  
+  async getTournamentTeams(tournamentId: number): Promise<(TournamentTeam & { team: Team })[]> {
+    const teams = Array.from(this.tournamentTeams.values())
+      .filter(tt => tt.tournamentId === tournamentId);
+    
+    return Promise.all(teams.map(async tt => {
+      const team = await this.getTeamById(tt.teamId) as Team;
+      return { ...tt, team };
+    }));
+  }
+  
+  async updateTournamentTeam(tournamentId: number, teamId: number, data: Partial<TournamentTeam>): Promise<TournamentTeam | undefined> {
+    const compositeKey = `${tournamentId}-${teamId}`;
+    
+    // Check if team exists in tournament
+    const tournamentTeam = this.tournamentTeams.get(compositeKey);
+    if (!tournamentTeam) return undefined;
+    
+    const updatedTournamentTeam = { 
+      ...tournamentTeam, 
+      ...data,
+      updatedAt: new Date() 
+    };
+    
+    this.tournamentTeams.set(compositeKey, updatedTournamentTeam);
+    return updatedTournamentTeam;
+  }
+  
+  async removeTeamFromTournament(tournamentId: number, teamId: number): Promise<boolean> {
+    const compositeKey = `${tournamentId}-${teamId}`;
+    return this.tournamentTeams.delete(compositeKey);
+  }
+  
+  // Tournament match methods
+  async createTournamentMatch(insertMatchData: InsertTournamentMatch): Promise<TournamentMatch> {
+    const id = this.tournamentMatchCurrentId++;
+    const tournamentMatch: TournamentMatch = {
+      id,
+      tournamentId: insertMatchData.tournamentId,
+      matchId: insertMatchData.matchId,
+      round: insertMatchData.round || null,
+      matchNumber: insertMatchData.matchNumber || null,
+      group: insertMatchData.group || null,
+      stage: insertMatchData.stage || null,
+      venueId: insertMatchData.venueId || null,
+      scheduledDate: insertMatchData.scheduledDate || null,
+      scheduledTime: insertMatchData.scheduledTime || null,
+      status: insertMatchData.status || 'scheduled',
+      notes: insertMatchData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.tournamentMatches.set(id, tournamentMatch);
+    return tournamentMatch;
+  }
+  
+  async getTournamentMatch(id: number): Promise<TournamentMatch | undefined> {
+    return this.tournamentMatches.get(id);
+  }
+  
+  async getTournamentMatches(tournamentId: number): Promise<(TournamentMatch & { match: Match, venue?: Venue })[]> {
+    const matches = Array.from(this.tournamentMatches.values())
+      .filter(tm => tm.tournamentId === tournamentId)
+      .sort((a, b) => {
+        // First sort by stage/round
+        if (a.stage && b.stage && a.stage !== b.stage) {
+          // Custom sort order for stages
+          const stageOrder = {
+            'group': 1,
+            'round-of-16': 2,
+            'quarter-final': 3,
+            'semi-final': 4,
+            'third-place': 5,
+            'final': 6
+          };
+          
+          const aOrder = stageOrder[a.stage as keyof typeof stageOrder] || 0;
+          const bOrder = stageOrder[b.stage as keyof typeof stageOrder] || 0;
+          
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+        }
+        
+        if (a.round !== null && b.round !== null && a.round !== b.round) {
+          return a.round - b.round;
+        }
+        
+        // Then sort by scheduled date
+        if (a.scheduledDate && b.scheduledDate) {
+          const dateComparison = a.scheduledDate.getTime() - b.scheduledDate.getTime();
+          if (dateComparison !== 0) return dateComparison;
+        } else if (a.scheduledDate) {
+          return -1;
+        } else if (b.scheduledDate) {
+          return 1;
+        }
+        
+        // Then by match number
+        if (a.matchNumber !== null && b.matchNumber !== null) {
+          return a.matchNumber - b.matchNumber;
+        }
+        
+        return 0;
+      });
+    
+    return Promise.all(matches.map(async tm => {
+      const match = await this.getMatchById(tm.matchId) as Match;
+      let venue: Venue | undefined = undefined;
+      
+      if (tm.venueId) {
+        venue = await this.getVenue(tm.venueId);
+      }
+      
+      return venue ? { ...tm, match, venue } : { ...tm, match };
+    }));
+  }
+  
+  async updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined> {
+    const tournamentMatch = await this.getTournamentMatch(id);
+    if (!tournamentMatch) return undefined;
+    
+    const updatedTournamentMatch = { 
+      ...tournamentMatch, 
+      ...data,
+      updatedAt: new Date() 
+    };
+    
+    this.tournamentMatches.set(id, updatedTournamentMatch);
+    return updatedTournamentMatch;
+  }
+  
+  async deleteTournamentMatch(id: number): Promise<boolean> {
+    return this.tournamentMatches.delete(id);
   }
   
   async getPersonalizedFeed(userId: number, limit: number = 20): Promise<(Post & { 
