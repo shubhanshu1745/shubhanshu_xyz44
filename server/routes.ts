@@ -3,6 +3,9 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import { z } from "zod";
+import { CoachingService } from "./services/coaching";
+import { HighlightService } from "./services/highlights";
+import { StoryFiltersService } from "./services/story-filters";
 import { 
   insertCommentSchema, 
   insertPostSchema, 
@@ -2617,5 +2620,383 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // Initialize new services
+  const coachingService = new CoachingService(storage);
+  const highlightService = new HighlightService(storage);
+  const storyFiltersService = new StoryFiltersService(storage);
+
+  // COACHING SERVICE ROUTES
+  app.get("/api/coaching/tips", async (req, res) => {
+    try {
+      const { category, difficulty } = req.query;
+      const tips = await coachingService.getTips(
+        category as string, 
+        difficulty as string
+      );
+      res.json(tips);
+    } catch (error) {
+      console.error("Error fetching coaching tips:", error);
+      res.status(500).json({ message: "Failed to fetch coaching tips" });
+    }
+  });
+
+  app.get("/api/coaching/drills", async (req, res) => {
+    try {
+      const { category, difficulty } = req.query;
+      const drills = await coachingService.getDrills(
+        category as string, 
+        difficulty as string
+      );
+      res.json(drills);
+    } catch (error) {
+      console.error("Error fetching coaching drills:", error);
+      res.status(500).json({ message: "Failed to fetch coaching drills" });
+    }
+  });
+
+  app.post("/api/coaching/analyze", upload.single("video"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No video uploaded" });
+      }
+
+      const { techniqueType } = req.body;
+      if (!techniqueType) {
+        return res.status(400).json({ message: "Technique type is required" });
+      }
+      
+      // Save the video file
+      const uploadResult = await saveFile(req.file, "coaching-videos");
+      
+      // Analyze the technique
+      const analysis = await coachingService.analyzeTechnique(
+        uploadResult.url,
+        techniqueType
+      );
+      
+      res.json({
+        videoUrl: uploadResult.url,
+        analysis
+      });
+    } catch (error) {
+      console.error("Error analyzing technique:", error);
+      res.status(500).json({ message: "Failed to analyze technique" });
+    }
+  });
+
+  app.post("/api/coaching/sessions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const { title, description, videoUrl, techniques, areas } = req.body;
+      
+      if (!title || !description || !videoUrl || !techniques || !areas) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const session = await coachingService.createCoachingSession(userId, {
+        title,
+        description,
+        videoUrl,
+        techniques,
+        areas
+      });
+      
+      res.status(201).json(session);
+    } catch (error) {
+      console.error("Error creating coaching session:", error);
+      res.status(500).json({ message: "Failed to create coaching session" });
+    }
+  });
+
+  app.get("/api/coaching/sessions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const sessions = await coachingService.getCoachingSessionsForUser(userId);
+      
+      res.json(sessions);
+    } catch (error) {
+      console.error("Error fetching coaching sessions:", error);
+      res.status(500).json({ message: "Failed to fetch coaching sessions" });
+    }
+  });
+
+  // HIGHLIGHTS SERVICE ROUTES
+  app.get("/api/highlights/match/:matchId", async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.matchId, 10);
+      if (isNaN(matchId)) {
+        return res.status(400).json({ message: "Invalid match ID" });
+      }
+      
+      const highlights = await highlightService.getMatchHighlights(matchId);
+      
+      if (!highlights) {
+        return res.status(404).json({ message: "Highlights not found for this match" });
+      }
+      
+      res.json(highlights);
+    } catch (error) {
+      console.error("Error fetching match highlights:", error);
+      res.status(500).json({ message: "Failed to fetch match highlights" });
+    }
+  });
+
+  app.get("/api/highlights/clips/:matchId", async (req, res) => {
+    try {
+      const matchId = parseInt(req.params.matchId, 10);
+      if (isNaN(matchId)) {
+        return res.status(400).json({ message: "Invalid match ID" });
+      }
+      
+      const { clipType } = req.query;
+      const clips = await highlightService.getHighlightClips(
+        matchId, 
+        clipType as string
+      );
+      
+      res.json(clips);
+    } catch (error) {
+      console.error("Error fetching highlight clips:", error);
+      res.status(500).json({ message: "Failed to fetch highlight clips" });
+    }
+  });
+
+  app.get("/api/highlights/player/:playerId", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.playerId, 10);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ message: "Invalid player ID" });
+      }
+      
+      const clips = await highlightService.getHighlightClipsByPlayer(playerId);
+      
+      res.json(clips);
+    } catch (error) {
+      console.error("Error fetching player highlights:", error);
+      res.status(500).json({ message: "Failed to fetch player highlights" });
+    }
+  });
+
+  app.post("/api/highlights/generate/:matchId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const matchId = parseInt(req.params.matchId, 10);
+      if (isNaN(matchId)) {
+        return res.status(400).json({ message: "Invalid match ID" });
+      }
+      
+      const { title, description } = req.body;
+      
+      if (!title || !description) {
+        return res.status(400).json({ message: "Title and description are required" });
+      }
+      
+      const highlightPackage = await highlightService.createHighlightPackage(
+        matchId,
+        title,
+        description
+      );
+      
+      res.status(201).json(highlightPackage);
+    } catch (error) {
+      console.error("Error generating highlights:", error);
+      res.status(500).json({ message: "Failed to generate highlights" });
+    }
+  });
+
+  app.post("/api/highlights/clips", upload.single("video"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No video uploaded" });
+      }
+      
+      const { 
+        matchId, 
+        title, 
+        description, 
+        startTime, 
+        endTime, 
+        tags,
+        clipType,
+        playerId
+      } = req.body;
+      
+      if (!matchId || !title || !description || !startTime || !endTime || !clipType) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Save the video file
+      const videoUpload = await saveFile(req.file, "highlights");
+      
+      // Create a thumbnail (in a real app, this would generate a thumbnail from the video)
+      const thumbnailUrl = `/assets/highlights/thumbnails/default.jpg`;
+      
+      const clip = await highlightService.addClipToHighlights(parseInt(matchId, 10), {
+        title,
+        description,
+        videoUrl: videoUpload.url,
+        thumbnailUrl,
+        startTime: parseFloat(startTime),
+        endTime: parseFloat(endTime),
+        tags: tags ? JSON.parse(tags) : [],
+        clipType,
+        playerId: playerId ? parseInt(playerId, 10) : undefined
+      });
+      
+      res.status(201).json(clip);
+    } catch (error) {
+      console.error("Error creating highlight clip:", error);
+      res.status(500).json({ message: "Failed to create highlight clip" });
+    }
+  });
+
+  // STORY FILTERS SERVICE ROUTES
+  app.get("/api/stories/filters", async (req, res) => {
+    try {
+      const { category } = req.query;
+      const filters = await storyFiltersService.getAllFilters(category as string);
+      
+      res.json(filters);
+    } catch (error) {
+      console.error("Error fetching story filters:", error);
+      res.status(500).json({ message: "Failed to fetch story filters" });
+    }
+  });
+
+  app.get("/api/stories/effects", async (req, res) => {
+    try {
+      const { category } = req.query;
+      const effects = await storyFiltersService.getAllEffects(category as string);
+      
+      res.json(effects);
+    } catch (error) {
+      console.error("Error fetching story effects:", error);
+      res.status(500).json({ message: "Failed to fetch story effects" });
+    }
+  });
+
+  app.get("/api/stories/filters/team/:teamId", async (req, res) => {
+    try {
+      const teamId = parseInt(req.params.teamId, 10);
+      if (isNaN(teamId)) {
+        return res.status(400).json({ message: "Invalid team ID" });
+      }
+      
+      const filters = await storyFiltersService.getTeamFilters(teamId);
+      
+      res.json(filters);
+    } catch (error) {
+      console.error("Error fetching team filters:", error);
+      res.status(500).json({ message: "Failed to fetch team filters" });
+    }
+  });
+
+  app.get("/api/stories/live-scores", async (req, res) => {
+    try {
+      const { matchId } = req.query;
+      const templates = await storyFiltersService.getLiveScoreTemplates(
+        matchId ? parseInt(matchId as string, 10) : undefined
+      );
+      
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching live score templates:", error);
+      res.status(500).json({ message: "Failed to fetch live score templates" });
+    }
+  });
+
+  app.post("/api/stories/apply-filter", upload.single("image"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image uploaded" });
+      }
+      
+      const { filterId } = req.body;
+      if (!filterId) {
+        return res.status(400).json({ message: "Filter ID is required" });
+      }
+      
+      // Save the original image
+      const uploadResult = await saveFile(req.file, "story-uploads");
+      
+      // Apply the filter (in a real app, this would process the image)
+      const filteredImage = await storyFiltersService.applyFilterToImage(
+        uploadResult.url,
+        filterId
+      );
+      
+      // Track filter usage
+      await storyFiltersService.incrementFilterUsage(filterId);
+      
+      res.json({
+        originalUrl: uploadResult.url,
+        filteredUrl: filteredImage
+      });
+    } catch (error) {
+      console.error("Error applying filter:", error);
+      res.status(500).json({ message: "Failed to apply filter" });
+    }
+  });
+
+  app.post("/api/stories/custom-filter", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { 
+        name, 
+        description, 
+        imageUrl, 
+        previewUrl, 
+        category,
+        settings,
+        teamId
+      } = req.body;
+      
+      if (!name || !description || !imageUrl || !previewUrl || !category) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      const filter = await storyFiltersService.createCustomFilter({
+        name,
+        description,
+        imageUrl,
+        previewUrl,
+        category,
+        settings,
+        teamId: teamId ? parseInt(teamId, 10) : undefined
+      });
+      
+      res.status(201).json(filter);
+    } catch (error) {
+      console.error("Error creating custom filter:", error);
+      res.status(500).json({ message: "Failed to create custom filter" });
+    }
+  });
+
   return httpServer;
 }
