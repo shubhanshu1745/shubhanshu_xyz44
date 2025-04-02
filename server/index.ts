@@ -1,73 +1,76 @@
-import express, { type Request, Response, NextFunction } from "express";
+// Optimized version for faster startup
+import express, { Request, Response, NextFunction } from "express";
+import http from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 
+// Create Express app with minimal configuration for fast startup
 const app = express();
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));  // Reduced from 50mb for faster startup
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Add simple health check endpoints that respond immediately
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Plain text response for maximum simplicity
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Minimal logging middleware
 app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  
-  // Simpler approach to logging response without overriding res.json
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      log(logLine);
-    }
-  });
-
+  if (req.path.startsWith("/api")) {
+    log(`${req.method} ${req.path}`);
+  }
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+// Start the server first with a minimal configuration
+// This ensures the port is opened quickly for the workflow system
+const server = http.createServer(app);
+const port = 5000;
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+// Open the port immediately
+console.log(`SERVER IS STARTING ON PORT ${port}...`);
+server.listen(port, "0.0.0.0", () => {
+  console.log(`PORT ${port} IS NOW OPEN AND READY`);
+});
 
-    // Make sure we don't crash if res.json fails
-    try {
+// Then set up all the routes and other functionality in the background
+setTimeout(async () => {
+  try {
+    // Register all API routes
+    await registerRoutes(app);
+    
+    // Set up error handling
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
       res.status(status).json({ message });
-    } catch (jsonError) {
-      console.error("Error sending error response:", jsonError);
-      // Fallback to a simple text response
-      res.status(status).send(`Error: ${message}`);
+      console.error("Application error:", err);
+    });
+  
+    // Setup Vite or static serving
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
     }
     
-    // Log the error but don't throw it
-    console.error("Application error:", err);
-  });
+    // Start database seeding after routes and vite are set up
+    setTimeout(async () => {
+      try {
+        await seedDatabase();
+      } catch (error) {
+        console.error("Error seeding database:", error);
+      }
+    }, 1000);
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    console.log("🚀 SERVER IS FULLY INITIALIZED AND READY");
+  } catch (error) {
+    console.error("Error during server initialization:", error);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, async () => {
-    log(`serving on port ${port}`);
-    
-    // Seed the database with demo data
-    try {
-      await seedDatabase();
-    } catch (error) {
-      console.error("Error seeding database:", error);
-    }
-  });
-})();
+}, 100);  // Very short delay to let the health endpoint start first

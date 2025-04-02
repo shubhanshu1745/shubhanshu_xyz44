@@ -431,4 +431,5 @@ export async function seedDatabase() {
 
   console.log("📝 Created match performances");
   console.log("✅ Database seeding complete!");
+  console.log("🚀 SERVER IS FULLY INITIALIZED AND READY");
 }
