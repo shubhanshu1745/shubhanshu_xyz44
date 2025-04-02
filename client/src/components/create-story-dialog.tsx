@@ -104,10 +104,17 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       // Force immediate refetch of stories
       await queryClient.invalidateQueries({ queryKey: ["stories"] });
       await queryClient.prefetchQuery({ 
-        queryKey: ["stories"],
+        queryKey: ["/api/stories"],
         queryFn: () => fetch("http://0.0.0.0:5000/api/stories", {
-          credentials: 'include'
-        }).then(res => res.json())
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }).then(res => {
+          if (!res.ok) throw new Error('Failed to fetch stories');
+          return res.json();
+        })
       });
     },
     onError: (error) => {
