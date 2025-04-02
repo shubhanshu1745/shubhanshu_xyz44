@@ -13,7 +13,20 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   isPlayer: boolean("is_player").default(false),
+  isCoach: boolean("is_coach").default(false),
+  isAdmin: boolean("is_admin").default(false),
+  isFan: boolean("is_fan").default(true),
+  preferredRole: text("preferred_role"), // "batsman", "bowler", "all-rounder", "wicket-keeper"
+  battingStyle: text("batting_style"), // "right-handed", "left-handed"
+  bowlingStyle: text("bowling_style"), // "right-arm fast", "left-arm spin", etc.
+  favoriteTeam: text("favorite_team"),
+  favoritePlayer: text("favorite_player"),
   emailVerified: boolean("email_verified").default(false),
+  phoneNumber: text("phone_number"),
+  phoneVerified: boolean("phone_verified").default(false),
+  verificationBadge: boolean("verification_badge").default(false),
+  registrationMethod: text("registration_method").default("email"), // "email", "google", "facebook", "phone"
+  lastLoginAt: timestamp("last_login_at"),
 });
 
 export const tokens = pgTable("tokens", {
@@ -45,6 +58,7 @@ export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   postId: integer("post_id").notNull(),
+  reactionType: text("reaction_type").default("like").notNull(), // "like", "howzat", "six", "four", "clap", "wow"
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -376,6 +390,50 @@ export const contentEngagement = pgTable("content_engagement", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Cricket-specific polls and predictions
+export const polls = pgTable("polls", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Poll creator
+  question: text("question").notNull(),
+  pollType: text("poll_type").notNull(), // "match_prediction", "player_performance", "team_selection", "general"
+  matchId: integer("match_id"), // Optional reference to a match
+  playerId: integer("player_id"), // Optional reference to a player
+  teamId: integer("team_id"), // Optional reference to a team
+  endTime: timestamp("end_time"), // When the poll closes
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const pollOptions = pgTable("poll_options", {
+  id: serial("id").primaryKey(),
+  pollId: integer("poll_id").notNull(),
+  option: text("option").notNull(),
+  imageUrl: text("image_url"), // Optional image for the option
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pollVotes = pgTable("poll_votes", {
+  id: serial("id").primaryKey(),
+  pollId: integer("poll_id").notNull(),
+  optionId: integer("option_id").notNull(),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Content rewards and recognition system
+export const contentRewards = pgTable("content_rewards", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  userId: integer("user_id").notNull(),
+  rewardType: text("reward_type").notNull(), // "featured", "trending", "editor_pick", "expert_insight", "cricket_moment"
+  points: integer("points").default(0),
+  description: text("description"),
+  awardedBy: integer("awarded_by"), // User ID of admin/moderator who awarded
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -405,6 +463,7 @@ export const insertPostSchema = createInsertSchema(posts).pick({
 export const insertLikeSchema = createInsertSchema(likes).pick({
   userId: true,
   postId: true,
+  reactionType: true,
 });
 
 export const insertCommentSchema = createInsertSchema(comments).pick({

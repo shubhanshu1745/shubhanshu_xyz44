@@ -13,6 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { PostTags } from "@/components/post-tags";
+import { CricketReactions } from "@/components/cricket-reactions";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -254,16 +255,15 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
       
       <CardContent className="p-3">
         <div className="flex justify-between mb-2">
-          <div className="flex space-x-4">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={isLiked ? "text-[#FF5722]" : "text-neutral-600 hover:text-[#FF5722]"}
-              onClick={handleLike}
-            >
-              <Heart className={`h-6 w-6 ${isLiked ? "fill-[#FF5722]" : ""}`} />
-              <span className="sr-only">Like</span>
-            </Button>
+          <div className="flex items-center space-x-4">
+            {/* Cricket-specific reactions */}
+            <CricketReactions 
+              postId={post.id} 
+              userId={user?.id} 
+              likeCount={likeCount}
+              currentUserReaction={isLiked ? "like" : undefined}
+            />
+            
             <Button 
               variant="ghost" 
               size="icon" 
@@ -328,8 +328,6 @@ export function PostCard({ post, onCommentClick }: PostCardProps) {
             <span className="sr-only">Save</span>
           </Button>
         </div>
-        
-        <p className="font-semibold text-sm mb-1">{likeCount} likes</p>
         
         {/* Post Tags Component */}
         <PostTags postId={post.id} isPostOwner={user?.id === post.userId} />

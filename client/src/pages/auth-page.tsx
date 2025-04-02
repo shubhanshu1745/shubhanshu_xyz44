@@ -90,6 +90,7 @@ export default function AuthPage() {
       fullName: "",
       password: "",
       confirmPassword: "",
+      isPlayer: false,
     },
   });
   
@@ -463,12 +464,35 @@ export default function AuthPage() {
                         <Separator className="flex-grow" />
                       </div>
                       
-                      <Button variant="outline" className="w-full">
-                        <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"></path>
-                        </svg>
-                        Continue with Facebook
-                      </Button>
+                      <div className="space-y-3">
+                        <Button variant="outline" className="w-full flex items-center">
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"></path>
+                          </svg>
+                          Continue with Facebook
+                        </Button>
+
+                        <Button variant="outline" className="w-full flex items-center">
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"></path>
+                          </svg>
+                          Continue with Google
+                        </Button>
+
+                        <Button variant="outline" className="w-full flex items-center">
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"></path>
+                          </svg>
+                          Continue with Apple
+                        </Button>
+
+                        <Button variant="outline" className="w-full flex items-center">
+                          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5">
+                            <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm.14 19.018c-3.868 0-7-3.14-7-7.018 0-3.878 3.132-7.018 7-7.018 1.89 0 3.47.697 4.675 1.85l-1.9 1.83c-.514-.563-1.42-1.22-2.775-1.22-2.382 0-4.326 1.97-4.326 4.558 0 2.588 1.944 4.558 4.326 4.558 2.756 0 3.792-1.97 3.95-3.01h-3.95v-2.42h6.58c.06.35.1.7.1 1.16 0 3.96-2.656 6.73-6.68 6.73z"></path>
+                          </svg>
+                          Continue with Phone
+                        </Button>
+                      </div>
                     </>
                   )}
                 </CardContent>
@@ -596,12 +620,35 @@ export default function AuthPage() {
                     <Separator className="flex-grow" />
                   </div>
                   
-                  <Button variant="outline" className="w-full">
-                    <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"></path>
-                    </svg>
-                    Continue with Facebook
-                  </Button>
+                  <div className="space-y-3">
+                    <Button variant="outline" className="w-full flex items-center">
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.879V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.989C18.343 21.129 22 16.99 22 12c0-5.523-4.477-10-10-10z"></path>
+                      </svg>
+                      Continue with Facebook
+                    </Button>
+
+                    <Button variant="outline" className="w-full flex items-center">
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z"></path>
+                      </svg>
+                      Continue with Google
+                    </Button>
+
+                    <Button variant="outline" className="w-full flex items-center">
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"></path>
+                      </svg>
+                      Continue with Apple
+                    </Button>
+
+                    <Button variant="outline" className="w-full flex items-center">
+                      <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="0.5">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm.14 19.018c-3.868 0-7-3.14-7-7.018 0-3.878 3.132-7.018 7-7.018 1.89 0 3.47.697 4.675 1.85l-1.9 1.83c-.514-.563-1.42-1.22-2.775-1.22-2.382 0-4.326 1.97-4.326 4.558 0 2.588 1.944 4.558 4.326 4.558 2.756 0 3.792-1.97 3.95-3.01h-3.95v-2.42h6.58c.06.35.1.7.1 1.16 0 3.96-2.656 6.73-6.68 6.73z"></path>
+                      </svg>
+                      Continue with Phone
+                    </Button>
+                  </div>
                 </CardContent>
                 
                 <CardFooter className="flex justify-center border-t pt-4">
