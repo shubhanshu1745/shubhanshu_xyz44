@@ -275,11 +275,44 @@ const teamsData: Team[] = [
   }
 ];
 
+const CRICKET_API_BASE = 'https://api.cricketdata.org/v1';
+const API_KEY = process.env.CRICKET_API_KEY || 'free_tier_key';
+
 // Service Functions
 export const CricketDataService = {
   // Matches
-  getAllMatches: (): Match[] => {
-    return matchesData;
+  getAllMatches: async (): Promise<Match[]> => {
+    try {
+      const response = await fetch(`${CRICKET_API_BASE}/matches?apikey=${API_KEY}`);
+      const data = await response.json();
+      
+      // Transform API data to match our schema
+      return data.matches.map((match: any) => ({
+        id: match.matchId.toString(),
+        title: match.seriesName,
+        teams: {
+          team1: { 
+            name: match.team1.name,
+            logo: match.team1.logoUrl || '',
+            score: match.team1.score
+          },
+          team2: { 
+            name: match.team2.name,
+            logo: match.team2.logoUrl || '',
+            score: match.team2.score
+          }
+        },
+        status: match.status.toLowerCase(),
+        result: match.result || undefined,
+        date: match.startDate,
+        time: match.startTime,
+        venue: match.venue,
+        type: match.matchType,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch matches:', error);
+      return matchesData; // Fallback to local data if API fails
+    }
   },
   
   getMatchById: (id: string): Match | undefined => {
