@@ -40,7 +40,7 @@ interface Match {
 interface CreateMatchDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onMatchCreated: (match: Match) => void;
+  onSave: (match: Match) => void;
 }
 
 export default function CreateMatchDialog({ open, onOpenChange, onMatchCreated }: CreateMatchDialogProps) {
@@ -184,7 +184,7 @@ export default function CreateMatchDialog({ open, onOpenChange, onMatchCreated }
     // Simulate API call to create match
     setTimeout(() => {
       setIsCreating(false);
-      onMatchCreated(matchDetails);
+      onSave(matchDetails);
       onOpenChange(false);
       
       toast({
