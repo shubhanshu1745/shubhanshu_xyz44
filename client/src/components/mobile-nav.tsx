@@ -11,7 +11,8 @@ import {
   Search as SearchIcon,
   ActivitySquare,
   LineChart,
-  Activity
+  Activity,
+  MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -147,6 +148,13 @@ export function MobileNav() {
                 <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
                   <ActivitySquare className="mr-2 h-4 w-4" />
                   <span>Advanced Scoring</span>
+                </DropdownMenuItem>
+              </Link>
+              
+              <Link href="/venues">
+                <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
+                  <MapPin className="mr-2 h-4 w-4" />
+                  <span>Venue Discovery</span>
                 </DropdownMenuItem>
               </Link>
               

@@ -3554,13 +3554,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get("/api/user/bookings", isAuthenticated, async (req, res) => {
+  app.get("/api/users/me/bookings", isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
-      const bookings = await storage.getUserBookings(user.id);
+      const status = req.query.status as string;
+      const now = new Date();
+      
+      const allBookings = await storage.getUserBookings(user.id);
+      
+      // Filter bookings based on status
+      let bookings = [...allBookings];
+      if (status === 'upcoming') {
+        bookings = allBookings.filter(b => {
+          const bookingDate = new Date(b.date);
+          return bookingDate >= now && b.status !== 'cancelled';
+        });
+      } else if (status === 'past') {
+        bookings = allBookings.filter(b => {
+          const bookingDate = new Date(b.date);
+          return bookingDate < now || b.status === 'completed';
+        });
+      }
+      
       res.json(bookings);
     } catch (error) {
       console.error("Error getting user bookings:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  app.get("/api/users/me/venues", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      const venues = await storage.getUserVenues(user.id);
+      res.json(venues);
+    } catch (error) {
+      console.error("Error getting user venues:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

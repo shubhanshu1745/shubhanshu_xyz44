@@ -16,7 +16,8 @@ import {
   Activity,
   Video,
   Sparkles,
-  GraduationCap
+  GraduationCap,
+  MapPin
 } from "lucide-react";
 
 export function Sidebar() {
@@ -179,6 +180,13 @@ export function Sidebar() {
           <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/story-filters" ? "font-semibold" : ""}`}>
             <Sparkles className="h-5 w-5 mr-3 text-[#1F3B4D]" />
             <span className="cricket-primary">Story Filters</span>
+          </div>
+        </Link>
+        
+        <Link href="/venues">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/venues" ? "font-semibold" : ""}`}>
+            <MapPin className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Venue Discovery</span>
           </div>
         </Link>
       </div>
