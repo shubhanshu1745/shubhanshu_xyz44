@@ -1,353 +1,239 @@
-import { z } from "zod";
+/**
+ * Cricket Data Service
+ * Handles fetching and processing cricket data from external APIs
+ */
 
-// Match Schema
-export const matchSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  teams: z.object({
-    team1: z.object({
-      name: z.string(),
-      logo: z.string(),
-      score: z.string().optional()
-    }),
-    team2: z.object({
-      name: z.string(),
-      logo: z.string(),
-      score: z.string().optional()
-    })
-  }),
-  status: z.enum(["upcoming", "live", "completed"]),
-  result: z.string().optional(),
-  date: z.string(),
-  time: z.string(),
-  venue: z.string(),
-  type: z.string(),
-  imageUrl: z.string().optional()
-});
+import fetch from 'node-fetch';
+import { CricketAPIClient, MatchData } from './cricket-api-client';
 
-export type Match = z.infer<typeof matchSchema>;
+export interface MatchInfo {
+  id: string;
+  title: string;
+  teams: {
+    team1: {
+      name: string;
+      logo: string;
+      score?: string;
+    };
+    team2: {
+      name: string;
+      logo: string;
+      score?: string;
+    };
+  };
+  status: 'upcoming' | 'live' | 'completed';
+  result?: string;
+  date: string;
+  time: string;
+  venue: string;
+  type: string;
+  imageUrl?: string;
+}
 
-// Team Schema
-export const teamSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  fullName: z.string(),
-  logo: z.string(),
-  country: z.string(),
-  type: z.enum(["international", "franchise", "domestic"]),
-  founded: z.string(),
-  homeGround: z.string(),
-  captain: z.string(),
-  coach: z.string(),
-  achievements: z.array(z.string()),
-  players: z.array(z.string()),
-  ranking: z.object({
-    test: z.number().optional(),
-    odi: z.number().optional(),
-    t20: z.number().optional()
-  }).optional(),
-  recentForm: z.string()
-});
+export interface MatchesResponse {
+  matches: MatchInfo[];
+  meta: {
+    total: number;
+    page: number;
+    pageSize: number;
+  };
+}
 
-export type Team = z.infer<typeof teamSchema>;
+// Initialize the cricket API client
+const cricketApiClient = new CricketAPIClient();
 
-// Match Data
-const matchesData: Match[] = [
-  {
-    id: "m1",
-    title: "T20 World Cup 2023",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "184/6" 
-      },
-      team2: { 
-        name: "Australia", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-        score: "185/4" 
-      }
-    },
-    status: "completed",
-    result: "Australia won by 6 wickets",
-    date: "2023-06-15",
-    time: "19:00",
-    venue: "Melbourne Cricket Ground",
-    type: "T20I",
-    imageUrl: "https://resources.pulse.icc-cricket.com/ICC/photo/2023/11/19/1c246730-8321-465a-b390-1118ac859254/Travis-Head.png"
-  },
-  {
-    id: "m2",
-    title: "IPL 2023",
-    teams: {
-      team1: { 
-        name: "RCB", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/Roundbig/RCBroundbig.png"
-      },
-      team2: { 
-        name: "CSK", 
-        logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png" 
-      }
-    },
-    status: "upcoming",
-    date: "2023-06-20",
-    time: "19:30",
-    venue: "M. Chinnaswamy Stadium, Bangalore",
-    type: "T20"
-  },
-  {
-    id: "m3",
-    title: "India vs England Test Series",
-    teams: {
-      team1: { 
-        name: "India", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-        score: "245/3" 
-      },
-      team2: { 
-        name: "England", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-        score: "467" 
-      }
-    },
-    status: "live",
-    date: "2023-06-18",
-    time: "10:00",
-    venue: "Lord's Cricket Ground, London",
-    type: "Test"
-  },
-  {
-    id: "m4",
-    title: "The Ashes 2023",
-    teams: {
-      team1: { 
-        name: "England", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-        score: "325/7" 
-      },
-      team2: { 
-        name: "Australia", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-        score: "295" 
-      }
-    },
-    status: "live",
-    date: "2023-07-14",
-    time: "11:00",
-    venue: "Edgbaston, Birmingham",
-    type: "Test"
-  },
-  {
-    id: "m5",
-    title: "Pakistan vs New Zealand ODI",
-    teams: {
-      team1: { 
-        name: "Pakistan", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Flag_of_Pakistan.svg/1200px-Flag_of_Pakistan.svg.png",
-        score: "289/8" 
-      },
-      team2: { 
-        name: "New Zealand", 
-        logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Flag_of_New_Zealand.svg/1200px-Flag_of_New_Zealand.svg.png",
-        score: "241/10" 
-      }
-    },
-    status: "completed",
-    result: "Pakistan won by 48 runs",
-    date: "2023-06-10",
-    time: "14:30",
-    venue: "National Stadium, Karachi",
-    type: "ODI"
-  }
-];
-
-// Team Data
-const teamsData: Team[] = [
-  {
-    id: "t1",
-    name: "India",
-    fullName: "Indian Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Flag_of_India.svg/1200px-Flag_of_India.svg.png",
-    country: "India",
-    type: "international",
-    founded: "1932",
-    homeGround: "Multiple venues across India",
-    captain: "Rohit Sharma",
-    coach: "Rahul Dravid",
-    achievements: ["T20 World Cup (2007)", "Cricket World Cup (1983, 2011)", "ICC Champions Trophy (2013)"],
-    players: ["Rohit Sharma", "Virat Kohli", "Jasprit Bumrah", "Ravindra Jadeja", "KL Rahul"],
-    ranking: {
-      test: 1,
-      odi: 2,
-      t20: 1
-    },
-    recentForm: "W-W"
-  },
-  {
-    id: "t2",
-    name: "Australia",
-    fullName: "Australian Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Flag_of_Australia_%28converted%29.svg/1200px-Flag_of_Australia_%28converted%29.svg.png",
-    country: "Australia",
-    type: "international",
-    founded: "1877",
-    homeGround: "Melbourne Cricket Ground",
-    captain: "Pat Cummins",
-    coach: "Andrew McDonald",
-    achievements: ["Cricket World Cup (1987, 1999, 2003, 2007, 2015, 2023)", "ICC Champions Trophy (2006, 2009)"],
-    players: ["Pat Cummins", "Steve Smith", "Mitchell Starc", "Josh Hazlewood", "David Warner"],
-    ranking: {
-      test: 2,
-      odi: 1,
-      t20: 3
-    },
-    recentForm: "W"
-  },
-  {
-    id: "t3",
-    name: "CSK",
-    fullName: "Chennai Super Kings",
-    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png",
-    country: "India",
-    type: "franchise",
-    founded: "2008",
-    homeGround: "M. A. Chidambaram Stadium, Chennai",
-    captain: "MS Dhoni",
-    coach: "Stephen Fleming",
-    achievements: ["IPL Champions (2010, 2011, 2018, 2021, 2023)", "Champions League T20 (2010, 2014)"],
-    players: ["MS Dhoni", "Ravindra Jadeja", "Ruturaj Gaikwad", "Devon Conway", "Deepak Chahar"],
-    recentForm: "W"
-  },
-  {
-    id: "t4",
-    name: "England",
-    fullName: "England Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Flag_of_England.svg/1200px-Flag_of_England.svg.png",
-    country: "England",
-    type: "international",
-    founded: "1877",
-    homeGround: "Lord's Cricket Ground",
-    captain: "Jos Buttler",
-    coach: "Brendon McCullum",
-    achievements: ["Cricket World Cup (2019)", "T20 World Cup (2022)"],
-    players: ["Jos Buttler", "Joe Root", "Ben Stokes", "James Anderson", "Jonny Bairstow"],
-    ranking: {
-      test: 3,
-      odi: 3,
-      t20: 2
-    },
-    recentForm: "L-W"
-  },
-  {
-    id: "t5",
-    name: "RCB",
-    fullName: "Royal Challengers Bangalore",
-    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/logos/Roundbig/RCBroundbig.png",
-    country: "India",
-    type: "franchise",
-    founded: "2008",
-    homeGround: "M. Chinnaswamy Stadium, Bangalore",
-    captain: "Faf du Plessis",
-    coach: "Andy Flower",
-    achievements: ["IPL Runners-up (2009, 2011, 2016)"],
-    players: ["Virat Kohli", "Faf du Plessis", "Glenn Maxwell", "Mohammed Siraj", "Dinesh Karthik"],
-    recentForm: "L"
-  },
-  {
-    id: "t6",
-    name: "Pakistan",
-    fullName: "Pakistan Cricket Team",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Flag_of_Pakistan.svg/1200px-Flag_of_Pakistan.svg.png",
-    country: "Pakistan",
-    type: "international",
-    founded: "1952",
-    homeGround: "Gaddafi Stadium, Lahore",
-    captain: "Babar Azam",
-    coach: "Gary Kirsten",
-    achievements: ["Cricket World Cup (1992)", "T20 World Cup (2009)", "ICC Champions Trophy (2017)"],
-    players: ["Babar Azam", "Mohammad Rizwan", "Shaheen Afridi", "Shadab Khan", "Fakhar Zaman"],
-    ranking: {
-      test: 6,
-      odi: 5,
-      t20: 4
-    },
-    recentForm: "L-L"
-  }
-];
-
-const CRICKET_API_BASE = 'https://api.cricketdata.org/v1';
-const API_KEY = process.env.CRICKET_API_KEY || 'free_tier_key';
-
-// Service Functions
-export const CricketDataService = {
-  // Matches
-  getAllMatches: async (): Promise<Match[]> => {
+/**
+ * Cricket data service methods
+ */
+export default {
+  /**
+   * Get recent cricket matches
+   */
+  async getRecentMatches(): Promise<MatchInfo[]> {
     try {
-      const response = await fetch(`${CRICKET_API_BASE}/matches?apikey=${API_KEY}`);
-      const data = await response.json();
-      
-      // Transform API data to match our schema
-      return data.matches.map((match: any) => ({
-        id: match.matchId.toString(),
-        title: match.seriesName,
-        teams: {
-          team1: { 
-            name: match.team1.name,
-            logo: match.team1.logoUrl || '',
-            score: match.team1.score
-          },
-          team2: { 
-            name: match.team2.name,
-            logo: match.team2.logoUrl || '',
-            score: match.team2.score
-          }
-        },
-        status: match.status.toLowerCase(),
-        result: match.result || undefined,
-        date: match.startDate,
-        time: match.startTime,
-        venue: match.venue,
-        type: match.matchType,
-      }));
+      const matches = await cricketApiClient.getRecentMatches();
+      return matches;
     } catch (error) {
-      console.error('Failed to fetch matches:', error);
-      return matchesData; // Fallback to local data if API fails
+      console.error('Error fetching recent matches:', error);
+      throw error;
     }
   },
-  
-  getMatchById: (id: string): Match | undefined => {
-    return matchesData.find(match => match.id === id);
+
+  /**
+   * Get live cricket matches
+   */
+  async getLiveMatches(): Promise<MatchInfo[]> {
+    try {
+      const matches = await cricketApiClient.getLiveMatches();
+      return matches;
+    } catch (error) {
+      console.error('Error fetching live matches:', error);
+      throw error;
+    }
   },
-  
-  getMatchesByStatus: (status: Match["status"]): Match[] => {
-    return matchesData.filter(match => match.status === status);
+
+  /**
+   * Get match details by ID
+   */
+  async getMatchDetails(matchId: string): Promise<any> {
+    try {
+      const matchDetails = await cricketApiClient.getMatchDetails(matchId);
+      return matchDetails;
+    } catch (error) {
+      console.error(`Error fetching match details for ${matchId}:`, error);
+      throw error;
+    }
   },
-  
-  getRecentMatches: (limit: number = 3): Match[] => {
-    return [...matchesData]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, limit);
+
+  /**
+   * Get match highlights
+   */
+  async getMatchHighlights(): Promise<any[]> {
+    try {
+      const highlights = await cricketApiClient.getMatchHighlights();
+      return highlights;
+    } catch (error) {
+      console.error('Error fetching match highlights:', error);
+      throw error;
+    }
   },
-  
-  // Teams
-  getAllTeams: (): Team[] => {
-    return teamsData;
-  },
-  
-  getTeamById: (id: string): Team | undefined => {
-    return teamsData.find(team => team.id === id);
-  },
-  
-  getTeamsByType: (type: Team["type"]): Team[] => {
-    return teamsData.filter(team => team.type === type);
-  },
-  
-  searchTeams: (query: string): Team[] => {
-    const searchLower = query.toLowerCase();
-    return teamsData.filter(team => 
-      team.name.toLowerCase().includes(searchLower) || 
-      team.fullName.toLowerCase().includes(searchLower) ||
-      team.country.toLowerCase().includes(searchLower)
-    );
+
+  /**
+   * Get all cricket matches (live, recent, upcoming)
+   */
+  async getAllMatches(): Promise<MatchesResponse> {
+    try {
+      // Use the RapidAPI endpoint and key
+      const url = 'https://cricbuzz-cricket.p.rapidapi.com/matches/v1/recent';
+      const options = {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': '4b04aa9514msh041be25d5e7d749p157f79jsn3a91d53cb9f6',
+          'X-RapidAPI-Host': 'cricbuzz-cricket.p.rapidapi.com'
+        }
+      };
+
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch matches: ${response.status}`);
+      }
+
+      const rawData = await response.json();
+      
+      // Process and format the response data
+      const matches: MatchInfo[] = [];
+      let processedMatches = 0;
+      
+      if (rawData.typeMatches && Array.isArray(rawData.typeMatches)) {
+        for (const typeMatch of rawData.typeMatches) {
+          if (typeMatch.seriesMatches && Array.isArray(typeMatch.seriesMatches)) {
+            for (const seriesMatch of typeMatch.seriesMatches) {
+              if (seriesMatch.seriesAdWrapper && seriesMatch.seriesAdWrapper.matches) {
+                for (const match of seriesMatch.seriesAdWrapper.matches) {
+                  if (match.matchInfo) {
+                    const { matchInfo, matchScore } = match;
+                    
+                    // Determine match status
+                    let status: 'upcoming' | 'live' | 'completed' = 'upcoming';
+                    if (matchInfo.state === 'Complete') {
+                      status = 'completed';
+                    } else if (['In Progress', 'Live', 'Innings Break'].includes(matchInfo.state)) {
+                      status = 'live';
+                    }
+                    
+                    // Format team scores
+                    const formatTeamScore = (teamScore: any): string => {
+                      if (!teamScore) return '';
+                      
+                      let scoreStr = '';
+                      if (teamScore.inngs1) {
+                        const { runs, wickets, overs } = teamScore.inngs1;
+                        scoreStr += `${runs}/${wickets} (${formatOvers(overs)})`;
+                      }
+                      
+                      if (teamScore.inngs2) {
+                        const { runs, wickets, overs } = teamScore.inngs2;
+                        scoreStr += ` & ${runs}/${wickets} (${formatOvers(overs)})`;
+                      }
+                      
+                      return scoreStr;
+                    };
+                    
+                    // Format overs (handle decimal part for partial overs)
+                    const formatOvers = (overs: number): string => {
+                      const fullOvers = Math.floor(overs);
+                      const balls = Math.round((overs - fullOvers) * 10);
+                      return balls > 0 ? `${fullOvers}.${balls}` : `${fullOvers}`;
+                    };
+                    
+                    // Format date and time
+                    const startDate = new Date(parseInt(matchInfo.startDate));
+                    const formattedDate = startDate.toISOString().split('T')[0];
+                    const formattedTime = startDate.toTimeString().substring(0, 5);
+                    
+                    // Default logos for teams
+                    const getTeamLogo = (teamName: string) => {
+                      const teamMap: Record<string, string> = {
+                        'India': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313128.logo.png',
+                        'Australia': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340400/340493.png',
+                        'England': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313114.logo.png',
+                        'South Africa': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313125.logo.png',
+                        'New Zealand': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340500/340503.png',
+                        'Pakistan': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313129.logo.png',
+                        'West Indies': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/317600/317615.png',
+                        'Sri Lanka': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340000/340047.png',
+                        'Bangladesh': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/341400/341456.png',
+                        'Afghanistan': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/321000/321005.png'
+                      };
+                      
+                      return teamMap[teamName] || `https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313200/313200.logo.png`;
+                    };
+                    
+                    // Add match to our collection
+                    matches.push({
+                      id: matchInfo.matchId.toString(),
+                      title: `${matchInfo.team1.teamName} vs ${matchInfo.team2.teamName}, ${matchInfo.matchDesc}`,
+                      teams: {
+                        team1: {
+                          name: matchInfo.team1.teamName,
+                          logo: getTeamLogo(matchInfo.team1.teamName),
+                          score: formatTeamScore(matchScore?.team1Score)
+                        },
+                        team2: {
+                          name: matchInfo.team2.teamName,
+                          logo: getTeamLogo(matchInfo.team2.teamName),
+                          score: formatTeamScore(matchScore?.team2Score)
+                        }
+                      },
+                      status,
+                      result: matchInfo.status,
+                      date: formattedDate,
+                      time: formattedTime,
+                      venue: `${matchInfo.venueInfo.ground}, ${matchInfo.venueInfo.city}`,
+                      type: matchInfo.matchFormat,
+                      imageUrl: `https://img1.hscicdn.com/image/upload/f_auto,t_ds_wide_w_1280/lsci/db/PICTURES/CMS/3${Math.floor(Math.random() * 40) + 10}000/${Math.floor(Math.random() * 9000) + 1000}.6.jpg`
+                    });
+                    
+                    processedMatches++;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      return {
+        matches,
+        meta: {
+          total: processedMatches,
+          page: 1,
+          pageSize: processedMatches
+        }
+      };
+    } catch (error) {
+      console.error('Failed to fetch matches:', error);
+      throw error;
+    }
   }
 };

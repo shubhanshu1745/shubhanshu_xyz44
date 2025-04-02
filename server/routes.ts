@@ -31,8 +31,8 @@ import {
   insertContentEngagementSchema
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
-import { CricketDataService } from "./services/cricket-data";
-import { cricketAPIClient } from "./services/cricket-api-client";
+import { CricketAPIClient } from "./services/cricket-api-client";
+import cricketDataService from "./services/cricket-data";
 import { Server as SocketServer } from "socket.io";
 import session from "express-session";
 import multer from "multer";
@@ -3804,7 +3804,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Cricket API routes
+  // Cricket API routes  
+  // Initialize Cricket API client
+  const cricketAPIClient = new CricketAPIClient();
+  
+  // Cricket data service is imported at the top of the file
   
   // Get live matches
   app.get("/api/match/live", async (req, res) => {
@@ -3842,6 +3846,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error fetching match details for ${req.params.id}:`, error);
       res.status(500).json({ error: "Failed to fetch match details", message: error.message });
+    }
+  });
+  
+  // Get all cricket matches (using RapidAPI)
+  app.get("/api/cricket/matches", async (req, res) => {
+    try {
+      const matchesData = await cricketDataService.getAllMatches();
+      res.json(matchesData);
+    } catch (error) {
+      console.error("Failed to fetch matches:", error);
+      res.status(500).json({ error: "Failed to fetch matches", message: error.message });
     }
   });
   

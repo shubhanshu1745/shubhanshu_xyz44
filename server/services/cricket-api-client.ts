@@ -22,6 +22,84 @@ export interface MatchData {
   imageUrl?: string;
 }
 
+// Cricbuzz API response interfaces
+export interface CricbuzzMatchResponse {
+  typeMatches: TypeMatch[];
+}
+
+interface TypeMatch {
+  matchType: string;
+  seriesMatches: SeriesMatch[];
+}
+
+interface SeriesMatch {
+  seriesAdWrapper?: {
+    seriesId: number;
+    seriesName: string;
+    matches: CricbuzzMatch[];
+  };
+  adDetail?: any;
+}
+
+interface CricbuzzMatch {
+  matchInfo: MatchInfo;
+  matchScore?: MatchScore;
+}
+
+interface MatchInfo {
+  matchId: number;
+  seriesId: number;
+  seriesName: string;
+  matchDesc: string;
+  matchFormat: string;
+  startDate: string;
+  endDate: string;
+  state: string;
+  status: string;
+  team1: CricbuzzTeam;
+  team2: CricbuzzTeam;
+  venueInfo: VenueInfo;
+  currBatTeamId?: number;
+  seriesStartDt: string;
+  seriesEndDt: string;
+  isTimeAnnounced: boolean;
+  stateTitle: string;
+}
+
+interface CricbuzzTeam {
+  teamId: number;
+  teamName: string;
+  teamSName: string;
+  imageId: number;
+}
+
+interface VenueInfo {
+  id: number;
+  ground: string;
+  city: string;
+  timezone: string;
+}
+
+interface MatchScore {
+  team1Score?: Innings;
+  team2Score?: Innings;
+}
+
+interface Innings {
+  inngs1?: {
+    inningsId: number;
+    runs: number;
+    wickets: number;
+    overs: number;
+  };
+  inngs2?: {
+    inningsId: number;
+    runs: number;
+    wickets: number;
+    overs: number;
+  };
+}
+
 interface MatchSummary {
   id: number;
   matchType: string;
@@ -91,20 +169,23 @@ interface HighlightVideo {
  */
 export class CricketAPIClient {
   private readonly USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+  private readonly RAPIDAPI_KEY = '4b04aa9514msh041be25d5e7d749p157f79jsn3a91d53cb9f6';
+  private readonly RAPIDAPI_HOST = 'cricbuzz-cricket.p.rapidapi.com';
   
   /**
    * Get current live matches
    */
   public async getLiveMatches(): Promise<MatchData[]> {
     try {
-      // First try to get from Cricbuzz
-      const matches = await this.getCricbuzzLiveMatches();
-      if (matches && matches.length > 0) {
-        return matches;
+      // Get matches using RapidAPI Cricbuzz
+      const allMatches = await this.getCricbuzzMatches();
+      const liveMatches = allMatches.filter(match => match.status === 'live');
+      
+      if (liveMatches.length > 0) {
+        return liveMatches;
       }
       
-      // Fallback to ESPNCricinfo
-      return await this.getESPNCricinfoLiveMatches();
+      return this.getFallbackLiveMatches();
     } catch (error) {
       console.error('Error fetching live matches:', error);
       return this.getFallbackLiveMatches();
@@ -129,7 +210,7 @@ export class CricketAPIClient {
    */
   public async getMatchDetails(matchId: string): Promise<MatchDetails | null> {
     try {
-      // Try to get from the web
+      // Try to get from RapidAPI Cricbuzz
       return await this.fetchMatchDetails(matchId);
     } catch (error) {
       console.error(`Error fetching match details for ${matchId}:`, error);
@@ -142,8 +223,15 @@ export class CricketAPIClient {
    */
   public async getRecentMatches(): Promise<MatchData[]> {
     try {
-      // Try to get from API
-      return await this.getRecentCompletedMatches();
+      // Get matches using RapidAPI Cricbuzz
+      const allMatches = await this.getCricbuzzMatches();
+      const recentMatches = allMatches.filter(match => match.status === 'completed');
+      
+      if (recentMatches.length > 0) {
+        return recentMatches;
+      }
+      
+      return this.getFallbackRecentMatches();
     } catch (error) {
       console.error('Error fetching recent matches:', error);
       return this.getFallbackRecentMatches();
@@ -151,70 +239,152 @@ export class CricketAPIClient {
   }
   
   /**
-   * Try to get live matches from Cricbuzz
+   * Get all matches from Cricbuzz API
    */
-  private async getCricbuzzLiveMatches(): Promise<MatchData[]> {
+  private async getCricbuzzMatches(): Promise<MatchData[]> {
     try {
-      const headers = {
-        'User-Agent': this.USER_AGENT,
-        'Accept': 'application/json',
-        'Referer': 'https://www.cricbuzz.com/'
+      const options = {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': this.RAPIDAPI_KEY,
+          'X-RapidAPI-Host': this.RAPIDAPI_HOST
+        }
       };
-      
-      // Using a more reliable endpoint from Cricbuzz
-      const response = await fetch('https://www.cricbuzz.com/api/cricket-match/commentary/live', {
-        headers
-      });
+
+      const response = await fetch('https://cricbuzz-cricket.p.rapidapi.com/matches/v1/recent', options);
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch from Cricbuzz: ${response.status}`);
+        throw new Error(`Failed to fetch from Cricbuzz API: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data: CricbuzzMatchResponse = await response.json();
       
-      // Transform the data to our format
-      const matches: MatchData[] = [];
-      
-      // Process data and add to matches array
-      // This would need to be adapted based on the actual response structure
-      
-      return matches;
+      return this.transformCricbuzzMatches(data);
     } catch (error) {
-      console.error('Error getting Cricbuzz live matches:', error);
-      return [];
+      console.error('Error getting matches from Cricbuzz API:', error);
+      throw error;
     }
   }
   
   /**
-   * Try to get live matches from ESPNCricinfo
+   * Transform Cricbuzz API response into our format
    */
-  private async getESPNCricinfoLiveMatches(): Promise<MatchData[]> {
-    try {
-      const headers = {
-        'User-Agent': this.USER_AGENT,
-        'Accept': 'application/json',
-        'Referer': 'https://www.espncricinfo.com/'
-      };
-      
-      const response = await fetch('https://hs-consumer-api.espncricinfo.com/v1/pages/matches/current?lang=en&latest=true', {
-        headers
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch from ESPNCricinfo: ${response.status}`);
+  private transformCricbuzzMatches(data: CricbuzzMatchResponse): MatchData[] {
+    const matches: MatchData[] = [];
+    
+    for (const typeMatch of data.typeMatches) {
+      for (const seriesMatch of typeMatch.seriesMatches) {
+        if (seriesMatch.seriesAdWrapper && seriesMatch.seriesAdWrapper.matches) {
+          for (const match of seriesMatch.seriesAdWrapper.matches) {
+            const { matchInfo, matchScore } = match;
+            
+            // Skip matches without proper info
+            if (!matchInfo) continue;
+            
+            // Determine match status
+            let status: "upcoming" | "live" | "completed" = "upcoming";
+            if (matchInfo.state === "Complete") {
+              status = "completed";
+            } else if (["In Progress", "Live", "Innings Break"].includes(matchInfo.state)) {
+              status = "live";
+            }
+            
+            // Format team scores
+            const team1Score = this.formatTeamScore(matchScore?.team1Score);
+            const team2Score = this.formatTeamScore(matchScore?.team2Score);
+            
+            // Format date and time
+            const startDate = new Date(parseInt(matchInfo.startDate));
+            const formattedDate = startDate.toISOString().split('T')[0];
+            const formattedTime = startDate.toTimeString().substring(0, 5);
+            
+            // Default logos for teams (using ESPN images as they're more reliable)
+            const getTeamLogo = (teamName: string) => {
+              const teamMap: Record<string, string> = {
+                'India': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313128.logo.png',
+                'Australia': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340400/340493.png',
+                'England': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313114.logo.png',
+                'South Africa': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313125.logo.png',
+                'New Zealand': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340500/340503.png',
+                'Pakistan': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313100/313129.logo.png',
+                'West Indies': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/317600/317615.png',
+                'Sri Lanka': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/340000/340047.png',
+                'Bangladesh': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/341400/341456.png',
+                'Afghanistan': 'https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/321000/321005.png'
+              };
+              
+              return teamMap[teamName] || `https://img1.hscicdn.com/image/upload/f_auto,t_ds_square_w_160/lsci/db/PICTURES/CMS/313200/313200.logo.png`;
+            };
+            
+            // Add match to our collection
+            matches.push({
+              id: matchInfo.matchId.toString(),
+              title: `${matchInfo.team1.teamName} vs ${matchInfo.team2.teamName}, ${matchInfo.matchDesc}`,
+              teams: {
+                team1: {
+                  name: matchInfo.team1.teamName,
+                  logo: getTeamLogo(matchInfo.team1.teamName),
+                  score: team1Score
+                },
+                team2: {
+                  name: matchInfo.team2.teamName,
+                  logo: getTeamLogo(matchInfo.team2.teamName),
+                  score: team2Score
+                }
+              },
+              status,
+              result: matchInfo.status,
+              date: formattedDate,
+              time: formattedTime,
+              venue: `${matchInfo.venueInfo.ground}, ${matchInfo.venueInfo.city}`,
+              type: matchInfo.matchFormat,
+              imageUrl: `https://img1.hscicdn.com/image/upload/f_auto,t_ds_wide_w_1280/lsci/db/PICTURES/CMS/3${Math.floor(Math.random() * 40) + 10}000/${Math.floor(Math.random() * 9000) + 1000}.6.jpg`
+            });
+          }
+        }
       }
-      
-      const data = await response.json();
-      
-      // Transform the data to our format
-      const matches: MatchData[] = [];
-      
-      // Process data and add to matches array
-      // This would need to be adapted based on the actual response structure
-      
-      return matches;
+    }
+    
+    return matches;
+  }
+  
+  /**
+   * Format team score from Cricbuzz API response
+   */
+  private formatTeamScore(score?: Innings): string {
+    if (!score) return '';
+    
+    let result = '';
+    
+    if (score.inngs1) {
+      result += `${score.inngs1.runs}/${score.inngs1.wickets} (${this.formatOvers(score.inngs1.overs)})`;
+    }
+    
+    if (score.inngs2) {
+      result += ` & ${score.inngs2.runs}/${score.inngs2.wickets} (${this.formatOvers(score.inngs2.overs)})`;
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Format overs (handle decimal part for partial overs)
+   */
+  private formatOvers(overs: number): string {
+    const fullOvers = Math.floor(overs);
+    const balls = Math.round((overs - fullOvers) * 10);
+    return balls > 0 ? `${fullOvers}.${balls}` : `${fullOvers}`;
+  }
+  
+  /**
+   * Try to get live matches by match type (T20, ODI, Test)
+   */
+  private async getCricbuzzLiveMatches(): Promise<MatchData[]> {
+    try {
+      const allMatches = await this.getCricbuzzMatches();
+      return allMatches.filter(match => match.status === 'live');
     } catch (error) {
-      console.error('Error getting ESPNCricinfo live matches:', error);
+      console.error('Error getting Cricbuzz live matches:', error);
       return [];
     }
   }
@@ -240,9 +410,23 @@ export class CricketAPIClient {
    */
   private async fetchMatchDetails(matchId: string): Promise<MatchDetails | null> {
     try {
-      // Fetch match details from appropriate API
+      const options = {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': this.RAPIDAPI_KEY,
+          'X-RapidAPI-Host': this.RAPIDAPI_HOST
+        }
+      };
+
+      // Get match scorecard from API
+      const response = await fetch(`https://cricbuzz-cricket.p.rapidapi.com/matches/v1/${matchId}/scorecard`, options);
       
-      // For now, return fallback data
+      if (!response.ok) {
+        console.log(`Failed to fetch match details from API, using fallback data`);
+        return this.getFallbackMatchDetails(matchId);
+      }
+      
+      // For now, return fallback data - we'll implement the proper transformation later
       return this.getFallbackMatchDetails(matchId);
     } catch (error) {
       console.error(`Error fetching match details for ${matchId}:`, error);
@@ -255,10 +439,8 @@ export class CricketAPIClient {
    */
   private async getRecentCompletedMatches(): Promise<MatchData[]> {
     try {
-      // Fetch recent matches from appropriate API
-      
-      // For now, return fallback data
-      return this.getFallbackRecentMatches();
+      const allMatches = await this.getCricbuzzMatches();
+      return allMatches.filter(match => match.status === 'completed');
     } catch (error) {
       console.error('Error getting recent matches:', error);
       return [];
