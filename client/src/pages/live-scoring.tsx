@@ -17,6 +17,10 @@ import {
   Target, Zap, RefreshCcw, Check, AlignJustify, CircleDot
 } from "lucide-react";
 import CreateMatchDialog from "@/components/scoring/create-match-dialog";
+import WagonWheel from "@/components/scoring/wagon-wheel";
+import MatchStats from "@/components/scoring/match-stats";
+import ShotSelector from "@/components/scoring/shot-selector";
+import BallByBall from "@/components/scoring/ball-by-ball";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1052,9 +1056,11 @@ export default function LiveScoring() {
           </Card>
           
           <Tabs defaultValue="commentary" className="mb-6">
-            <TabsList className="grid grid-cols-2 mb-4">
+            <TabsList className="grid grid-cols-4 mb-4">
               <TabsTrigger value="commentary">Commentary</TabsTrigger>
               <TabsTrigger value="scorecard">Scorecard</TabsTrigger>
+              <TabsTrigger value="shot-analysis">Shot Analysis</TabsTrigger>
+              <TabsTrigger value="ball-by-ball">Ball-by-Ball</TabsTrigger>
             </TabsList>
             
             <TabsContent value="commentary" className="space-y-4">
@@ -1214,6 +1220,80 @@ export default function LiveScoring() {
                       </tbody>
                     </table>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="shot-analysis">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Wagon Wheel</CardTitle>
+                    <CardDescription>Visual representation of shot placement</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex justify-center">
+                    {match.balls.length > 0 ? (
+                      <WagonWheel 
+                        shots={match.balls
+                          .filter(ball => ball.runs > 0 && !ball.isWide && !ball.isNoBall)
+                          .map(ball => ({
+                            id: ball.id,
+                            angle: Math.random() * 360, // Mock data - in real implementation this would come from shot data
+                            distance: 30 + Math.random() * 70, // Mock distance as percentage of boundary
+                            runs: ball.runs,
+                            timestamp: ball.timestamp
+                          }))}
+                        width={300}
+                        height={300}
+                      />
+                    ) : (
+                      <div className="text-center p-8 text-muted-foreground">
+                        No shots recorded yet
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Shot Selection</CardTitle>
+                    <CardDescription>Record shot placement for advanced analysis</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ShotSelector 
+                      onShotSelected={(angle, distance) => {
+                        // In real implementation, this would record shot data with the current ball
+                        toast({
+                          title: "Shot Recorded",
+                          description: `Shot played at ${angle.toFixed(0)}° angle with ${distance.toFixed(0)}% distance`
+                        });
+                      }} 
+                    />
+                    <div className="mt-4 text-center text-sm text-muted-foreground">
+                      Click on the field to record shot placement
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="ball-by-ball">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle>Ball-by-Ball Analysis</CardTitle>
+                  <CardDescription>Detailed over-by-over breakdown</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {match.balls.length > 0 ? (
+                    <BallByBall 
+                      ballEvents={match.balls}
+                      currentInnings={match.currentInnings}
+                    />
+                  ) : (
+                    <div className="text-center p-8 text-muted-foreground">
+                      No balls recorded yet
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
