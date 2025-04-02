@@ -848,7 +848,20 @@ export default function AnalyticsDashboard() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PlayerMatchup />
+                  <PlayerMatchup 
+                    batsmanId={1}
+                    bowlerId={2}
+                    batsmanName="Virat Kohli"
+                    bowlerName="Jasprit Bumrah"
+                    stats={{
+                      ballsFaced: 24,
+                      runsScored: 32,
+                      fours: 3,
+                      sixes: 1,
+                      dotBalls: 10,
+                      dismissals: 2
+                    }}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>
