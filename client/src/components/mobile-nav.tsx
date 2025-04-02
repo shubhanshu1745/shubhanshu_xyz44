@@ -8,7 +8,10 @@ import {
   UserPlus, 
   TrendingUp, 
   MoreHorizontal,
-  Search as SearchIcon
+  Search as SearchIcon,
+  ActivitySquare,
+  LineChart,
+  Activity
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -123,6 +126,27 @@ export function MobileNav() {
                 <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   <span>Messages</span>
+                </DropdownMenuItem>
+              </Link>
+              
+              <Link href="/analytics">
+                <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
+                  <Activity className="mr-2 h-4 w-4" />
+                  <span>Analytics</span>
+                </DropdownMenuItem>
+              </Link>
+              
+              <Link href="/tournaments">
+                <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
+                  <Trophy className="mr-2 h-4 w-4" />
+                  <span>Tournaments</span>
+                </DropdownMenuItem>
+              </Link>
+              
+              <Link href="/advanced-scoring">
+                <DropdownMenuItem className="cursor-pointer text-white hover:bg-[#1F3B4D]/50">
+                  <ActivitySquare className="mr-2 h-4 w-4" />
+                  <span>Advanced Scoring</span>
                 </DropdownMenuItem>
               </Link>
               

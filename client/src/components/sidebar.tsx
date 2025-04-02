@@ -6,7 +6,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ExternalLink, MessageCircle, Film, BarChart2 } from "lucide-react";
+import { 
+  ExternalLink, 
+  MessageCircle, 
+  Film, 
+  BarChart2, 
+  LineChart, 
+  Trophy, 
+  Activity 
+} from "lucide-react";
 
 export function Sidebar() {
   const { user } = useAuth();
@@ -133,6 +141,20 @@ export function Sidebar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             <span className="cricket-primary">Advanced Scoring</span>
+          </div>
+        </Link>
+        
+        <Link href="/analytics">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/analytics" ? "font-semibold" : ""}`}>
+            <Activity className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Analytics</span>
+          </div>
+        </Link>
+        
+        <Link href="/tournaments">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/tournaments" ? "font-semibold" : ""}`}>
+            <Trophy className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Tournaments</span>
           </div>
         </Link>
       </div>

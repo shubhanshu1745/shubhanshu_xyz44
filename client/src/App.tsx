@@ -15,6 +15,8 @@ import LiveScoringEnhanced from "@/pages/live-scoring-enhanced";
 import LiveScoringAdvanced from "@/pages/live-scoring-advanced";
 import SuggestionsPage from "@/pages/suggestions-page";
 import SettingsPage from "@/pages/settings-page";
+import AnalyticsDashboard from "@/pages/analytics-dashboard";
+import TournamentManager from "@/pages/tournament-manager";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -39,6 +41,8 @@ function Router() {
       <ProtectedRoute path="/enhanced-scoring/:matchId" component={LiveScoringEnhanced} />
       <ProtectedRoute path="/advanced-scoring" component={LiveScoringAdvanced} />
       <ProtectedRoute path="/advanced-scoring/:matchId" component={LiveScoringAdvanced} />
+      <ProtectedRoute path="/analytics" component={AnalyticsDashboard} />
+      <ProtectedRoute path="/tournaments" component={TournamentManager} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
