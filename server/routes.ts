@@ -469,16 +469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
       
-      // Ensure upload directory exists
-      const fs = require('fs');
-      const path = require('path');
-      const uploadDir = path.join(__dirname, '../public/uploads/stories');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      // Save the file to disk
-      const uploadResult = await saveFile(req.file, "stories");
+      // We don't need to check directory here as saveFile will handle it
+      // Save the file to disk using the uploads/stories directory
+      const uploadResult = await saveFile(req.file, "uploads/stories");
       
       // Return the file URL to the client
       res.status(200).json(uploadResult);

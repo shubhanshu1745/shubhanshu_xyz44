@@ -87,25 +87,48 @@ export default function StoriesPage() {
     },
   });
   
-  // Handle file upload (simplified - in a real app, this would upload to a storage service)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload file to server and get back the URL
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     setUploading(true);
     
-    // Simulate upload delay
-    setTimeout(() => {
-      // In a real app, this would be the URL returned from your file storage service
-      const fileUrl = URL.createObjectURL(file);
-      setMediaUrl(fileUrl);
-      setUploading(false);
+    try {
+      // Create form data to send the file
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      // Upload the file
+      const response = await fetch("/api/upload/story", {
+        method: "POST",
+        body: formData,
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload image");
+      }
+      
+      const data = await response.json();
+      
+      // Set the image URL in the state
+      setMediaUrl(data.url);
       
       toast({
-        title: "File selected",
-        description: "Your file has been selected successfully. Complete the form to create your story.",
+        title: "Upload successful",
+        description: "Your image was uploaded successfully. Complete the form to create your story.",
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleCreateStory = () => {
