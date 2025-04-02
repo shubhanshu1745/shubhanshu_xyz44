@@ -13,6 +13,12 @@ interface Player {
   id: number;
   name: string;
   role: string;
+  phoneNumber?: string;
+  playerType?: string;
+  isCaptain?: boolean;
+  isViceCaptain?: boolean;
+  isWicketKeeper?: boolean;
+  bowlingStyle?: 'Fast' | 'Medium' | 'Spinner';
 }
 
 interface Team {
@@ -27,6 +33,8 @@ interface Match {
   overs: number;
   team1: Team;
   team2: Team;
+  tossWinner?: string;
+  tossDecision?: 'bat' | 'field';
 }
 
 interface CreateMatchDialogProps {
@@ -243,6 +251,41 @@ export default function CreateMatchDialog({ open, onOpenChange, onMatchCreated }
           </div>
 
           <Separator />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="toss-winner">Toss Winner</Label>
+              <Select
+                value={matchDetails.tossWinner}
+                onValueChange={(value) => updateMatchDetail('tossWinner', value)}
+              >
+                <SelectTrigger id="toss-winner">
+                  <SelectValue placeholder="Select team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={matchDetails.team1.name || "Team 1"}>{matchDetails.team1.name || "Team 1"}</SelectItem>
+                  <SelectItem value={matchDetails.team2.name || "Team 2"}>{matchDetails.team2.name || "Team 2"}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="toss-decision">Toss Decision</Label>
+              <Select
+                value={matchDetails.tossDecision}
+                onValueChange={(value) => updateMatchDetail('tossDecision', value as 'bat' | 'field')}
+              >
+                <SelectTrigger id="toss-decision">
+                  <SelectValue placeholder="Select decision" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bat">Bat</SelectItem>
+                  <SelectItem value="field">Field</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <Separator />
 
           <Card>
             <CardContent className="pt-6">
@@ -266,28 +309,56 @@ export default function CreateMatchDialog({ open, onOpenChange, onMatchCreated }
                   </div>
                   <div className="space-y-3">
                     {matchDetails.team1.players.map((player, index) => (
-                      <div key={`team1-player-${index}`} className="flex items-center gap-3">
-                        <span className="font-medium w-6 text-right">{index + 1}.</span>
-                        <Input 
-                          placeholder={`Player ${index + 1}`} 
-                          value={player.name}
-                          onChange={(e) => updatePlayerName('team1', index, e.target.value)}
-                          className="flex-1"
-                        />
-                        <Select
-                          value={player.role}
-                          onValueChange={(value) => updatePlayerRole('team1', index, value)}
-                        >
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Batsman">Batsman</SelectItem>
-                            <SelectItem value="Bowler">Bowler</SelectItem>
-                            <SelectItem value="All-rounder">All-rounder</SelectItem>
-                            <SelectItem value="Wicket-keeper">Wicket-keeper</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div key={`team1-player-${index}`} className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium w-6 text-right">{index + 1}.</span>
+                          <Input 
+                            placeholder={`Player ${index + 1}`} 
+                            value={player.name}
+                            onChange={(e) => updatePlayerName('team1', index, e.target.value)}
+                            className="flex-1"
+                          />
+                          <Select
+                            value={player.role}
+                            onValueChange={(value) => updatePlayerRole('team1', index, value)}
+                          >
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Batsman">Batsman</SelectItem>
+                              <SelectItem value="Bowler-Fast">Fast Bowler</SelectItem>
+                              <SelectItem value="Bowler-Medium">Medium Bowler</SelectItem>
+                              <SelectItem value="Bowler-Spinner">Spinner</SelectItem>
+                              <SelectItem value="All-rounder">All-rounder</SelectItem>
+                              <SelectItem value="Wicket-keeper">Wicket-keeper</SelectItem>
+                              <SelectItem value="Captain">Captain</SelectItem>
+                              <SelectItem value="Vice-Captain">Vice-Captain</SelectItem>
+                              <SelectItem value="Umpire">Umpire</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex ml-9">
+                          <Input 
+                            placeholder="Phone Number" 
+                            value={player.phoneNumber || ''}
+                            onChange={(e) => {
+                              const updatedPlayers = [...matchDetails.team1.players];
+                              updatedPlayers[index] = {
+                                ...updatedPlayers[index],
+                                phoneNumber: e.target.value
+                              };
+                              setMatchDetails(prev => ({
+                                ...prev,
+                                team1: {
+                                  ...prev.team1,
+                                  players: updatedPlayers
+                                }
+                              }));
+                            }}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -318,28 +389,56 @@ export default function CreateMatchDialog({ open, onOpenChange, onMatchCreated }
                   </div>
                   <div className="space-y-3">
                     {matchDetails.team2.players.map((player, index) => (
-                      <div key={`team2-player-${index}`} className="flex items-center gap-3">
-                        <span className="font-medium w-6 text-right">{index + 1}.</span>
-                        <Input 
-                          placeholder={`Player ${index + 1}`} 
-                          value={player.name}
-                          onChange={(e) => updatePlayerName('team2', index, e.target.value)}
-                          className="flex-1"
-                        />
-                        <Select
-                          value={player.role}
-                          onValueChange={(value) => updatePlayerRole('team2', index, value)}
-                        >
-                          <SelectTrigger className="w-[130px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Batsman">Batsman</SelectItem>
-                            <SelectItem value="Bowler">Bowler</SelectItem>
-                            <SelectItem value="All-rounder">All-rounder</SelectItem>
-                            <SelectItem value="Wicket-keeper">Wicket-keeper</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div key={`team2-player-${index}`} className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium w-6 text-right">{index + 1}.</span>
+                          <Input 
+                            placeholder={`Player ${index + 1}`} 
+                            value={player.name}
+                            onChange={(e) => updatePlayerName('team2', index, e.target.value)}
+                            className="flex-1"
+                          />
+                          <Select
+                            value={player.role}
+                            onValueChange={(value) => updatePlayerRole('team2', index, value)}
+                          >
+                            <SelectTrigger className="w-[150px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Batsman">Batsman</SelectItem>
+                              <SelectItem value="Bowler-Fast">Fast Bowler</SelectItem>
+                              <SelectItem value="Bowler-Medium">Medium Bowler</SelectItem>
+                              <SelectItem value="Bowler-Spinner">Spinner</SelectItem>
+                              <SelectItem value="All-rounder">All-rounder</SelectItem>
+                              <SelectItem value="Wicket-keeper">Wicket-keeper</SelectItem>
+                              <SelectItem value="Captain">Captain</SelectItem>
+                              <SelectItem value="Vice-Captain">Vice-Captain</SelectItem>
+                              <SelectItem value="Umpire">Umpire</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex ml-9">
+                          <Input 
+                            placeholder="Phone Number" 
+                            value={player.phoneNumber || ''}
+                            onChange={(e) => {
+                              const updatedPlayers = [...matchDetails.team2.players];
+                              updatedPlayers[index] = {
+                                ...updatedPlayers[index],
+                                phoneNumber: e.target.value
+                              };
+                              setMatchDetails(prev => ({
+                                ...prev,
+                                team2: {
+                                  ...prev.team2,
+                                  players: updatedPlayers
+                                }
+                              }));
+                            }}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
