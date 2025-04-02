@@ -33,24 +33,24 @@ export function StoryViewer({
   
   // Progress animation
   useEffect(() => {
-    if (!open || isPaused) return;
+    if (!open || isPaused || !stories.length) return;
     
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          // Move to next story when progress completes
           if (currentStoryIndex < stories.length - 1) {
-            setCurrentStoryIndex(currentStoryIndex + 1);
+            setCurrentStoryIndex(prev => prev + 1);
             return 0;
           } else {
             clearInterval(interval);
             onOpenChange(false);
+            setCurrentStoryIndex(0);
             return 100;
           }
         }
-        return prev + 0.5; // Adjust speed here (smaller value = slower)
+        return prev + 1; // Faster progress
       });
-    }, 30);
+    }, 50);
     
     return () => clearInterval(interval);
   }, [open, currentStoryIndex, stories.length, isPaused, onOpenChange]);

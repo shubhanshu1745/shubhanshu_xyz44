@@ -60,7 +60,7 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       formData.append("file", file);
       
       // Upload the file
-      const response = await fetch("/api/upload/story", {
+      const response = await fetch("http://0.0.0.0:5000/api/upload/story", {
         method: "POST",
         body: formData,
         credentials: 'include'
@@ -102,8 +102,13 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       form.reset();
       
       // Force immediate refetch of stories
-      await queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
-      await queryClient.refetchQueries({ queryKey: ["/api/stories"] });
+      await queryClient.invalidateQueries({ queryKey: ["stories"] });
+      await queryClient.prefetchQuery({ 
+        queryKey: ["stories"],
+        queryFn: () => fetch("http://0.0.0.0:5000/api/stories", {
+          credentials: 'include'
+        }).then(res => res.json())
+      });
     },
     onError: (error) => {
       console.error("Error creating story:", error);
