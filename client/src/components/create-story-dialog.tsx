@@ -36,6 +36,7 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       imageUrl: "",
       caption: "",
     },
+    mode: "onChange"
   });
 
   // Reset form when dialog closes
@@ -60,7 +61,7 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       formData.append("file", file);
       
       // Upload the file
-      const response = await fetch("http://0.0.0.0:5000/api/upload/story", {
+      const response = await fetch("/api/upload/story", {
         method: "POST",
         body: formData,
         credentials: 'include'
@@ -98,10 +99,14 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
         description: "Story created successfully",
       });
       handleOpenChange(false);
+      setPreviewUrl("");
+      form.reset();
       
       // Invalidate stories queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      // Force refetch stories
+      queryClient.refetchQueries({ queryKey: ["/api/stories"] });
     },
     onError: (error) => {
       console.error("Error creating story:", error);
