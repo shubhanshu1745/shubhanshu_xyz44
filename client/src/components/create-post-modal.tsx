@@ -35,8 +35,196 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
   const [step, setStep] = useState<"upload" | "details">("upload");
   const [postType, setPostType] = useState<"image" | "reel">("image");
   const [duration, setDuration] = useState<number>(0);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Handle file upload for images
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a valid image file (JPEG, PNG, GIF, or WEBP).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxSize = 8 * 1024 * 1024; // 8MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Image size should be less than 8MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload/post', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setImageUrl(data.url);
+      
+      toast({
+        title: "Image uploaded",
+        description: "Your image has been uploaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was a problem uploading your image. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Upload error:', error);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  // Handle file upload for videos
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a valid video file (MP4, WebM, or QuickTime).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxSize = 100 * 1024 * 1024; // 100MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Video size should be less than 100MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload/reel', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setVideoUrl(data.url);
+      
+      // If thumbnail URL is provided in the response
+      if (data.thumbnailUrl) {
+        setThumbnailUrl(data.thumbnailUrl);
+      }
+
+      // If duration is provided in the response
+      if (data.duration) {
+        setDuration(data.duration);
+      }
+      
+      toast({
+        title: "Video uploaded",
+        description: "Your video has been uploaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was a problem uploading your video. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Upload error:', error);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+  
+  // Handle thumbnail upload for reels
+  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a valid image file for the thumbnail (JPEG, PNG, GIF, or WEBP).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const maxSize = 4 * 1024 * 1024; // 4MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Thumbnail size should be less than 4MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/upload/thumbnail', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setThumbnailUrl(data.url);
+      
+      toast({
+        title: "Thumbnail uploaded",
+        description: "Your thumbnail has been uploaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was a problem uploading your thumbnail. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Upload error:', error);
+    } finally {
+      setUploadingFile(false);
+    }
+  };
 
   const createPostMutation = useMutation({
     mutationFn: async (postData: CreatePostFormData) => {
@@ -196,16 +384,40 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
                       />
-                      <Button 
-                        variant="default" 
-                        className="mb-4"
-                        onClick={handleNext}
-                        disabled={!imageUrl.trim()}
-                      >
-                        Next
-                      </Button>
+                      <div className="flex flex-col mb-4 gap-2">
+                        <Button 
+                          variant="outline"
+                          disabled={uploadingFile}
+                          onClick={() => document.getElementById("post-image-upload")?.click()}
+                        >
+                          {uploadingFile ? (
+                            <>
+                              <span className="animate-spin mr-2">⏳</span> Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Image
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          onClick={handleNext}
+                          disabled={!imageUrl.trim() || uploadingFile}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                      <input
+                        id="post-image-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                      />
                       <p className="text-neutral-400 text-xs">
-                        For demo purposes, please paste a direct image URL
+                        Upload an image or paste a direct image URL
                       </p>
                     </div>
                   )}
@@ -223,17 +435,27 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                         controls
                         poster={thumbnailUrl || undefined}
                       />
-                      <Button
-                        variant="destructive" 
-                        size="sm"
-                        className="absolute bottom-2 right-2"
-                        onClick={() => {
-                          setVideoUrl("");
-                          setThumbnailUrl("");
-                        }}
-                      >
-                        <X className="h-4 w-4 mr-1" /> Clear
-                      </Button>
+                      <div className="absolute bottom-2 right-2 flex space-x-2">
+                        {thumbnailUrl && (
+                          <Button
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => setThumbnailUrl("")}
+                          >
+                            <X className="h-4 w-4 mr-1" /> Clear Thumbnail
+                          </Button>
+                        )}
+                        <Button
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => {
+                            setVideoUrl("");
+                            setThumbnailUrl("");
+                          }}
+                        >
+                          <X className="h-4 w-4 mr-1" /> Clear Video
+                        </Button>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center p-4">
@@ -253,7 +475,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                       </div>
                       
                       <div className="mb-4">
-                        <Label htmlFor="thumbnailUrl" className="text-white text-xs mb-2 block">Thumbnail URL (optional)</Label>
+                        <Label htmlFor="thumbnailUrl" className="text-white text-xs mb-2 block">Thumbnail (optional)</Label>
                         <Input
                           id="thumbnailUrl"
                           type="text"
@@ -261,6 +483,50 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                           className="bg-white mb-2 mx-auto max-w-xs"
                           value={thumbnailUrl}
                           onChange={(e) => setThumbnailUrl(e.target.value)}
+                        />
+                        
+                        {thumbnailUrl ? (
+                          <div className="relative max-w-xs mx-auto mt-2 mb-2 border border-white rounded overflow-hidden">
+                            <img 
+                              src={thumbnailUrl} 
+                              alt="Thumbnail preview" 
+                              className="w-full h-24 object-cover" 
+                            />
+                            <Button
+                              variant="destructive" 
+                              size="sm"
+                              className="absolute bottom-1 right-1"
+                              onClick={() => setThumbnailUrl("")}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            className="mt-2 w-full max-w-xs"
+                            disabled={uploadingFile}
+                            onClick={() => document.getElementById("post-thumbnail-upload")?.click()}
+                          >
+                            {uploadingFile ? (
+                              <>
+                                <span className="animate-spin mr-2">⏳</span> Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Image className="mr-2 h-4 w-4" />
+                                Upload Thumbnail Image
+                              </>
+                            )}
+                          </Button>
+                        )}
+                        <input
+                          id="post-thumbnail-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleThumbnailUpload}
                         />
                       </div>
                       
@@ -277,16 +543,40 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
                         />
                       </div>
                       
-                      <Button 
-                        variant="default" 
-                        className="mb-4"
-                        onClick={handleNext}
-                        disabled={!videoUrl.trim()}
-                      >
-                        Next
-                      </Button>
+                      <div className="flex flex-col mb-4 gap-2">
+                        <Button 
+                          variant="outline"
+                          disabled={uploadingFile}
+                          onClick={() => document.getElementById("post-video-upload")?.click()}
+                        >
+                          {uploadingFile ? (
+                            <>
+                              <span className="animate-spin mr-2">⏳</span> Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Film className="mr-2 h-4 w-4" />
+                              Upload Video
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          variant="default" 
+                          onClick={handleNext}
+                          disabled={!videoUrl.trim() || uploadingFile}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                      <input
+                        id="post-video-upload"
+                        type="file"
+                        accept="video/*"
+                        className="hidden"
+                        onChange={handleVideoUpload}
+                      />
                       <p className="text-neutral-400 text-xs">
-                        For demo purposes, please paste direct video/image URLs
+                        Upload a video or paste a direct video URL
                       </p>
                     </div>
                   )}

@@ -442,6 +442,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.post("/api/upload/story", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Save the file to disk
+      const uploadResult = await saveFile(req.file, "stories");
+      
+      // Return the file URL to the client
+      res.status(200).json(uploadResult);
+    } catch (error) {
+      console.error("Error uploading story image:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+  
+  app.post("/api/upload/reel", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Save the file to disk
+      const uploadResult = await saveFile(req.file, "reels");
+      
+      // Return the file URL to the client
+      res.status(200).json(uploadResult);
+    } catch (error) {
+      console.error("Error uploading reel video:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+  
+  app.post("/api/upload/thumbnail", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      // Save the file to disk
+      const uploadResult = await saveFile(req.file, "thumbnails");
+      
+      // Return the file URL to the client
+      res.status(200).json(uploadResult);
+    } catch (error) {
+      console.error("Error uploading thumbnail image:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+  
   // Posts endpoints
   app.get("/api/posts", async (req, res) => {
     try {
