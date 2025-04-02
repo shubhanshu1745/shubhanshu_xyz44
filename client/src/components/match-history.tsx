@@ -104,9 +104,9 @@ function renderMatchCards(matches: MatchData[] | undefined, isLoading: boolean) 
     );
   }
   
-  return matches.map(match => (
+  return matches && Array.isArray(matches) ? matches.map(match => (
     <MatchCard key={match.id} match={match} />
-  ));
+  )) : [];
 }
 
 // Match Card Component

@@ -806,7 +806,7 @@ export default function TournamentManager() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      )) : null}
                     </TableBody>
                   </Table>
                 ) : scheduleGenerated ? (
@@ -965,11 +965,11 @@ export default function TournamentManager() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Groups</SelectItem>
-                        {selectedTournament.groups.map(group => (
+                        {selectedTournament.groups && Array.isArray(selectedTournament.groups) ? selectedTournament.groups.map(group => (
                           <SelectItem key={group.id} value={group.id.toString()}>
                             {group.name}
                           </SelectItem>
-                        ))}
+                        )) : null}
                       </SelectContent>
                     </Select>
                   )}
@@ -1360,7 +1360,7 @@ export default function TournamentManager() {
             <div className="space-y-2">
               <Label>Teams</Label>
               <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
-                {teams?.map(team => (
+                {teams && Array.isArray(teams) ? teams.map(team => (
                   <div key={team.id} className="flex items-center space-x-2 py-2">
                     <Checkbox 
                       id={`team-${team.id}`}
@@ -1386,14 +1386,14 @@ export default function TournamentManager() {
                       {team.name}
                     </label>
                   </div>
-                ))}
+                )) : null}
               </div>
             </div>
             
             <div className="space-y-2">
               <Label>Venues</Label>
               <div className="border rounded-lg p-4 max-h-[200px] overflow-y-auto">
-                {venues?.map(venue => (
+                {venues && Array.isArray(venues) ? venues.map(venue => (
                   <div key={venue.id} className="flex items-center space-x-2 py-2">
                     <Checkbox 
                       id={`venue-${venue.id}`}
@@ -1419,7 +1419,7 @@ export default function TournamentManager() {
                       {venue.name} ({venue.city}, {venue.country})
                     </label>
                   </div>
-                ))}
+                )) : null}
               </div>
             </div>
             
@@ -1521,11 +1521,11 @@ export default function TournamentManager() {
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
                 <SelectContent>
-                  {teams?.map(team => (
+                  {teams && Array.isArray(teams) ? teams.map(team => (
                     <SelectItem key={team.id} value={team.id.toString()}>
                       {team.name}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>
@@ -1540,13 +1540,13 @@ export default function TournamentManager() {
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
                 <SelectContent>
-                  {teams?.map(team => (
+                  {teams && Array.isArray(teams) ? teams.map(team => (
                     team.id !== selectedTeams[0] && (
                       <SelectItem key={team.id} value={team.id.toString()}>
                         {team.name}
                       </SelectItem>
                     )
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>
@@ -1561,11 +1561,11 @@ export default function TournamentManager() {
                   <SelectValue placeholder="Select venue" />
                 </SelectTrigger>
                 <SelectContent>
-                  {venues?.map(venue => (
+                  {venues && Array.isArray(venues) ? venues.map(venue => (
                     <SelectItem key={venue.id} value={venue.id.toString()}>
                       {venue.name}
                     </SelectItem>
-                  ))}
+                  )) : null}
                 </SelectContent>
               </Select>
             </div>

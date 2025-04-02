@@ -392,7 +392,7 @@ export default function MatchHighlights() {
             <h4 className="text-sm font-medium mb-2">Included Clips</h4>
             <ScrollArea className="h-60 rounded-md border">
               <div className="p-4 space-y-3">
-                {highlights.clips.map((clip) => (
+                {highlights.clips && Array.isArray(highlights.clips) ? highlights.clips.map((clip: HighlightClip) => (
                   <div 
                     key={clip.id} 
                     className="flex gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer"
@@ -418,7 +418,7 @@ export default function MatchHighlights() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : []}
               </div>
             </ScrollArea>
           </div>
@@ -503,7 +503,7 @@ export default function MatchHighlights() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {clips.map((clip) => (
+          {clips && Array.isArray(clips) ? clips.map((clip: HighlightClip) => (
             <Card key={clip.id} className="overflow-hidden">
               <div 
                 className="relative h-40 cursor-pointer"
@@ -556,7 +556,7 @@ export default function MatchHighlights() {
                 </Button>
               </CardFooter>
             </Card>
-          ))}
+          )) : []}
         </div>
       </div>
     );

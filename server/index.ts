@@ -31,7 +31,7 @@ app.use((req, res, next) => {
 // Start the server first with a minimal configuration
 // This ensures the port is opened quickly for the workflow system
 const server = http.createServer(app);
-const port = 3000;
+const port = 5000;
 
 // Open the port immediately
 console.log(`SERVER IS STARTING ON PORT ${port}...`);
