@@ -191,11 +191,21 @@ export const matches = pgTable("matches", {
   team2Score: integer("team2_score").default(0),
   team2Wickets: integer("team2_wickets").default(0),
   team2Overs: numeric("team2_overs", { precision: 2 }).default("0"),
-  status: text("status").notNull().default("upcoming"), // "upcoming", "live", "completed"
+  status: text("status").notNull().default("upcoming"), // "upcoming", "toss", "live", "completed"
   result: text("result"),
-  tossWinner: integer("toss_winner"),
+  winner: integer("winner"), // Team ID of the winner
+  tossWinner: integer("toss_winner"), // Team ID that won the toss
   tossDecision: text("toss_decision"), // "bat", "bowl"
   currentInnings: integer("current_innings").default(1),
+  mainUmpireId: integer("main_umpire_id"), // User ID of main umpire
+  secondUmpireId: integer("second_umpire_id"), // User ID of second umpire
+  thirdUmpireId: integer("third_umpire_id"), // User ID of third umpire
+  matchRefereeId: integer("match_referee_id"), // User ID of match referee
+  weatherConditions: text("weather_conditions"), // E.g. sunny, cloudy, rainy
+  pitchConditions: text("pitch_conditions"), // E.g. dry, dusty, green
+  tossTime: timestamp("toss_time"), // When toss occurred
+  matchStartTime: timestamp("match_start_time"), // When match started
+  matchEndTime: timestamp("match_end_time"), // When match ended
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -226,7 +236,14 @@ export const matchPlayers = pgTable("match_players", {
   teamId: integer("team_id").notNull(),
   userId: integer("user_id").notNull(),
   isPlaying: boolean("is_playing").default(true),
+  isCaptain: boolean("is_captain").default(false),
+  isViceCaptain: boolean("is_vice_captain").default(false),
+  isWicketkeeper: boolean("is_wicketkeeper").default(false),
+  battingPosition: integer("batting_position"),
+  bowlingPosition: integer("bowling_position"),
+  playerMatchNotes: text("player_match_notes"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const ballByBall = pgTable("ball_by_ball", {
@@ -491,6 +508,12 @@ export const insertMatchPlayerSchema = createInsertSchema(matchPlayers).pick({
   teamId: true,
   userId: true,
   isPlaying: true,
+  isCaptain: true,
+  isViceCaptain: true,
+  isWicketkeeper: true,
+  battingPosition: true,
+  bowlingPosition: true,
+  playerMatchNotes: true,
 });
 
 export const insertBallByBallSchema = createInsertSchema(ballByBall).pick({

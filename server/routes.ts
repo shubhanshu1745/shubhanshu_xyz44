@@ -16,7 +16,11 @@ import {
   createPlayerMatchSchema,
   insertPlayerMatchPerformanceSchema,
   forgotPasswordSchema,
-  resetPasswordSchema
+  resetPasswordSchema,
+  insertMatchSchema,
+  insertTeamSchema,
+  insertMatchPlayerSchema,
+  insertBallByBallSchema
 } from "@shared/schema";
 import { EmailService } from "./services/email-service";
 import { CricketDataService } from "./services/cricket-data";
@@ -1116,6 +1120,329 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(team);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch team" });
+    }
+  });
+  
+  // New advanced match management endpoints
+  
+  // Create a new match
+  app.post("/api/matches", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const matchData = insertMatchSchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
+      
+      const match = await storage.createMatch(matchData);
+      res.status(201).json(match);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating match:", error);
+      res.status(500).json({ message: "Failed to create match" });
+    }
+  });
+  
+  // Get match details with teams and players
+  app.get("/api/matches/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const match = await storage.getMatchById(parseInt(id));
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      // Get teams and players
+      if (match.team1Id && match.team2Id) {
+        const team1 = await storage.getTeamById(match.team1Id);
+        const team2 = await storage.getTeamById(match.team2Id);
+        
+        if (team1) {
+          const team1Players = await storage.getMatchPlayersByTeam(match.id, match.team1Id);
+          match.team1 = { ...team1, players: team1Players };
+        }
+        
+        if (team2) {
+          const team2Players = await storage.getMatchPlayersByTeam(match.id, match.team2Id);
+          match.team2 = { ...team2, players: team2Players };
+        }
+      }
+      
+      res.json(match);
+    } catch (error) {
+      console.error("Error getting match details:", error);
+      res.status(500).json({ message: "Failed to get match details" });
+    }
+  });
+  
+  // Update match details (toss, status, officials, etc.)
+  app.patch("/api/matches/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { id } = req.params;
+      const userId = req.user.id;
+      
+      // Get the match
+      const match = await storage.getMatchById(parseInt(id));
+      
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      // Only the creator can update the match
+      if (match.createdBy !== userId) {
+        return res.status(403).json({ message: "You don't have permission to update this match" });
+      }
+      
+      // Allowable fields to update
+      const allowedFields = [
+        'status', 'tossWinner', 'tossDecision', 'tossTime', 
+        'matchStartTime', 'matchEndTime', 'currentInnings', 
+        'team1Score', 'team1Wickets', 'team1Overs',
+        'team2Score', 'team2Wickets', 'team2Overs',
+        'mainUmpireId', 'secondUmpireId', 'thirdUmpireId', 'matchRefereeId',
+        'weatherConditions', 'pitchConditions', 'result', 'winner'
+      ];
+      
+      // Filter the request body
+      const updateData: Record<string, any> = {};
+      allowedFields.forEach(field => {
+        if (req.body[field] !== undefined) {
+          updateData[field] = req.body[field];
+        }
+      });
+      
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      
+      const updatedMatch = await storage.updateMatch(parseInt(id), updateData);
+      res.json(updatedMatch);
+    } catch (error) {
+      console.error("Error updating match:", error);
+      res.status(500).json({ message: "Failed to update match" });
+    }
+  });
+  
+  // Create or update a team
+  app.post("/api/teams", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const teamData = insertTeamSchema.parse({
+        ...req.body,
+        createdBy: userId
+      });
+      
+      const team = await storage.createTeam(teamData);
+      res.status(201).json(team);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating team:", error);
+      res.status(500).json({ message: "Failed to create team" });
+    }
+  });
+  
+  // Assign players to a match
+  app.post("/api/matches/:matchId/players", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { matchId } = req.params;
+      const { teamId, players } = req.body;
+      
+      if (!teamId || !players || !Array.isArray(players)) {
+        return res.status(400).json({ message: "Team ID and players array are required" });
+      }
+      
+      // Verify match exists and user has permission
+      const match = await storage.getMatchById(parseInt(matchId));
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      if (match.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to modify this match" });
+      }
+      
+      // Add each player to the match
+      const addedPlayers = [];
+      for (const player of players) {
+        const playerData = insertMatchPlayerSchema.parse({
+          matchId: parseInt(matchId),
+          teamId,
+          userId: player.userId,
+          isPlaying: player.isPlaying !== false, // Default to true
+          isCaptain: player.isCaptain || false,
+          isViceCaptain: player.isViceCaptain || false,
+          isWicketkeeper: player.isWicketkeeper || false,
+          battingPosition: player.battingPosition,
+          bowlingPosition: player.bowlingPosition,
+          playerMatchNotes: player.playerMatchNotes,
+        });
+        
+        const addedPlayer = await storage.addMatchPlayer(playerData);
+        addedPlayers.push(addedPlayer);
+      }
+      
+      res.status(201).json(addedPlayers);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error adding match players:", error);
+      res.status(500).json({ message: "Failed to add players to match" });
+    }
+  });
+  
+  // Record ball-by-ball data
+  app.post("/api/matches/:matchId/balls", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { matchId } = req.params;
+      
+      // Verify match exists and user has permission
+      const match = await storage.getMatchById(parseInt(matchId));
+      if (!match) {
+        return res.status(404).json({ message: "Match not found" });
+      }
+      
+      if (match.createdBy !== req.user.id) {
+        return res.status(403).json({ message: "You don't have permission to modify this match" });
+      }
+      
+      // Parse and validate ball data
+      const ballData = insertBallByBallSchema.parse({
+        ...req.body,
+        matchId: parseInt(matchId)
+      });
+      
+      // Add the ball record
+      const ball = await storage.recordBallByBall(ballData);
+      
+      // Update match score based on the ball
+      const updateData: Record<string, any> = {};
+      const innings = ballData.innings;
+      
+      if (innings === 1) {
+        // Update team1 score
+        updateData.team1Score = match.team1Score + (ballData.runsScored || 0) + (ballData.extras || 0);
+        
+        // Update wickets if it's a wicket
+        if (ballData.isWicket) {
+          updateData.team1Wickets = match.team1Wickets + 1;
+        }
+        
+        // Update overs
+        const currentOvers = match.team1Overs || '0.0';
+        const [whole, fraction] = currentOvers.split('.');
+        let newWhole = parseInt(whole);
+        let newFraction = parseInt(fraction || '0');
+        
+        // Only count legal deliveries for overs
+        if (!ballData.extrasType || (ballData.extrasType !== 'wide' && ballData.extrasType !== 'no_ball')) {
+          newFraction += 1;
+          if (newFraction >= 6) {
+            newWhole += 1;
+            newFraction = 0;
+          }
+        }
+        
+        updateData.team1Overs = `${newWhole}.${newFraction}`;
+      } else if (innings === 2) {
+        // Update team2 score
+        updateData.team2Score = match.team2Score + (ballData.runsScored || 0) + (ballData.extras || 0);
+        
+        // Update wickets if it's a wicket
+        if (ballData.isWicket) {
+          updateData.team2Wickets = match.team2Wickets + 1;
+        }
+        
+        // Update overs
+        const currentOvers = match.team2Overs || '0.0';
+        const [whole, fraction] = currentOvers.split('.');
+        let newWhole = parseInt(whole);
+        let newFraction = parseInt(fraction || '0');
+        
+        // Only count legal deliveries for overs
+        if (!ballData.extrasType || (ballData.extrasType !== 'wide' && ballData.extrasType !== 'no_ball')) {
+          newFraction += 1;
+          if (newFraction >= 6) {
+            newWhole += 1;
+            newFraction = 0;
+          }
+        }
+        
+        updateData.team2Overs = `${newWhole}.${newFraction}`;
+      }
+      
+      // Check if match is completed
+      if (innings === 2) {
+        // Check if team2 has won
+        if (match.team1Score && updateData.team2Score > match.team1Score) {
+          updateData.status = 'completed';
+          updateData.result = `${match.team2Id} won by ${10 - (updateData.team2Wickets || 0)} wickets`;
+          updateData.winner = match.team2Id;
+          updateData.matchEndTime = new Date();
+        }
+        
+        // Check if all overs completed or all wickets fallen
+        const [overs] = (updateData.team2Overs || match.team2Overs || '0.0').split('.');
+        if (parseInt(overs) >= match.overs || (updateData.team2Wickets || match.team2Wickets) >= 10) {
+          updateData.status = 'completed';
+          
+          if (match.team1Score && updateData.team2Score < match.team1Score) {
+            updateData.result = `${match.team1Id} won by ${match.team1Score - (updateData.team2Score || 0)} runs`;
+            updateData.winner = match.team1Id;
+          } else if (match.team1Score && updateData.team2Score === match.team1Score) {
+            updateData.result = 'Match tied';
+          }
+          
+          updateData.matchEndTime = new Date();
+        }
+      } else if (innings === 1) {
+        // Check if first innings is completed
+        const [overs] = (updateData.team1Overs || match.team1Overs || '0.0').split('.');
+        if (parseInt(overs) >= match.overs || (updateData.team1Wickets || match.team1Wickets) >= 10) {
+          updateData.currentInnings = 2;
+        }
+      }
+      
+      // Update match with new scores and status
+      if (Object.keys(updateData).length > 0) {
+        await storage.updateMatch(parseInt(matchId), updateData);
+      }
+      
+      res.status(201).json({
+        ball,
+        matchUpdate: updateData
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error recording ball:", error);
+      res.status(500).json({ message: "Failed to record ball" });
     }
   });
 

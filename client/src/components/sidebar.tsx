@@ -126,6 +126,15 @@ export function Sidebar() {
             <span className="cricket-primary">Live Scoring</span>
           </div>
         </Link>
+        
+        <Link href="/advanced-scoring">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/advanced-scoring" ? "font-semibold" : ""}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3 text-[#1F3B4D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            <span className="cricket-primary">Advanced Scoring</span>
+          </div>
+        </Link>
       </div>
       
       {/* Suggestions */}

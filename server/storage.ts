@@ -104,6 +104,30 @@ export interface IStorage {
   getPlayerMatchPerformance(userId: number, matchId: number): Promise<PlayerMatchPerformance | undefined>;
   getMatchPerformances(matchId: number): Promise<(PlayerMatchPerformance & { user: User })[]>;
   
+  // Match management methods
+  createMatch(match: InsertMatch): Promise<Match>;
+  getMatchById(id: number): Promise<Match | undefined>;
+  updateMatch(id: number, matchData: Partial<Match>): Promise<Match | undefined>;
+  getUserMatches(userId: number): Promise<Match[]>;
+  deleteMatch(id: number): Promise<boolean>;
+  
+  // Team management methods
+  createTeam(team: InsertTeam): Promise<Team>;
+  getTeamById(id: number): Promise<Team | undefined>;
+  getUserTeams(userId: number): Promise<Team[]>;
+  updateTeam(id: number, teamData: Partial<Team>): Promise<Team | undefined>;
+  deleteTeam(id: number): Promise<boolean>;
+  
+  // Match player management methods
+  addMatchPlayer(player: InsertMatchPlayer): Promise<MatchPlayer>;
+  getMatchPlayersByTeam(matchId: number, teamId: number): Promise<MatchPlayer[]>;
+  updateMatchPlayer(id: number, playerData: Partial<MatchPlayer>): Promise<MatchPlayer | undefined>;
+  removeMatchPlayer(id: number): Promise<boolean>;
+  
+  // Ball-by-ball data methods
+  recordBallByBall(ball: InsertBallByBall): Promise<BallByBall>;
+  getMatchBalls(matchId: number): Promise<BallByBall[]>;
+  
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
 }
@@ -122,6 +146,10 @@ export class MemStorage implements IStorage {
   private playerMatches: Map<number, PlayerMatch>;
   private playerMatchPerformances: Map<number, PlayerMatchPerformance>;
   private tokens: Map<number, Token>;
+  private matches: Map<number, Match>;
+  private teams: Map<number, Team>;
+  private matchPlayers: Map<number, MatchPlayer>;
+  private ballByBalls: Map<number, BallByBall>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -136,6 +164,10 @@ export class MemStorage implements IStorage {
   playerMatchCurrentId: number;
   playerMatchPerformanceCurrentId: number;
   tokenCurrentId: number;
+  matchCurrentId: number;
+  teamCurrentId: number;
+  matchPlayerCurrentId: number;
+  ballByBallCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -152,6 +184,10 @@ export class MemStorage implements IStorage {
     this.playerMatches = new Map();
     this.playerMatchPerformances = new Map();
     this.tokens = new Map();
+    this.matches = new Map();
+    this.teams = new Map();
+    this.matchPlayers = new Map();
+    this.ballByBalls = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -166,6 +202,10 @@ export class MemStorage implements IStorage {
     this.playerMatchCurrentId = 1;
     this.playerMatchPerformanceCurrentId = 1;
     this.tokenCurrentId = 1;
+    this.matchCurrentId = 1;
+    this.teamCurrentId = 1;
+    this.matchPlayerCurrentId = 1;
+    this.ballByBallCurrentId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
@@ -890,6 +930,240 @@ export class MemStorage implements IStorage {
       const user = await this.getUser(perf.userId) as User;
       return { ...perf, user };
     }));
+  }
+  
+  // Match management methods
+  async createMatch(insertMatch: InsertMatch): Promise<Match> {
+    const id = this.matchCurrentId++;
+    const match: Match = {
+      id,
+      title: insertMatch.title,
+      venue: insertMatch.venue,
+      date: insertMatch.date,
+      overs: insertMatch.overs,
+      team1Id: insertMatch.team1Id,
+      team2Id: insertMatch.team2Id,
+      matchType: insertMatch.matchType || 'friendly',
+      status: insertMatch.status || 'upcoming',
+      currentInnings: insertMatch.currentInnings || 1,
+      team1Score: insertMatch.team1Score || 0,
+      team1Wickets: insertMatch.team1Wickets || 0,
+      team1Overs: insertMatch.team1Overs || '0.0',
+      team2Score: insertMatch.team2Score || 0,
+      team2Wickets: insertMatch.team2Wickets || 0,
+      team2Overs: insertMatch.team2Overs || '0.0',
+      result: insertMatch.result || null,
+      winner: insertMatch.winner || null,
+      tossWinner: insertMatch.tossWinner || null,
+      tossDecision: insertMatch.tossDecision || null,
+      createdBy: insertMatch.createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.matches.set(id, match);
+    return match;
+  }
+  
+  async getMatchById(id: number): Promise<Match | undefined> {
+    return this.matches.get(id);
+  }
+  
+  async updateMatch(id: number, matchData: Partial<Match>): Promise<Match | undefined> {
+    const match = await this.getMatchById(id);
+    if (!match) return undefined;
+    
+    const updatedMatch = { ...match, ...matchData, updatedAt: new Date() };
+    this.matches.set(id, updatedMatch);
+    return updatedMatch;
+  }
+  
+  async getUserMatches(userId: number): Promise<Match[]> {
+    return Array.from(this.matches.values())
+      .filter(match => match.createdBy === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  async deleteMatch(id: number): Promise<boolean> {
+    // Also delete related data
+    const ballsToDelete = Array.from(this.ballByBalls.values())
+      .filter(ball => ball.matchId === id)
+      .map(ball => ball.id);
+    
+    ballsToDelete.forEach(ballId => this.ballByBalls.delete(ballId));
+    
+    const playersToDelete = Array.from(this.matchPlayers.values())
+      .filter(player => player.matchId === id)
+      .map(player => player.id);
+    
+    playersToDelete.forEach(playerId => this.matchPlayers.delete(playerId));
+    
+    return this.matches.delete(id);
+  }
+  
+  // Team management methods
+  async createTeam(insertTeam: InsertTeam): Promise<Team> {
+    const id = this.teamCurrentId++;
+    const team: Team = {
+      id,
+      name: insertTeam.name,
+      location: insertTeam.location || null,
+      description: insertTeam.description || null,
+      logoUrl: insertTeam.logoUrl || null,
+      captainId: insertTeam.captainId || null,
+      viceCaptainId: insertTeam.viceCaptainId || null,
+      createdBy: insertTeam.createdBy,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.teams.set(id, team);
+    return team;
+  }
+  
+  async getTeamById(id: number): Promise<Team | undefined> {
+    return this.teams.get(id);
+  }
+  
+  async getUserTeams(userId: number): Promise<Team[]> {
+    return Array.from(this.teams.values())
+      .filter(team => team.createdBy === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+  
+  async updateTeam(id: number, teamData: Partial<Team>): Promise<Team | undefined> {
+    const team = await this.getTeamById(id);
+    if (!team) return undefined;
+    
+    const updatedTeam = { ...team, ...teamData, updatedAt: new Date() };
+    this.teams.set(id, updatedTeam);
+    return updatedTeam;
+  }
+  
+  async deleteTeam(id: number): Promise<boolean> {
+    return this.teams.delete(id);
+  }
+  
+  // Match player management methods
+  async addMatchPlayer(insertPlayer: InsertMatchPlayer): Promise<MatchPlayer> {
+    // Check if player already exists for this match and team
+    const existingPlayer = Array.from(this.matchPlayers.values()).find(
+      p => p.matchId === insertPlayer.matchId && 
+           p.teamId === insertPlayer.teamId && 
+           p.userId === insertPlayer.userId
+    );
+    
+    if (existingPlayer) {
+      // Update existing player instead of creating a new one
+      const updatedPlayer = { 
+        ...existingPlayer,
+        isPlaying: insertPlayer.isPlaying !== undefined ? insertPlayer.isPlaying : existingPlayer.isPlaying,
+        isCaptain: insertPlayer.isCaptain !== undefined ? insertPlayer.isCaptain : existingPlayer.isCaptain,
+        isViceCaptain: insertPlayer.isViceCaptain !== undefined ? insertPlayer.isViceCaptain : existingPlayer.isViceCaptain,
+        isWicketkeeper: insertPlayer.isWicketkeeper !== undefined ? insertPlayer.isWicketkeeper : existingPlayer.isWicketkeeper,
+        battingPosition: insertPlayer.battingPosition !== undefined ? insertPlayer.battingPosition : existingPlayer.battingPosition,
+        bowlingPosition: insertPlayer.bowlingPosition !== undefined ? insertPlayer.bowlingPosition : existingPlayer.bowlingPosition,
+        playerMatchNotes: insertPlayer.playerMatchNotes !== undefined ? insertPlayer.playerMatchNotes : existingPlayer.playerMatchNotes,
+        updatedAt: new Date()
+      };
+      
+      this.matchPlayers.set(existingPlayer.id, updatedPlayer);
+      return updatedPlayer;
+    }
+    
+    // Create new player
+    const id = this.matchPlayerCurrentId++;
+    const player: MatchPlayer = {
+      id,
+      matchId: insertPlayer.matchId,
+      teamId: insertPlayer.teamId,
+      userId: insertPlayer.userId,
+      isPlaying: insertPlayer.isPlaying !== undefined ? insertPlayer.isPlaying : true,
+      isCaptain: insertPlayer.isCaptain || false,
+      isViceCaptain: insertPlayer.isViceCaptain || false,
+      isWicketkeeper: insertPlayer.isWicketkeeper || false,
+      battingPosition: insertPlayer.battingPosition || null,
+      bowlingPosition: insertPlayer.bowlingPosition || null,
+      playerMatchNotes: insertPlayer.playerMatchNotes || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.matchPlayers.set(id, player);
+    return player;
+  }
+  
+  async getMatchPlayersByTeam(matchId: number, teamId: number): Promise<MatchPlayer[]> {
+    const matchPlayers = Array.from(this.matchPlayers.values())
+      .filter(player => player.matchId === matchId && player.teamId === teamId);
+    
+    // Enrich with user data
+    return Promise.all(matchPlayers.map(async player => {
+      const user = await this.getUser(player.userId);
+      return {
+        ...player,
+        user
+      };
+    }));
+  }
+  
+  async updateMatchPlayer(id: number, playerData: Partial<MatchPlayer>): Promise<MatchPlayer | undefined> {
+    const player = this.matchPlayers.get(id);
+    if (!player) return undefined;
+    
+    const updatedPlayer = { ...player, ...playerData, updatedAt: new Date() };
+    this.matchPlayers.set(id, updatedPlayer);
+    return updatedPlayer;
+  }
+  
+  async removeMatchPlayer(id: number): Promise<boolean> {
+    return this.matchPlayers.delete(id);
+  }
+  
+  // Ball-by-ball data methods
+  async recordBallByBall(insertBall: InsertBallByBall): Promise<BallByBall> {
+    const id = this.ballByBallCurrentId++;
+    const ball: BallByBall = {
+      id,
+      matchId: insertBall.matchId,
+      innings: insertBall.innings,
+      over: insertBall.over,
+      ball: insertBall.ball,
+      batsmanId: insertBall.batsmanId,
+      bowlerId: insertBall.bowlerId,
+      runsScored: insertBall.runsScored || 0,
+      extras: insertBall.extras || 0,
+      extrasType: insertBall.extrasType || null,
+      isWicket: insertBall.isWicket || false,
+      wicketType: insertBall.wicketType || null,
+      playerOutId: insertBall.playerOutId || null,
+      fielderId: insertBall.fielderId || null,
+      commentary: insertBall.commentary || null,
+      shotType: insertBall.shotType || null,
+      shotDirection: insertBall.shotDirection || null,
+      shotDistance: insertBall.shotDistance || null,
+      ballType: insertBall.ballType || null,
+      ballSpeed: insertBall.ballSpeed || null,
+      createdAt: new Date()
+    };
+    
+    this.ballByBalls.set(id, ball);
+    return ball;
+  }
+  
+  async getMatchBalls(matchId: number): Promise<BallByBall[]> {
+    return Array.from(this.ballByBalls.values())
+      .filter(ball => ball.matchId === matchId)
+      .sort((a, b) => {
+        // Sort by innings, over, and ball
+        if (a.innings !== b.innings) {
+          return a.innings - b.innings;
+        }
+        if (a.over !== b.over) {
+          return a.over - b.over;
+        }
+        return a.ball - b.ball;
+      });
   }
 }
 

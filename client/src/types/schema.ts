@@ -1,255 +1,131 @@
-// Types defined from shared/schema.ts for frontend use
+// Import the actual types from shared schema
+import { User, Post, Comment, Like, Follow, Story, Match as DbMatch, Team as DbTeam, MatchPlayer, BallByBall, PlayerStats, PlayerVsPlayerStats, HeatMapData, Partnership, MatchHighlight } from '@shared/schema';
 
-export interface User {
-  id: number;
-  email: string;
-  username: string;
-  fullName?: string;
-  bio?: string;
-  avatarUrl?: string;
-  isVerified: boolean;
-  role: string;
-  createdAt: string;
-  updatedAt: string;
+// Re-export these types for component usage
+export { User, Post, Comment, Like, Follow, Story };
+
+// Export additional component-specific interfaces
+export interface Team extends DbTeam {
+  players?: Player[];
 }
 
-export interface Post {
-  id: number;
-  userId: number;
-  imageUrl: string;
-  caption: string;
-  location?: string;
-  createdAt: string;
-  updatedAt: string;
+export interface Match extends DbMatch {
+  team1?: Team;
+  team2?: Team;
+  tossWinner?: number;
+  tossDecision?: 'bat' | 'bowl';
+  tossTime?: Date;
+  matchStartTime?: Date;
+  matchEndTime?: Date;
+  mainUmpireId?: number;
+  secondUmpireId?: number;
+  thirdUmpireId?: number;
+  matchRefereeId?: number;
+  weatherConditions?: string;
+  pitchConditions?: string;
 }
 
-export interface Like {
+export interface Player {
   id: number;
-  postId: number;
-  userId: number;
-  createdAt: string;
+  userId?: number;
+  name: string;
+  username?: string;
+  profileImage?: string;
+  role?: string;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  isCaptain?: boolean;
+  isViceCaptain?: boolean;
+  isWicketkeeper?: boolean;
+  stats?: PlayerStats;
+  matchStats?: MatchPlayerStats;
 }
 
-export interface Comment {
-  id: number;
-  postId: number;
-  userId: number;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
+export interface MatchPlayerStats {
+  battingStats?: BattingStats;
+  bowlingStats?: BowlingStats;
+  fieldingStats?: FieldingStats;
 }
 
-export interface Follow {
-  id: number;
-  followerId: number;
-  followingId: number;
-  createdAt: string;
-}
-
-export interface BlockedUser {
-  id: number;
-  userId: number;
-  blockedUserId: number;
-  createdAt: string;
-}
-
-export interface Conversation {
-  id: number;
-  name?: string;
-  isGroup: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Message {
-  id: number;
-  conversationId: number;
-  senderId: number;
-  content: string;
-  imageUrl?: string;
-  createdAt: string;
-  seen: boolean;
-}
-
-export interface Story {
-  id: number;
-  userId: number;
-  imageUrl: string;
-  caption?: string;
-  createdAt: string;
-  expiresAt: string;
-}
-
-export interface PlayerStats {
-  id: number;
-  playerId: number;
-  matches: number;
+export interface BattingStats {
   runs: number;
-  highScore: number;
-  average: number;
+  balls: number;
+  fours: number;
+  sixes: number;
   strikeRate: number;
-  centuries: number;
-  halfCenturies: number;
-  fours: number;
-  sixes: number;
+  battingPosition?: number;
+}
+
+export interface BowlingStats {
+  overs: string;
+  maidens: number;
+  runs: number;
   wickets: number;
-  bestBowling: string;
-  bowlingAverage: number;
   economy: number;
-  updatedAt: string;
+  bowlingPosition?: number;
 }
 
-export interface PlayerMatch {
-  id: number;
-  playerId: number;
-  matchId: number;
-  teamId: number;
-  createdAt: string;
-}
-
-export interface PlayerMatchPerformance {
-  id: number;
-  playerId: number;
-  matchId: number;
-  teamId: number;
-  runsScored: number;
-  ballsFaced: number;
-  fours: number;
-  sixes: number;
-  overs: number;
-  runsConceded: number;
-  wickets: number;
+export interface FieldingStats {
   catches: number;
   runOuts: number;
-  stumping: number;
-  createdAt: string;
-  updatedAt: string;
+  stumpings: number;
 }
 
-export interface Match {
-  id: number;
-  title: string;
-  venue: string;
-  matchType: string;
-  overs: number;
-  team1Id: number;
-  team2Id: number;
-  team1Score: number;
-  team1Wickets: number;
-  team1Overs: string;
-  team2Score: number;
-  team2Wickets: number;
-  team2Overs: string;
-  status: "upcoming" | "live" | "completed";
-  result?: string;
-  winner?: number;
-  matchDate: string;
-  createdAt: string;
-  updatedAt: string;
-  currentInnings: 1 | 2;
-}
-
-export interface Team {
-  id: number;
-  name: string;
-  logo?: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface TeamPlayer {
-  id: number;
-  teamId: number;
-  playerId: number;
-  role: string;
-  createdAt: string;
-}
-
-export interface MatchPlayer {
-  id: number;
-  matchId: number;
-  playerId: number;
-  teamId: number;
-  isCaptain: boolean;
-  isWicketkeeper: boolean;
-  createdAt: string;
-}
-
-export interface BallByBall {
-  id: number;
-  matchId: number;
-  innings: number;
-  overNumber: number;
-  ballNumber: number;
-  batsmanId: number;
-  bowlerId: number;
-  runsScored: number;
-  extras: number;
-  extrasType?: string;
-  isWicket: boolean;
-  dismissalType?: string;
-  playerOutId?: number;
-  fielderId?: number;
+export interface BallEvent extends BallByBall {
+  id: string;
+  batsman: string;
+  bowler: string;
+  isFour?: boolean;
+  isSix?: boolean;
+  isWide?: boolean;
+  isNoBall?: boolean;
+  isLegBye?: boolean;
+  isBye?: boolean;
+  playerOut?: string;
+  fielder?: string;
   commentary?: string;
-  timestamp: string;
   shotType?: string;
   shotDirection?: number;
   shotDistance?: number;
-  ballSpeed?: number;
-  ballLength?: string;
-  ballLine?: string;
+  timestamp: Date;
 }
 
-export interface Partnership {
-  id: number;
-  matchId: number;
-  innings: number;
-  batsman1Id: number;
-  batsman2Id: number;
-  runs: number;
-  balls: number;
-  startOver: number;
-  endOver?: number;
-  createdAt: string;
+export interface PlayerMatchup extends PlayerVsPlayerStats {
+  batsmanName?: string;
+  bowlerName?: string;
+  strikeRate?: number;
+  economyRate?: number;
+  dotBallPercentage?: number;
+  boundaryPercentage?: number;
 }
 
-export interface MatchHighlight {
-  id: number;
-  matchId: number;
-  playerId?: number;
-  type: string;
-  description: string;
-  videoUrl?: string;
-  timestamp: string;
-  over: number;
-  createdAt: string;
+export interface ZoneData {
+  [key: string]: number;
 }
 
-export interface PlayerVsPlayerStats {
-  id: number;
-  batsmanId: number;
-  bowlerId: number;
-  matchId?: number;
-  ballsFaced: number;
-  runsScored: number;
-  fours: number;
-  sixes: number;
-  dismissals: number;
-  dotBalls: number;
-  createdAt: string;
-  updatedAt: string;
+export interface HeatMapEntry extends HeatMapData {
+  playerName?: string;
+  zones?: ZoneData;
 }
 
-export interface HeatMapData {
-  id: number;
-  playerId: number;
-  matchId?: number;
-  isBatting: boolean;
-  zoneType: string;
-  zoneName: string;
-  frequency: number;
-  runs?: number;
-  createdAt: string;
-  updatedAt: string;
+export interface PartnershipData extends Partnership {
+  batsman1Name?: string;
+  batsman2Name?: string;
+  runRate?: number;
+}
+
+export interface Highlight extends MatchHighlight {
+  playerName?: string;
+  timeAgo?: string;
+}
+
+export interface MatchOfficials {
+  mainUmpire: string;
+  secondUmpire: string;
+  thirdUmpire: string;
+  matchReferee: string;
+  weatherConditions: string;
+  pitchConditions: string;
+  venue: string;
+  additionalNotes: string;
 }
