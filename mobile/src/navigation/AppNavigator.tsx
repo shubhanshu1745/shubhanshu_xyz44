@@ -2,186 +2,235 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Dimensions } from 'react-native';
+import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import useAuth from '../hooks/useAuth';
 
-// Screens
+// Screens - Auth
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+
+// Screens - Main
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import StatsScreen from '../screens/StatsScreen';
 import MatchesScreen from '../screens/MatchesScreen';
-import TeamsScreen from '../screens/TeamsScreen';
-import LiveScoringScreen from '../screens/LiveScoringScreen';
+import StatsScreen from '../screens/StatsScreen';
 import ChatScreen from '../screens/ChatScreen';
 import ConversationScreen from '../screens/ConversationScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import EditProfileScreen from '../screens/EditProfileScreen';
+import LiveScoringScreen from '../screens/LiveScoringScreen';
+import MatchDetailScreen from '../screens/MatchDetailScreen';
+import SearchScreen from '../screens/SearchScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 
-// Icons
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
-
-// Screen param types
+// Define the RootStack param list
 export type RootStackParamList = {
-  Auth: undefined;
-  Main: undefined;
-  Profile: { username: string };
-  LiveScoring: undefined;
-  Match: { matchId: number };
-  Conversation: { conversationId: number };
-  CreatePost: undefined;
-};
-
-export type AuthStackParamList = {
+  // Auth Screens
   Login: undefined;
   Register: undefined;
-};
-
-export type MainTabParamList = {
+  ForgotPassword: undefined;
+  
+  // Main Screens
+  MainTabs: undefined;
   Home: undefined;
-  Stats: undefined;
-  Teams: undefined;
-  Matches: undefined;
   Profile: { username?: string };
+  Matches: undefined;
+  Stats: { userId?: number };
   Chat: undefined;
+  Conversation: { conversationId: number };
+  PostDetail: { postId: number };
+  Settings: undefined;
+  EditProfile: undefined;
+  LiveScoring: { matchId?: number };
+  Match: { matchId: number };
+  Search: undefined;
+  Notifications: undefined;
 };
 
-// Create navigators
+// Create the Stacks
 const Stack = createNativeStackNavigator<RootStackParamList>();
-const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const MainTab = createBottomTabNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator<RootStackParamList>();
 
-// Get screen dimensions
-const { width } = Dimensions.get('window');
-const isSmallScreen = width < 375;
-
-// Authentication stack navigator
-const AuthNavigator = () => {
-  return (
-    <AuthStack.Navigator
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: '#f5f5f5' },
-      }}
-    >
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
-    </AuthStack.Navigator>
-  );
-};
-
-// Main tab navigator
+// Bottom Tabs Navigator
 const MainTabNavigator = () => {
   return (
-    <MainTab.Navigator
+    <Tab.Navigator
       screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: '#2E8B57',
         tabBarInactiveTintColor: '#718096',
-        tabBarLabelStyle: styles.tabBarLabel,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 1,
+          borderTopColor: '#E2E8F0',
+          paddingTop: 5,
+          paddingBottom: 5,
+          height: 60,
+        },
+        headerShown: false,
       }}
     >
-      <MainTab.Screen
+      <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
+          tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }) => (
-            <Feather name="home" color={color} size={size} />
+            <Feather name="home" size={size} color={color} />
           ),
         }}
       />
-      <MainTab.Screen
-        name="Stats"
-        component={StatsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-bar" color={color} size={size} />
-          ),
-        }}
-      />
-      <MainTab.Screen
+      
+      <Tab.Screen
         name="Matches"
         component={MatchesScreen}
         options={{
+          tabBarLabel: 'Matches',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cricket" color={color} size={size} />
+            <MaterialCommunityIcons name="cricket" size={size} color={color} />
           ),
         }}
       />
-      <MainTab.Screen
-        name="Teams"
-        component={TeamsScreen}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group" color={color} size={size} />
-          ),
-        }}
-      />
-      <MainTab.Screen
+      
+      <Tab.Screen
         name="Chat"
         component={ChatScreen}
         options={{
+          tabBarLabel: 'Messages',
           tabBarIcon: ({ color, size }) => (
-            <Feather name="message-circle" color={color} size={size} />
+            <Feather name="message-circle" size={size} color={color} />
           ),
         }}
       />
-    </MainTab.Navigator>
+      
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="user" size={size} color={color} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
-// Root navigator
+// Main Navigator
 const AppNavigator = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Show loading state
+  const { isSignedIn, isLoading } = useAuth();
+  
+  // Show a loading screen if auth state is being determined
   if (isLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Loading" component={LoadingScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
     );
   }
-
+  
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
-          headerShown: false,
+          headerStyle: {
+            backgroundColor: '#FFFFFF',
+          },
+          headerTintColor: '#1F3B4D',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       >
-        {!isAuthenticated ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : (
+        {isSignedIn ? (
+          // Logged-in User Screens
           <>
-            <Stack.Screen name="Main" component={MainTabNavigator} />
-            <Stack.Screen 
-              name="Profile" 
-              component={ProfileScreen}
-              options={{
-                headerShown: true,
-                headerTitle: 'Profile',
-                headerTintColor: '#2E8B57',
-              }}
+            <Stack.Screen
+              name="MainTabs"
+              component={MainTabNavigator}
+              options={{ headerShown: false }}
             />
-            <Stack.Screen 
-              name="LiveScoring" 
-              component={LiveScoringScreen}
-              options={{
-                headerShown: true,
-                headerTitle: 'Live Scoring',
-                headerTintColor: '#2E8B57',
-              }}
-            />
-            <Stack.Screen 
-              name="Conversation" 
+            
+            <Stack.Screen
+              name="Conversation"
               component={ConversationScreen}
-              options={{
-                headerShown: true,
-                headerTitle: 'Chat',
-                headerTintColor: '#2E8B57',
-              }}
+              options={({ route }) => ({
+                title: '',
+                headerBackTitle: 'Back',
+              })}
+            />
+            
+            <Stack.Screen
+              name="PostDetail"
+              component={PostDetailScreen}
+              options={{ title: 'Post' }}
+            />
+            
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{ title: 'Settings' }}
+            />
+            
+            <Stack.Screen
+              name="EditProfile"
+              component={EditProfileScreen}
+              options={{ title: 'Edit Profile' }}
+            />
+            
+            <Stack.Screen
+              name="Stats"
+              component={StatsScreen}
+              options={{ title: 'Cricket Stats' }}
+            />
+            
+            <Stack.Screen
+              name="LiveScoring"
+              component={LiveScoringScreen}
+              options={{ title: 'Live Scoring' }}
+            />
+            
+            <Stack.Screen
+              name="Match"
+              component={MatchDetailScreen}
+              options={{ title: 'Match Details' }}
+            />
+            
+            <Stack.Screen
+              name="Search"
+              component={SearchScreen}
+              options={{ title: 'Search' }}
+            />
+            
+            <Stack.Screen
+              name="Notifications"
+              component={NotificationsScreen}
+              options={{ title: 'Notifications' }}
+            />
+          </>
+        ) : (
+          // Auth Screens
+          <>
+            <Stack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
+            
+            <Stack.Screen
+              name="Register"
+              component={RegisterScreen}
+              options={{ title: 'Create Account' }}
+            />
+            
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+              options={{ title: 'Reset Password' }}
             />
           </>
         )}
@@ -190,27 +239,9 @@ const AppNavigator = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#2E8B57',
-  },
-  tabBar: {
-    backgroundColor: '#ffffff',
-    borderTopColor: 'rgba(0,0,0,0.05)',
-    height: 60,
-  },
-  tabBarLabel: {
-    fontSize: isSmallScreen ? 10 : 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-});
+// Loading Screen Component
+const LoadingScreen = () => {
+  return null; // Replace with an actual loading screen component
+};
 
 export default AppNavigator;

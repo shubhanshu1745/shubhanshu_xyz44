@@ -1,182 +1,262 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import apiClient from '../lib/api';
+import { apiRequest, storeToken, clearToken, isAuthenticated as checkAuthStatus } from '../lib/api';
 
-// Define user type
+// User interface
 interface User {
   id: number;
   username: string;
   email: string;
-  fullName: string | null;
-  profileImageUrl: string | null;
-  bio: string | null;
+  name: string;
+  bio?: string;
+  avatarUrl?: string;
+  role: string;
+  createdAt: string;
 }
 
-// Define auth context type
-interface AuthContextData {
+// Auth state interface
+interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (userData: RegisterData) => Promise<void>;
-  logout: () => Promise<void>;
-  clearError: () => void;
 }
 
-// Define register data
+// Login credentials interface
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+// Register data interface
 interface RegisterData {
   username: string;
   email: string;
   password: string;
-  confirmPassword: string;
-  fullName?: string;
-  bio?: string;
+  name: string;
 }
 
-// Create auth context
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
-
-// Auth provider props
-interface AuthProviderProps {
-  children: ReactNode;
+// Auth context interface
+interface AuthContextType extends AuthState {
+  login: (credentials: LoginCredentials) => Promise<boolean>;
+  register: (data: RegisterData) => Promise<boolean>;
+  logout: () => Promise<void>;
+  clearError: () => void;
+  updateUser: (userData: Partial<User>) => Promise<boolean>;
 }
+
+// Initial auth state
+const initialAuthState: AuthState = {
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  error: null,
+};
+
+// Create the auth context
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Auth provider component
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Check if user is already authenticated on mount
+export const AuthProvider: React.FC = ({ children }) => {
+  const [state, setState] = useState<AuthState>(initialAuthState);
+
+  // Load user data from storage on app start
   useEffect(() => {
-    async function loadStoredUser() {
+    const loadUser = async () => {
       try {
-        const storedUser = await AsyncStorage.getItem('@CricSocial:user');
-        const token = await AsyncStorage.getItem('@CricSocial:token');
+        // Check if the user is authenticated
+        const isUserAuthenticated = await checkAuthStatus();
         
-        if (storedUser && token) {
-          setUser(JSON.parse(storedUser));
+        if (isUserAuthenticated) {
+          // Fetch user data from the API
+          try {
+            const userData = await apiRequest.get<User>('/auth/user');
+            setState({
+              user: userData,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null,
+            });
+          } catch (error) {
+            // If we can't fetch the user, log them out
+            await clearToken();
+            setState({
+              ...initialAuthState,
+              isLoading: false,
+              error: 'Session expired. Please log in again.',
+            });
+          }
+        } else {
+          // Not authenticated
+          setState({
+            ...initialAuthState,
+            isLoading: false,
+          });
         }
-      } catch (err) {
-        console.error('Error loading stored user:', err);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error('Error loading user:', error);
+        setState({
+          ...initialAuthState,
+          isLoading: false,
+          error: 'Failed to load user data.',
+        });
       }
-    }
-    
-    loadStoredUser();
+    };
+
+    loadUser();
   }, []);
-  
-  // Login function
-  const login = async (email: string, password: string) => {
+
+  /**
+   * Login function
+   * @param credentials - Email and password
+   */
+  const login = async (credentials: LoginCredentials): Promise<boolean> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
     try {
-      setLoading(true);
-      setError(null);
+      const response = await apiRequest.post<{ token: string; user: User }>('/auth/login', credentials);
       
-      const response = await apiClient.login(email, password);
+      // Store the auth token
+      await storeToken(response.token);
       
-      // Store user and token
-      const { user, token } = response;
-      await AsyncStorage.setItem('@CricSocial:user', JSON.stringify(user));
-      await AsyncStorage.setItem('@CricSocial:token', token);
+      // Update state with user data
+      setState({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
       
-      setUser(user);
-    } catch (err) {
-      console.error('Login error:', err);
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Failed to login. Please check your credentials and try again.');
-      }
-      throw err;
-    } finally {
-      setLoading(false);
+      return true;
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.response?.data?.message || 'Failed to login. Please check your credentials.',
+      }));
+      return false;
     }
   };
-  
-  // Register function
-  const register = async (userData: RegisterData) => {
+
+  /**
+   * Register function
+   * @param data - Registration data
+   */
+  const register = async (data: RegisterData): Promise<boolean> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
     try {
-      setLoading(true);
-      setError(null);
+      const response = await apiRequest.post<{ token: string; user: User }>('/auth/register', data);
       
-      const response = await apiClient.register(userData);
+      // Store the auth token
+      await storeToken(response.token);
       
-      // Store user and token
-      const { user, token } = response;
-      await AsyncStorage.setItem('@CricSocial:user', JSON.stringify(user));
-      await AsyncStorage.setItem('@CricSocial:token', token);
+      // Update state with user data
+      setState({
+        user: response.user,
+        isAuthenticated: true,
+        isLoading: false,
+        error: null,
+      });
       
-      setUser(user);
-    } catch (err) {
-      console.error('Registration error:', err);
-      if (axios.isAxiosError(err) && err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError('Failed to register. Please try again with different credentials.');
-      }
-      throw err;
-    } finally {
-      setLoading(false);
+      return true;
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.response?.data?.message || 'Failed to register. Please try again.',
+      }));
+      return false;
     }
   };
-  
-  // Logout function
-  const logout = async () => {
+
+  /**
+   * Logout function
+   */
+  const logout = async (): Promise<void> => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
     try {
-      setLoading(true);
+      // Clear the token from storage
+      await clearToken();
       
-      // Call logout API
-      await apiClient.logout();
-      
-      // Remove stored user and token
-      await AsyncStorage.removeItem('@CricSocial:user');
-      await AsyncStorage.removeItem('@CricSocial:token');
-      
-      setUser(null);
-    } catch (err) {
-      console.error('Logout error:', err);
-      // Even if API call fails, we still want to clear local storage
-      await AsyncStorage.removeItem('@CricSocial:user');
-      await AsyncStorage.removeItem('@CricSocial:token');
-      setUser(null);
-    } finally {
-      setLoading(false);
+      // Reset auth state
+      setState({
+        ...initialAuthState,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: 'Failed to logout. Please try again.',
+      }));
     }
   };
-  
-  // Clear error
-  const clearError = () => {
-    setError(null);
+
+  /**
+   * Clear any auth errors
+   */
+  const clearError = (): void => {
+    setState(prev => ({ ...prev, error: null }));
   };
-  
+
+  /**
+   * Update user profile
+   * @param userData - Partial user data to update
+   */
+  const updateUser = async (userData: Partial<User>): Promise<boolean> => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    
+    try {
+      const updatedUser = await apiRequest.patch<User>('/auth/user', userData);
+      
+      setState(prev => ({
+        ...prev,
+        user: updatedUser,
+        isLoading: false,
+      }));
+      
+      return true;
+    } catch (error: any) {
+      console.error('Update user error:', error);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error.response?.data?.message || 'Failed to update profile. Please try again.',
+      }));
+      return false;
+    }
+  };
+
+  // Context value with all auth functionality
+  const contextValue: AuthContextType = {
+    ...state,
+    login,
+    register,
+    logout,
+    clearError,
+    updateUser,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading: loading,
-        error,
-        login,
-        register,
-        logout,
-        clearError,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 // Custom hook to use auth context
-export default function useAuth(): AuthContextData {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
   return context;
-}
+};
+
+// useAuthentication alias for useAuth (for clarity in some cases)
+export const useAuthentication = useAuth;

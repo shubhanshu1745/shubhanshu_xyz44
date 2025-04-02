@@ -1,148 +1,201 @@
 import React from 'react';
-import { View, Image, Text, StyleSheet, ViewStyle, TextStyle, ImageStyle } from 'react-native';
+import {
+  View,
+  Image,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StyleProp,
+  ViewStyle,
+  ImageStyle,
+  TextStyle,
+  TouchableOpacityProps,
+} from 'react-native';
+
+type AvatarSize = 'tiny' | 'small' | 'medium' | 'large' | 'xlarge';
+
+// Default fallback avatar image
+const DEFAULT_AVATAR = require('../../assets/default-avatar.png');
 
 /**
- * Avatar sizes available
+ * Returns styles based on the avatar size
  */
-type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+const getSizeStyles = (size: AvatarSize): {
+  container: ViewStyle;
+  text: TextStyle;
+  fontSize: number;
+} => {
+  switch (size) {
+    case 'tiny':
+      return {
+        container: {
+          width: 24,
+          height: 24,
+          borderRadius: 12,
+        },
+        text: {
+          fontSize: 10,
+        },
+        fontSize: 10,
+      };
+    case 'small':
+      return {
+        container: {
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+        },
+        text: {
+          fontSize: 12,
+        },
+        fontSize: 12,
+      };
+    case 'large':
+      return {
+        container: {
+          width: 64,
+          height: 64,
+          borderRadius: 32,
+        },
+        text: {
+          fontSize: 24,
+        },
+        fontSize: 24,
+      };
+    case 'xlarge':
+      return {
+        container: {
+          width: 96,
+          height: 96,
+          borderRadius: 48,
+        },
+        text: {
+          fontSize: 36,
+        },
+        fontSize: 36,
+      };
+    default: // medium
+      return {
+        container: {
+          width: 48,
+          height: 48,
+          borderRadius: 24,
+        },
+        text: {
+          fontSize: 18,
+        },
+        fontSize: 18,
+      };
+  }
+};
 
 /**
- * Avatar props interface
+ * Gets initials from a name string
  */
-interface AvatarProps {
-  /**
-   * Image URI to display
-   */
-  uri?: string | null;
+const getInitials = (name: string): string => {
+  if (!name) return '';
   
-  /**
-   * Name to use for initials fallback
-   */
-  name?: string;
+  const nameParts = name.trim().split(' ');
+  if (nameParts.length === 0) return '';
   
-  /**
-   * Size of the avatar
-   */
-  size?: AvatarSize;
+  if (nameParts.length === 1) {
+    return nameParts[0].charAt(0).toUpperCase();
+  }
   
-  /**
-   * Additional container styles
-   */
-  containerStyle?: ViewStyle;
-  
-  /**
-   * Additional image styles
-   */
-  imageStyle?: ImageStyle;
-  
-  /**
-   * Additional text styles for initials
-   */
-  textStyle?: TextStyle;
-}
-
-/**
- * Avatar component for displaying user profile images with fallback to initials
- */
-export const Avatar: React.FC<AvatarProps> = ({
-  uri,
-  name = '',
-  size = 'md',
-  containerStyle,
-  imageStyle,
-  textStyle,
-}) => {
-  // Calculate the dimensions based on size
-  const dimensions = {
-    width: AVATAR_SIZES[size],
-    height: AVATAR_SIZES[size],
-    borderRadius: AVATAR_SIZES[size] / 2,
-  };
-
-  // Generate initials from name
-  const initials = name
-    .split(' ')
-    .map(part => part[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-
-  // Choose between image or text fallback
-  const renderContent = () => {
-    if (uri) {
-      return (
-        <Image
-          source={{ uri }}
-          style={[styles.image, dimensions, imageStyle]}
-          defaultSource={require('../../../assets/placeholder-profile.png')}
-        />
-      );
-    } else {
-      return (
-        <View style={[styles.initialsContainer, dimensions, { backgroundColor: getColorFromName(name) }]}>
-          <Text style={[styles.initialsText, { fontSize: AVATAR_SIZES[size] * 0.4 }, textStyle]}>
-            {initials}
-          </Text>
-        </View>
-      );
-    }
-  };
-
   return (
-    <View style={[styles.container, dimensions, containerStyle]}>
-      {renderContent()}
-    </View>
+    nameParts[0].charAt(0).toUpperCase() + 
+    nameParts[nameParts.length - 1].charAt(0).toUpperCase()
   );
 };
 
-// Avatar size dimensions in pixels
-const AVATAR_SIZES = {
-  xs: 24,
-  sm: 32,
-  md: 48,
-  lg: 64,
-  xl: 96,
-};
+interface AvatarProps extends Omit<TouchableOpacityProps, 'style'> {
+  uri?: string;
+  name?: string;
+  size?: AvatarSize;
+  style?: StyleProp<ViewStyle>;
+  imageStyle?: StyleProp<ImageStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  onPress?: () => void;
+}
 
-// Simple color generator based on name
-const getColorFromName = (name: string): string => {
-  const colors = [
-    '#2E8B57', // Sea Green
-    '#1F3B4D', // Navy Blue
-    '#4CAF50', // Green
-    '#F9A825', // Cricket Gold
-    '#3F51B5', // Indigo
-    '#FF5722', // Deep Orange
-    '#607D8B', // Blue Grey
-    '#009688', // Teal
-  ];
+const Avatar: React.FC<AvatarProps> = ({
+  uri,
+  name = '',
+  size = 'medium',
+  style,
+  imageStyle,
+  textStyle,
+  onPress,
+  ...rest
+}) => {
+  const sizeStyles = getSizeStyles(size);
+  const initials = getInitials(name);
   
-  if (!name) return colors[0];
-  
-  // Use simple hash function to get consistent colors
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  // Render profile picture if uri is provided
+  if (uri) {
+    return (
+      <TouchableOpacity 
+        style={[styles.container, sizeStyles.container, style]}
+        onPress={onPress}
+        disabled={!onPress}
+        activeOpacity={onPress ? 0.8 : 1}
+        {...rest}
+      >
+        <Image
+          source={{ uri }}
+          style={[styles.image, imageStyle]}
+          defaultSource={DEFAULT_AVATAR}
+        />
+      </TouchableOpacity>
+    );
   }
   
-  return colors[Math.abs(hash) % colors.length];
+  // Render initials if name is provided, default avatar as fallback
+  return (
+    <TouchableOpacity
+      style={[styles.container, sizeStyles.container, style]}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.8 : 1}
+      {...rest}
+    >
+      {name ? (
+        <View style={styles.initialsContainer}>
+          <Text style={[styles.initials, sizeStyles.text, textStyle]}>
+            {initials}
+          </Text>
+        </View>
+      ) : (
+        <Image
+          source={DEFAULT_AVATAR}
+          style={[styles.image, imageStyle]}
+        />
+      )}
+    </TouchableOpacity>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E2E8F0',
   },
   image: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
   initialsContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#2E8B57', // Primary color for consistency
   },
-  initialsText: {
+  initials: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

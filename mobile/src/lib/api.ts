@@ -1,31 +1,34 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Define API base URL (for development)
-const API_URL = 'http://localhost:3000/api';
+// Storage keys
+const TOKEN_KEY = '@CricSocial:token';
 
-// Types for API responses
-interface ApiResponse<T> {
-  data: T;
-  message?: string;
-}
+// Base URL configuration 
+// This would be replaced with your actual API URL in production
+const API_BASE_URL = 'http://10.0.2.2:3000/api';
 
-// Create axios instance
-const instance: AxiosInstance = axios.create({
-  baseURL: API_URL,
+// Create axios instance with default config
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
-  timeout: 10000,
+  timeout: 15000, // 15 seconds
 });
 
-// Request interceptor to add auth token
-instance.interceptors.request.use(
+// Add a request interceptor to include the auth token in requests
+apiClient.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('auth_token');
+    // Try to get the token
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    
+    // If token exists, add it to the headers
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
@@ -33,155 +36,142 @@ instance.interceptors.request.use(
   }
 );
 
-// API client methods
-const apiClient = {
-  // Generic methods
-  get: async <T>(url: string): Promise<T> => {
-    const response: AxiosResponse<ApiResponse<T>> = await instance.get(url);
-    return response.data.data;
+// Add a response interceptor to handle common errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // Handle token expiration
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      // Here you could implement token refresh logic if needed
+      // For now, we'll just clear the token and reject
+      await clearToken();
+      
+      // You could also redirect to login screen here if you had navigation
+      return Promise.reject(error);
+    }
+    
+    // Handle other errors
+    return Promise.reject(error);
+  }
+);
+
+// API wrapper with typed methods
+export const apiRequest = {
+  /**
+   * GET request
+   * @param url - API endpoint
+   * @param params - Query parameters
+   * @param config - Axios config
+   */
+  async get<T>(url: string, params = {}, config = {}): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.get(url, {
+      params,
+      ...config,
+    });
+    return response.data;
   },
   
-  post: async <T>(url: string, data?: any): Promise<T> => {
-    const response: AxiosResponse<ApiResponse<T>> = await instance.post(url, data);
-    return response.data.data;
+  /**
+   * POST request
+   * @param url - API endpoint
+   * @param data - Request body
+   * @param config - Axios config
+   */
+  async post<T>(url: string, data = {}, config = {}): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.post(url, data, config);
+    return response.data;
   },
   
-  put: async <T>(url: string, data: any): Promise<T> => {
-    const response: AxiosResponse<ApiResponse<T>> = await instance.put(url, data);
-    return response.data.data;
+  /**
+   * PUT request
+   * @param url - API endpoint
+   * @param data - Request body
+   * @param config - Axios config
+   */
+  async put<T>(url: string, data = {}, config = {}): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.put(url, data, config);
+    return response.data;
   },
   
-  delete: async <T>(url: string): Promise<T> => {
-    const response: AxiosResponse<ApiResponse<T>> = await instance.delete(url);
-    return response.data.data;
+  /**
+   * PATCH request
+   * @param url - API endpoint
+   * @param data - Request body
+   * @param config - Axios config
+   */
+  async patch<T>(url: string, data = {}, config = {}): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.patch(url, data, config);
+    return response.data;
   },
   
-  // Authentication
-  login: async (email: string, password: string): Promise<any> => {
-    const response = await instance.post('/auth/login', { email, password });
-    return response.data.data;
+  /**
+   * DELETE request
+   * @param url - API endpoint
+   * @param config - Axios config
+   */
+  async delete<T>(url: string, config = {}): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.delete(url, config);
+    return response.data;
   },
   
-  register: async (userData: {
-    username: string;
-    email: string;
-    password: string;
-    confirmPassword: string;
-    fullName?: string;
-    bio?: string;
-  }): Promise<any> => {
-    const response = await instance.post('/auth/register', userData);
-    return response.data.data;
-  },
-  
-  logout: async (): Promise<any> => {
-    const response = await instance.post('/auth/logout');
-    return response.data.data;
-  },
-  
-  // Posts
-  getPosts: async (): Promise<any[]> => {
-    const response = await instance.get('/posts');
-    return response.data.data;
-  },
-  
-  getPost: async (id: number): Promise<any> => {
-    const response = await instance.get(`/posts/${id}`);
-    return response.data.data;
-  },
-  
-  createPost: async (postData: {
-    content: string;
-    imageUrl?: string;
-    videoUrl?: string;
-    isReel?: boolean;
-  }): Promise<any> => {
-    const response = await instance.post('/posts', postData);
-    return response.data.data;
-  },
-  
-  likePost: async (postId: number): Promise<any> => {
-    const response = await instance.post(`/posts/${postId}/like`);
-    return response.data.data;
-  },
-  
-  unlikePost: async (postId: number): Promise<any> => {
-    const response = await instance.post(`/posts/${postId}/unlike`);
-    return response.data.data;
-  },
-  
-  // Comments
-  getComments: async (postId: number): Promise<any[]> => {
-    const response = await instance.get(`/posts/${postId}/comments`);
-    return response.data.data;
-  },
-  
-  createComment: async (postId: number, content: string): Promise<any> => {
-    const response = await instance.post(`/posts/${postId}/comments`, { content });
-    return response.data.data;
-  },
-  
-  // User profile
-  getProfile: async (username: string): Promise<any> => {
-    const response = await instance.get(`/users/${username}`);
-    return response.data.data;
-  },
-  
-  getUserPosts: async (username: string): Promise<any[]> => {
-    const response = await instance.get(`/users/${username}/posts`);
-    return response.data.data;
-  },
-  
-  updateProfile: async (userData: {
-    fullName?: string;
-    bio?: string;
-    profileImageUrl?: string;
-  }): Promise<any> => {
-    const response = await instance.put('/users/profile', userData);
-    return response.data.data;
-  },
-  
-  // Follow/Unfollow
-  followUser: async (userId: number): Promise<any> => {
-    const response = await instance.post(`/users/${userId}/follow`);
-    return response.data.data;
-  },
-  
-  unfollowUser: async (userId: number): Promise<any> => {
-    const response = await instance.post(`/users/${userId}/unfollow`);
-    return response.data.data;
-  },
-  
-  getFollowers: async (userId: number): Promise<any[]> => {
-    const response = await instance.get(`/users/${userId}/followers`);
-    return response.data.data;
-  },
-  
-  getFollowing: async (userId: number): Promise<any[]> => {
-    const response = await instance.get(`/users/${userId}/following`);
-    return response.data.data;
-  },
-  
-  // Cricket stats
-  getPlayerStats: async (userId: number): Promise<any> => {
-    const response = await instance.get(`/stats/player/${userId}`);
-    return response.data.data;
-  },
-  
-  getPlayerMatches: async (userId: number): Promise<any[]> => {
-    const response = await instance.get(`/stats/player/${userId}/matches`);
-    return response.data.data;
-  },
-  
-  createMatch: async (matchData: any): Promise<any> => {
-    const response = await instance.post('/stats/matches', matchData);
-    return response.data.data;
-  },
-  
-  updateMatchPerformance: async (matchId: number, performanceData: any): Promise<any> => {
-    const response = await instance.put(`/stats/matches/${matchId}/performance`, performanceData);
-    return response.data.data;
+  /**
+   * Upload file(s)
+   * @param url - API endpoint
+   * @param formData - FormData with files
+   * @param onProgress - Progress callback
+   */
+  async upload<T>(
+    url: string,
+    formData: FormData,
+    onProgress?: (progressEvent: any) => void
+  ): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.post(url, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: onProgress,
+    });
+    return response.data;
   },
 };
 
-export default apiClient;
+/**
+ * Store auth token in AsyncStorage
+ */
+export const storeToken = async (token: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(TOKEN_KEY, token);
+  } catch (error) {
+    console.error('Error storing token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Clear auth token from AsyncStorage
+ */
+export const clearToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem(TOKEN_KEY);
+  } catch (error) {
+    console.error('Error clearing token:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if user is authenticated (token exists)
+ */
+export const isAuthenticated = async (): Promise<boolean> => {
+  try {
+    const token = await AsyncStorage.getItem(TOKEN_KEY);
+    return !!token;
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return false;
+  }
+};
