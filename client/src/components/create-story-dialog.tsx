@@ -92,7 +92,7 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
     mutationFn: async (data: CreateStoryFormData) => {
       return await apiRequest("POST", "/api/stories", data);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Success",
         description: "Story created successfully",
