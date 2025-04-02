@@ -60,7 +60,7 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       formData.append("file", file);
       
       // Upload the file
-      const response = await fetch("/api/upload/story", {
+      const response = await fetch("http://0.0.0.0:5000/api/upload/story", {
         method: "POST",
         body: formData,
         credentials: 'include'
