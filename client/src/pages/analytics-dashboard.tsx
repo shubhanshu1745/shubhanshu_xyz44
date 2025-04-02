@@ -580,14 +580,14 @@ export default function AnalyticsDashboard() {
               <div className="space-y-2">
                 <Label>Tournament</Label>
                 <Select 
-                  value={selectedTournament?.toString() || ""} 
-                  onValueChange={(value) => setSelectedTournament(value ? parseInt(value) : null)}
+                  value={selectedTournament?.toString() || "all"} 
+                  onValueChange={(value) => setSelectedTournament(value === "all" ? null : parseInt(value))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="All Tournaments" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Tournaments</SelectItem>
+                    <SelectItem value="all">All Tournaments</SelectItem>
                     {tournaments?.map(tournament => (
                       <SelectItem key={tournament.id} value={tournament.id.toString()}>
                         {tournament.name}
