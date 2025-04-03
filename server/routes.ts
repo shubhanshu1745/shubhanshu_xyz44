@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as CoachingService from "./services/coaching";
 import * as HighlightService from "./services/highlights";
 import * as StoryFiltersService from "./services/story-filters";
+import * as tournamentServices from "./services/tournament";
 import { 
   insertCommentSchema, 
   insertPostSchema, 
@@ -4290,6 +4291,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Tournament Management API Routes
+  
+  // Generate fixtures for a tournament
+  app.post("/api/tournaments/:id/fixtures", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const tournamentId = parseInt(req.params.id);
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      // Check if user is the tournament organizer
+      const tournament = await storage.getTournament(tournamentId);
+
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Not authorized to generate fixtures for this tournament" });
+      }
+
+      // Generate fixtures
+      const options = {
+        doubleRoundRobin: req.body.doubleRoundRobin === true,
+        scheduleWeekdayMatches: req.body.scheduleWeekdayMatches !== false,
+        maxMatchesPerDay: req.body.maxMatchesPerDay || 2,
+        prioritizeWeekends: req.body.prioritizeWeekends === true,
+        avoidBackToBackMatches: req.body.avoidBackToBackMatches === true,
+        startDate: tournament.startDate,
+        endDate: tournament.endDate
+      };
+
+      const fixtures = await tournamentServices.fixtureGenerator.generateFixtures(tournamentId, options);
+      res.json({ success: true, fixtures });
+    } catch (error) {
+      console.error("Error generating fixtures:", error);
+      res.status(500).json({ error: "Failed to generate fixtures", details: error.message });
+    }
+  });
+
+  // Update tournament standings after match result
+  app.post("/api/tournaments/:tournamentId/matches/:matchId/update-standings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const tournamentId = parseInt(req.params.tournamentId);
+      const matchId = parseInt(req.params.matchId);
+      
+      if (isNaN(tournamentId) || isNaN(matchId)) {
+        return res.status(400).json({ error: "Invalid tournament or match ID" });
+      }
+
+      // Check if user is the tournament organizer
+      const tournament = await storage.getTournament(tournamentId);
+
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Not authorized to update standings for this tournament" });
+      }
+
+      // Update standings
+      await tournamentServices.fixtureGenerator.updateStandings(tournamentId, matchId);
+      
+      // Update player statistics
+      await tournamentServices.statisticsService.updatePlayerStatistics(tournamentId, matchId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating standings:", error);
+      res.status(500).json({ error: "Failed to update standings", details: error.message });
+    }
+  });
+
+  // Get tournament standings
+  app.get("/api/tournaments/:id/standings", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      const standings = await storage.getTournamentStandings(tournamentId);
+
+      // Group standings by group if applicable
+      const groupedStandings = {};
+      
+      for (const standing of standings) {
+        const group = standing.group || 'default';
+        if (!groupedStandings[group]) {
+          groupedStandings[group] = [];
+        }
+        
+        groupedStandings[group].push({
+          ...standing,
+          teamName: standing.team?.name || 'Unknown Team'
+        });
+      }
+
+      res.json(groupedStandings);
+    } catch (error) {
+      console.error("Error fetching standings:", error);
+      res.status(500).json({ error: "Failed to fetch standings", details: error.message });
+    }
+  });
+
+  // Get tournament top performers
+  app.get("/api/tournaments/:id/stats/:category", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const category = req.params.category;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      const stats = await tournamentServices.statisticsService.getTopPerformers(tournamentId, category, limit);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      res.status(500).json({ error: "Failed to fetch statistics", details: error.message });
+    }
+  });
+
+  // Get player tournament statistics
+  app.get("/api/tournaments/:tournamentId/players/:userId/stats", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.tournamentId);
+      const userId = parseInt(req.params.userId);
+      
+      if (isNaN(tournamentId) || isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid tournament or user ID" });
+      }
+
+      const stats = await tournamentServices.statisticsService.getPlayerStatistics(tournamentId, userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching player stats:", error);
+      res.status(500).json({ error: "Failed to fetch player statistics", details: error.message });
+    }
+  });
+
+  // Get tournament summary statistics
+  app.get("/api/tournaments/:id/summary-stats", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      const stats = await tournamentServices.statisticsService.getTournamentSummaryStats(tournamentId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching summary stats:", error);
+      res.status(500).json({ error: "Failed to fetch summary statistics", details: error.message });
+    }
+  });
   app.get("/api/tournaments", async (req, res) => {
     try {
       const query = req.query.q as string | undefined;

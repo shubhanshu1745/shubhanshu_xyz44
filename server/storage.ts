@@ -228,6 +228,12 @@ export interface IStorage {
   updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined>;
   deleteTournamentMatch(id: number): Promise<boolean>;
   
+  // Player tournament stats methods
+  createPlayerTournamentStats(statsData: InsertPlayerTournamentStats): Promise<PlayerTournamentStats>;
+  getPlayerTournamentStats(tournamentId: number, userId: number): Promise<PlayerTournamentStats | undefined>;
+  getAllPlayerTournamentStats(tournamentId: number): Promise<(PlayerTournamentStats & { user: User })[]>;
+  updatePlayerTournamentStats(tournamentId: number, userId: number, data: Partial<PlayerTournamentStats>): Promise<PlayerTournamentStats | undefined>;
+  
   // Poll methods
   createPoll(poll: InsertPoll): Promise<Poll>;
   getPoll(id: number): Promise<(Poll & { options: PollOption[], creator: User }) | undefined>;
@@ -267,6 +273,7 @@ export class MemStorage implements IStorage {
   private playerStats: Map<number, PlayerStats>;
   private playerMatches: Map<number, PlayerMatch>;
   private playerMatchPerformances: Map<number, PlayerMatchPerformance>;
+  private playerTournamentStats: Map<string, PlayerTournamentStats>; // Composite key: `${tournamentId}-${userId}`
   private tokens: Map<number, Token>;
   private matches: Map<number, Match>;
   private teams: Map<number, Team>;

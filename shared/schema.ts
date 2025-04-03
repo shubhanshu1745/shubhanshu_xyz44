@@ -1184,6 +1184,7 @@ export const venueBookings = pgTable("venue_bookings", {
 export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  shortName: text("short_name"), // Short name for display in tables/charts
   description: text("description"),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
@@ -1191,7 +1192,8 @@ export const tournaments = pgTable("tournaments", {
   maxTeams: integer("max_teams"),
   entryFee: numeric("entry_fee").default("0"),
   prizePool: numeric("prize_pool").default("0"),
-  format: text("format").notNull(), // league, knockout, group-stage-knockout, etc.
+  format: text("format").notNull(), // T20, ODI, Test, mixed, other
+  tournamentType: text("tournament_type").notNull(), // league, knockout, group_stage_knockout, etc.
   status: text("status").notNull().default("upcoming"), // upcoming, ongoing, completed, cancelled
   organizerId: integer("organizer_id").references(() => users.id).notNull(),
   logoUrl: text("logo_url"),
@@ -1200,6 +1202,13 @@ export const tournaments = pgTable("tournaments", {
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
   isPublic: boolean("is_public").default(true),
+  pointsPerWin: integer("points_per_win").default(2), // Points system for league format
+  pointsPerLoss: integer("points_per_loss").default(0),
+  pointsPerTie: integer("points_per_tie").default(1),
+  pointsPerNoResult: integer("points_per_no_result").default(1),
+  qualificationRules: text("qualification_rules"), // Rules for advancing to knockout stages
+  tiebreakers: text("tiebreakers"), // How to resolve tied standings
+  overs: integer("overs"), // Overs per innings if limited overs format
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1229,7 +1238,97 @@ export const tournamentMatches = pgTable("tournament_matches", {
   scheduledDate: timestamp("scheduled_date"),
   scheduledTime: text("scheduled_time"), // Format: HH:MM in 24-hour
   status: text("status").default("scheduled"), // scheduled, live, completed, postponed, cancelled
+  home_team_id: integer("home_team_id").references(() => teams.id),
+  away_team_id: integer("away_team_id").references(() => teams.id),
+  home_team_score: text("home_team_score"), // Can be formatted like "156/7" for cricket
+  away_team_score: text("away_team_score"),
+  result: text("result"), // home_win, away_win, tie, no_result, abandoned
+  resultDetails: text("result_details"), // Additional details about result (e.g., "Team A won by 25 runs")
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Tournament standings table to track team performance in tournaments
+export const tournamentStandings = pgTable("tournament_standings", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  group: text("group"), // For group-based tournaments
+  played: integer("played").default(0),
+  won: integer("won").default(0),
+  lost: integer("lost").default(0),
+  tied: integer("tied").default(0),
+  no_result: integer("no_result").default(0),
+  points: integer("points").default(0),
+  netRunRate: numeric("net_run_rate").default("0"),
+  forRuns: integer("for_runs").default(0),
+  forOvers: numeric("for_overs").default("0"),
+  againstRuns: integer("against_runs").default(0),
+  againstOvers: numeric("against_overs").default("0"),
+  position: integer("position"), // Current position in group/tournament
+  qualified: boolean("qualified"), // Has qualified for next stage
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Player tournament statistics to track individual player performance across a tournament
+export const playerTournamentStats = pgTable("player_tournament_stats", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  // Batting stats
+  matches: integer("matches").default(0),
+  runs: integer("runs").default(0),
+  ballsFaced: integer("balls_faced").default(0),
+  fours: integer("fours").default(0),
+  sixes: integer("sixes").default(0),
+  fifties: integer("fifties").default(0),
+  hundreds: integer("hundreds").default(0),
+  highestScore: integer("highest_score").default(0),
+  battingAverage: numeric("batting_average", { precision: 6, scale: 2 }).default("0"),
+  strikeRate: numeric("strike_rate", { precision: 6, scale: 2 }).default("0"),
+  // Bowling stats
+  overs: numeric("overs", { precision: 6, scale: 1 }).default("0"),
+  wickets: integer("wickets").default(0),
+  runsConceded: integer("runs_conceded").default(0),
+  maidens: integer("maidens").default(0),
+  fiveWickets: integer("five_wickets").default(0),
+  bowlingAverage: numeric("bowling_average", { precision: 6, scale: 2 }).default("0"),
+  economyRate: numeric("economy_rate", { precision: 6, scale: 2 }).default("0"),
+  // Fielding stats
+  catches: integer("catches").default(0),
+  runOuts: integer("run_outs").default(0),
+  stumpings: integer("stumpings").default(0),
+  // Timestamps
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Tournament statistics to track outstanding performances
+export const tournamentStatistics = pgTable("tournament_statistics", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").references(() => tournaments.id).notNull(),
+  statCategory: text("stat_category").notNull(), // batting, bowling, fielding, allround
+  userId: integer("user_id").references(() => users.id).notNull(), // Reference to user who is the player
+  teamId: integer("team_id").references(() => teams.id).notNull(),
+  runs: integer("runs").default(0),
+  ballsFaced: integer("balls_faced").default(0),
+  fours: integer("fours").default(0),
+  sixes: integer("sixes").default(0),
+  highest: integer("highest").default(0),
+  fifties: integer("fifties").default(0),
+  hundreds: integer("hundreds").default(0),
+  strikeRate: numeric("strike_rate").default("0"),
+  average: numeric("average").default("0"),
+  wickets: integer("wickets").default(0),
+  overs: numeric("overs").default("0"),
+  maidens: integer("maidens").default(0),
+  economy: numeric("economy").default("0"),
+  best_bowling: text("best_bowling"),
+  catches: integer("catches").default(0),
+  stumpings: integer("stumpings").default(0),
+  runOuts: integer("run_outs").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1281,6 +1380,7 @@ export const insertVenueBookingSchema = createInsertSchema(venueBookings).pick({
 
 export const insertTournamentSchema = createInsertSchema(tournaments).pick({
   name: true,
+  shortName: true,
   description: true,
   startDate: true,
   endDate: true,
@@ -1289,6 +1389,7 @@ export const insertTournamentSchema = createInsertSchema(tournaments).pick({
   entryFee: true,
   prizePool: true,
   format: true,
+  tournamentType: true,
   status: true,
   organizerId: true,
   logoUrl: true,
@@ -1297,6 +1398,13 @@ export const insertTournamentSchema = createInsertSchema(tournaments).pick({
   contactEmail: true,
   contactPhone: true,
   isPublic: true,
+  pointsPerWin: true,
+  pointsPerLoss: true,
+  pointsPerTie: true,
+  pointsPerNoResult: true,
+  qualificationRules: true,
+  tiebreakers: true,
+  overs: true,
 });
 
 export const insertTournamentTeamSchema = createInsertSchema(tournamentTeams).pick({
@@ -1319,7 +1427,81 @@ export const insertTournamentMatchSchema = createInsertSchema(tournamentMatches)
   scheduledDate: true,
   scheduledTime: true,
   status: true,
+  home_team_id: true,
+  away_team_id: true,
+  home_team_score: true,
+  away_team_score: true,
+  result: true,
+  resultDetails: true,
   notes: true,
+});
+
+export const insertTournamentStandingsSchema = createInsertSchema(tournamentStandings).pick({
+  tournamentId: true,
+  teamId: true,
+  group: true,
+  played: true,
+  won: true,
+  lost: true,
+  tied: true,
+  no_result: true,
+  points: true,
+  netRunRate: true,
+  forRuns: true,
+  forOvers: true,
+  againstRuns: true,
+  againstOvers: true,
+  position: true,
+  qualified: true,
+});
+
+export const insertPlayerTournamentStatsSchema = createInsertSchema(playerTournamentStats).pick({
+  tournamentId: true,
+  userId: true,
+  matches: true,
+  runs: true,
+  ballsFaced: true,
+  fours: true,
+  sixes: true,
+  fifties: true,
+  hundreds: true,
+  highestScore: true,
+  battingAverage: true,
+  strikeRate: true,
+  overs: true,
+  wickets: true,
+  runsConceded: true,
+  maidens: true,
+  fiveWickets: true,
+  bowlingAverage: true,
+  economyRate: true,
+  catches: true,
+  runOuts: true,
+  stumpings: true,
+});
+
+export const insertTournamentStatisticsSchema = createInsertSchema(tournamentStatistics).pick({
+  tournamentId: true,
+  statCategory: true,
+  userId: true,
+  teamId: true,
+  runs: true,
+  ballsFaced: true,
+  fours: true,
+  sixes: true,
+  highest: true,
+  fifties: true,
+  hundreds: true,
+  strikeRate: true,
+  average: true,
+  wickets: true,
+  overs: true,
+  maidens: true,
+  economy: true,
+  best_bowling: true,
+  catches: true,
+  stumpings: true,
+  runOuts: true,
 });
 
 // Types
@@ -1340,6 +1522,15 @@ export type TournamentTeam = typeof tournamentTeams.$inferSelect;
 
 export type InsertTournamentMatch = z.infer<typeof insertTournamentMatchSchema>;
 export type TournamentMatch = typeof tournamentMatches.$inferSelect;
+
+export type InsertTournamentStandings = z.infer<typeof insertTournamentStandingsSchema>;
+export type TournamentStandings = typeof tournamentStandings.$inferSelect;
+
+export type InsertPlayerTournamentStats = z.infer<typeof insertPlayerTournamentStatsSchema>;
+export type PlayerTournamentStats = typeof playerTournamentStats.$inferSelect;
+
+export type InsertTournamentStatistics = z.infer<typeof insertTournamentStatisticsSchema>;
+export type TournamentStatistics = typeof tournamentStatistics.$inferSelect;
 
 // Form Schemas
 export const createVenueSchema = insertVenueSchema.extend({
@@ -1367,15 +1558,24 @@ export const createVenueBookingSchema = insertVenueBookingSchema.extend({
 });
 
 export const createTournamentSchema = insertTournamentSchema.extend({
+  shortName: z.string().optional(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
   registrationDeadline: z.coerce.date().optional(),
   maxTeams: z.coerce.number().int().positive().optional(),
   entryFee: z.coerce.number().nonnegative().optional(),
   prizePool: z.coerce.number().nonnegative().optional(),
-  format: z.enum(["league", "knockout", "group-stage-knockout", "custom"]),
+  format: z.enum(["T20", "ODI", "Test", "mixed", "other"]),
+  tournamentType: z.enum(["league", "knockout", "group_stage_knockout", "custom"]),
   status: z.enum(["upcoming", "ongoing", "completed", "cancelled"]),
   isPublic: z.boolean().default(true),
+  pointsPerWin: z.coerce.number().int().nonnegative().default(2),
+  pointsPerLoss: z.coerce.number().int().nonnegative().default(0),
+  pointsPerTie: z.coerce.number().int().nonnegative().default(1),
+  pointsPerNoResult: z.coerce.number().int().nonnegative().default(1),
+  qualificationRules: z.string().optional(),
+  tiebreakers: z.string().optional(),
+  overs: z.coerce.number().int().positive().optional(),
 });
 
 export const createTournamentTeamSchema = insertTournamentTeamSchema.extend({
@@ -1390,6 +1590,73 @@ export const createTournamentMatchSchema = insertTournamentMatchSchema.extend({
   status: z.enum(["scheduled", "live", "completed", "postponed", "cancelled"]),
   round: z.coerce.number().int().positive().optional(),
   matchNumber: z.coerce.number().int().positive().optional(),
+  home_team_id: z.coerce.number().int().positive().optional(),
+  away_team_id: z.coerce.number().int().positive().optional(),
+  home_team_score: z.string().optional(),
+  away_team_score: z.string().optional(),
+  result: z.enum(["home_win", "away_win", "tie", "no_result", "abandoned"]).optional(),
+  resultDetails: z.string().optional(),
+});
+
+export const createTournamentStandingsSchema = insertTournamentStandingsSchema.extend({
+  played: z.coerce.number().int().nonnegative().default(0),
+  won: z.coerce.number().int().nonnegative().default(0),
+  lost: z.coerce.number().int().nonnegative().default(0),
+  tied: z.coerce.number().int().nonnegative().default(0),
+  no_result: z.coerce.number().int().nonnegative().default(0),
+  points: z.coerce.number().int().nonnegative(),
+  netRunRate: z.coerce.number().default(0),
+  forRuns: z.coerce.number().int().nonnegative().default(0),
+  forOvers: z.coerce.number().default(0),
+  againstRuns: z.coerce.number().int().nonnegative().default(0),
+  againstOvers: z.coerce.number().default(0),
+  qualified: z.boolean().default(false),
+});
+
+export const createPlayerTournamentStatsSchema = insertPlayerTournamentStatsSchema.extend({
+  matches: z.coerce.number().int().nonnegative().default(0),
+  runs: z.coerce.number().int().nonnegative().default(0),
+  ballsFaced: z.coerce.number().int().nonnegative().default(0),
+  fours: z.coerce.number().int().nonnegative().default(0),
+  sixes: z.coerce.number().int().nonnegative().default(0),
+  fifties: z.coerce.number().int().nonnegative().default(0),
+  hundreds: z.coerce.number().int().nonnegative().default(0),
+  highestScore: z.coerce.number().int().nonnegative().default(0),
+  battingAverage: z.coerce.number().default(0),
+  strikeRate: z.coerce.number().default(0),
+  // Bowling stats
+  overs: z.coerce.number().default(0),
+  wickets: z.coerce.number().int().nonnegative().default(0),
+  runsConceded: z.coerce.number().int().nonnegative().default(0),
+  maidens: z.coerce.number().int().nonnegative().default(0),
+  fiveWickets: z.coerce.number().int().nonnegative().default(0),
+  bowlingAverage: z.coerce.number().default(0),
+  economyRate: z.coerce.number().default(0),
+  // Fielding stats
+  catches: z.coerce.number().int().nonnegative().default(0),
+  runOuts: z.coerce.number().int().nonnegative().default(0),
+  stumpings: z.coerce.number().int().nonnegative().default(0),
+});
+
+export const createTournamentStatisticsSchema = insertTournamentStatisticsSchema.extend({
+  statCategory: z.enum(["batting", "bowling", "fielding", "allround"]),
+  runs: z.coerce.number().int().nonnegative().default(0),
+  ballsFaced: z.coerce.number().int().nonnegative().default(0),
+  fours: z.coerce.number().int().nonnegative().default(0),
+  sixes: z.coerce.number().int().nonnegative().default(0),
+  highest: z.coerce.number().int().nonnegative().default(0),
+  fifties: z.coerce.number().int().nonnegative().default(0),
+  hundreds: z.coerce.number().int().nonnegative().default(0),
+  strikeRate: z.coerce.number().default(0),
+  average: z.coerce.number().default(0),
+  wickets: z.coerce.number().int().nonnegative().default(0),
+  overs: z.coerce.number().default(0),
+  maidens: z.coerce.number().int().nonnegative().default(0),
+  economy: z.coerce.number().default(0),
+  best_bowling: z.string().optional(),
+  catches: z.coerce.number().int().nonnegative().default(0),
+  stumpings: z.coerce.number().int().nonnegative().default(0),
+  runOuts: z.coerce.number().int().nonnegative().default(0),
 });
 
 // Types for venue management and tournament forms
@@ -1399,6 +1666,9 @@ export type CreateVenueBookingFormData = z.infer<typeof createVenueBookingSchema
 export type CreateTournamentFormData = z.infer<typeof createTournamentSchema>;
 export type CreateTournamentTeamFormData = z.infer<typeof createTournamentTeamSchema>;
 export type CreateTournamentMatchFormData = z.infer<typeof createTournamentMatchSchema>;
+export type CreateTournamentStandingsFormData = z.infer<typeof createTournamentStandingsSchema>;
+export type CreatePlayerTournamentStatsFormData = z.infer<typeof createPlayerTournamentStatsSchema>;
+export type CreateTournamentStatisticsFormData = z.infer<typeof createTournamentStatisticsSchema>;
 
 // Types for content categorization and tagging forms
 export type CreateTagFormData = z.infer<typeof createTagSchema>;
