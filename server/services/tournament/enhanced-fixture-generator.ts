@@ -1,5 +1,5 @@
 import { storage } from '../../storage';
-import { ipl2023Venues } from '../../data/ipl-2023-teams';
+import { ipl2023Teams, ipl2023Venues } from '../../data/ipl-2023-teams';
 import * as schema from '@shared/schema';
 import { addDays, format, differenceInDays, isWeekend, parse } from 'date-fns';
 
@@ -675,17 +675,26 @@ export async function preloadIPL2023Tournament(tournamentId: number) {
   try {
     const ipl2023Data = await import('../../data/ipl-2023-teams');
     
-    // Create teams if they don't exist
+    // Create teams if they don't exist and add them to the tournament
     for (const team of ipl2023Data.ipl2023Teams) {
-      const existingTeam = await storage.getTeamByName(team.name);
+      // Get or create the team using the getTeamByNameOrCreate method
+      const teamEntity = await storage.getTeamByNameOrCreate({
+        name: team.name,
+        shortName: team.shortName,
+        logo: team.logo,
+        primaryColor: team.primaryColor,
+        secondaryColor: team.secondaryColor,
+        createdBy: 1 // Default admin user
+      });
       
-      if (!existingTeam) {
-        await storage.createTeam({
-          name: team.name,
-          shortName: team.shortName,
-          logo: team.logo,
-          primaryColor: team.primaryColor,
-          secondaryColor: team.secondaryColor
+      // Add team to tournament if not already added
+      const tournamentTeam = await storage.getTournamentTeam(tournamentId, teamEntity.id);
+      if (!tournamentTeam) {
+        await storage.addTeamToTournament({
+          tournamentId,
+          teamId: teamEntity.id,
+          registrationStatus: 'approved',
+          paymentStatus: 'paid'
         });
       }
     }
@@ -699,7 +708,8 @@ export async function preloadIPL2023Tournament(tournamentId: number) {
           name: venue.name,
           city: venue.city,
           country: venue.country,
-          capacity: venue.capacity
+          capacity: venue.capacity,
+          address: venue.city + ', ' + venue.country // Add required address field
         });
       }
     }
@@ -719,23 +729,39 @@ export async function preloadIPL2023Tournament(tournamentId: number) {
       
       // Load standings
       for (const standing of ipl2023Data.ipl2023StandingsData) {
-        await storage.createTournamentStanding({
-          tournamentId,
-          teamId: standing.teamId,
-          played: standing.matches,
-          won: standing.won,
-          lost: standing.lost,
-          tied: standing.tied,
-          noResult: standing.noResult,
-          points: standing.points,
-          nrr: standing.nrr,
-          position: standing.position
-        });
+        // First make sure the team exists in the tournament
+        const teamEntity = await storage.getTeamById(standing.teamId);
+        if (teamEntity) {
+          // Add team to tournament if not already added
+          const tournamentTeam = await storage.getTournamentTeam(tournamentId, teamEntity.id);
+          if (!tournamentTeam) {
+            await storage.addTeamToTournament({
+              tournamentId,
+              teamId: teamEntity.id,
+              registrationStatus: 'approved',
+              paymentStatus: 'paid'
+            });
+          }
+          
+          // Create or update standings
+          await storage.createTournamentStanding({
+            tournamentId,
+            teamId: standing.teamId,
+            played: standing.matches,
+            won: standing.won,
+            lost: standing.lost,
+            tied: standing.tied,
+            noResult: standing.noResult,
+            points: standing.points,
+            nrr: standing.nrr,
+            position: standing.position
+          });
+        }
       }
       
       // Load top performers
       for (const batter of ipl2023Data.ipl2023TopPerformers.battingStats) {
-        await storage.createPlayerTournamentStat({
+        await storage.createPlayerTournamentStats({
           tournamentId,
           userId: batter.playerId,
           teamId: batter.teamId,
@@ -750,7 +776,7 @@ export async function preloadIPL2023Tournament(tournamentId: number) {
       }
       
       for (const bowler of ipl2023Data.ipl2023TopPerformers.bowlingStats) {
-        await storage.createPlayerTournamentStat({
+        await storage.createPlayerTournamentStats({
           tournamentId,
           userId: bowler.playerId,
           teamId: bowler.teamId,

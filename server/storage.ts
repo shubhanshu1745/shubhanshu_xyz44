@@ -169,6 +169,7 @@ export interface IStorage {
   // Team management methods
   createTeam(team: InsertTeam): Promise<Team>;
   getTeamById(id: number): Promise<Team | undefined>;
+  getTeamByName(name: string): Promise<Team | undefined>;
   getUserTeams(userId: number): Promise<Team[]>;
   updateTeam(id: number, teamData: Partial<Team>): Promise<Team | undefined>;
   deleteTeam(id: number): Promise<boolean>;
@@ -186,6 +187,7 @@ export interface IStorage {
   // Venue management methods
   createVenue(venue: InsertVenue): Promise<Venue>;
   getVenue(id: number): Promise<Venue | undefined>;
+  getVenueByName(name: string): Promise<Venue | undefined>;
   getVenues(query?: string, limit?: number): Promise<Venue[]>;
   getNearbyVenues(lat: number, lng: number, radiusKm: number): Promise<Venue[]>;
   updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | undefined>;
@@ -1353,6 +1355,31 @@ export class MemStorage implements IStorage {
     return this.teams.get(id);
   }
   
+  async getTeamByName(name: string): Promise<Team | undefined> {
+    return Array.from(this.teams.values()).find(team => team.name === name);
+  }
+  
+  async getTeamByNameOrCreate(team: Partial<InsertTeam>): Promise<Team> {
+    // Try to find the team by name first
+    const existingTeam = await this.getTeamByName(team.name as string);
+    
+    if (existingTeam) {
+      return existingTeam;
+    }
+    
+    // Create a new team if it doesn't exist
+    // Note: We need to provide default values for required fields
+    return await this.createTeam({
+      name: team.name as string,
+      createdBy: team.createdBy || 1, // Default to user ID 1 if not provided
+      logo: team.logo || null,
+      shortName: team.shortName || null,
+      description: team.description || null,
+      primaryColor: team.primaryColor || null,
+      secondaryColor: team.secondaryColor || null
+    } as InsertTeam);
+  }
+  
   async getUserTeams(userId: number): Promise<Team[]> {
     return Array.from(this.teams.values())
       .filter(team => team.createdBy === userId)
@@ -1525,6 +1552,10 @@ export class MemStorage implements IStorage {
   
   async getVenue(id: number): Promise<Venue | undefined> {
     return this.venues.get(id);
+  }
+  
+  async getVenueByName(name: string): Promise<Venue | undefined> {
+    return Array.from(this.venues.values()).find(venue => venue.name === name);
   }
   
   async getVenues(query?: string, limit: number = 20): Promise<Venue[]> {
@@ -2039,7 +2070,18 @@ export class MemStorage implements IStorage {
   }
   
   async getTournament(id: number): Promise<Tournament | undefined> {
-    return this.tournaments.get(id);
+    const tournament = this.tournaments.get(id);
+    if (!tournament) return undefined;
+    
+    // Enhance the tournament with teams, matches, and venues
+    const teams = await this.getTournamentTeams(id);
+    const tournamentMatches = await this.getTournamentMatches(id);
+    
+    return {
+      ...tournament,
+      teams: teams,
+      matches: tournamentMatches
+    };
   }
   
   async getTournaments(query?: string, status?: string, limit: number = 20): Promise<Tournament[]> {
@@ -2062,15 +2104,44 @@ export class MemStorage implements IStorage {
       (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)
     );
     
-    return tournaments.slice(0, limit);
+    // Get the limited set of tournaments
+    const limitedTournaments = tournaments.slice(0, limit);
+    
+    // Enhance each tournament with teams, matches, and venues
+    const enhancedTournaments = await Promise.all(limitedTournaments.map(async (tournament) => {
+      const teams = await this.getTournamentTeams(tournament.id);
+      const tournamentMatches = await this.getTournamentMatches(tournament.id);
+      
+      return {
+        ...tournament,
+        teams: teams,
+        matches: tournamentMatches
+      };
+    }));
+    
+    return enhancedTournaments;
   }
   
   async getUserTournaments(userId: number): Promise<Tournament[]> {
-    return Array.from(this.tournaments.values())
+    const userTournaments = Array.from(this.tournaments.values())
       .filter(t => t.organizerId === userId)
       .sort((a, b) => 
         (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
       );
+    
+    // Enhance each tournament with teams, matches, and venues
+    const enhancedTournaments = await Promise.all(userTournaments.map(async (tournament) => {
+      const teams = await this.getTournamentTeams(tournament.id);
+      const tournamentMatches = await this.getTournamentMatches(tournament.id);
+      
+      return {
+        ...tournament,
+        teams: teams,
+        matches: tournamentMatches
+      };
+    }));
+    
+    return enhancedTournaments;
   }
   
   async updateTournament(id: number, data: Partial<Tournament>): Promise<Tournament | undefined> {
@@ -2136,6 +2207,15 @@ export class MemStorage implements IStorage {
       const team = await this.getTeamById(tt.teamId) as Team;
       return { ...tt, team };
     }));
+  }
+  
+  /**
+   * Get a tournament team by tournament ID and team ID
+   * This is a helper method to check if a team is already in a tournament
+   */
+  async getTournamentTeam(tournamentId: number, teamId: number): Promise<TournamentTeam | undefined> {
+    const compositeKey = `${tournamentId}-${teamId}`;
+    return this.tournamentTeams.get(compositeKey);
   }
   
   async updateTournamentTeam(tournamentId: number, teamId: number, data: Partial<TournamentTeam>): Promise<TournamentTeam | undefined> {

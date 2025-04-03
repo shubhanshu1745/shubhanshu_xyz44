@@ -430,6 +430,72 @@ export async function seedDatabase() {
   }
 
   console.log("📝 Created match performances");
+
+  // Create IPL 2023 tournament
+  try {
+    // Import IPL 2023 data and tournament services
+    const { ipl2023Teams, ipl2023Venues } = await import('./data/ipl-2023-teams');
+    const { enhancedFixtureGenerator } = await import('./services/tournament');
+    
+    // Create IPL 2023 completed tournament
+    const ipl2023 = await storage.createTournament({
+      name: "Indian Premier League 2023",
+      shortName: "IPL 2023",
+      organizerId: demoUser1.id,
+      description: "The 16th season of the Indian Premier League, featuring 10 teams in a double round-robin format followed by playoffs.",
+      startDate: new Date("2023-03-31"),
+      endDate: new Date("2023-05-28"),
+      format: "T20",
+      tournamentType: "league",
+      status: "completed",
+      overs: 20,
+      pointsPerWin: 2,
+      pointsPerTie: 1,
+      pointsPerNoResult: 1,
+      rules: "Top 4 teams qualify for playoffs. Qualifier 1: 1st vs 2nd, Eliminator: 3rd vs 4th, Qualifier 2: Loser of Q1 vs Winner of Eliminator, Final: Winner of Q1 vs Winner of Q2."
+    });
+
+    // Register teams for the tournament
+    for (const team of ipl2023Teams) {
+      // Create the team if it doesn't exist
+      let teamRecord = await storage.getTeamByNameOrCreate({
+        name: team.name,
+        shortName: team.shortName,
+        logo: team.logo || "",
+        primaryColor: team.primaryColor,
+        secondaryColor: team.secondaryColor
+      });
+      
+      // Register team for the tournament
+      await storage.createTournamentTeam({
+        tournamentId: ipl2023.id,
+        teamId: teamRecord.id
+      });
+    }
+
+    // Create IPL venues if they don't exist
+    for (const venue of ipl2023Venues) {
+      await storage.createVenue({
+        name: venue.name,
+        address: `${venue.name}, ${venue.city}`,
+        city: venue.city,
+        country: venue.country,
+        capacity: venue.capacity,
+        createdBy: demoUser1.id,
+        description: venue.attributes.join(", "),
+        facilities: ["Parking", "Food & Beverages", "Media Box"]
+      });
+    }
+
+    // Use enhancedFixtureGenerator to preload IPL 2023 data
+    if (enhancedFixtureGenerator) {
+      await enhancedFixtureGenerator.preloadIPL2023Tournament(ipl2023.id);
+      console.log("🏆 Created IPL 2023 tournament with data");
+    }
+  } catch (error) {
+    console.error("Error creating IPL 2023 tournament:", error);
+  }
+
   console.log("✅ Database seeding complete!");
   console.log("🚀 SERVER IS FULLY INITIALIZED AND READY");
 }

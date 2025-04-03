@@ -1,283 +1,374 @@
-/**
- * IPL 2023 Teams Data
- * This file contains data for the 10 teams that participated in IPL 2023
- */
-
+// IPL 2023 Teams data
 export const ipl2023Teams = [
   {
-    id: 1,
     name: "Chennai Super Kings",
     shortName: "CSK",
-    logo: "/assets/teams/csk.png",
-    primaryColor: "#FFFF00", // Yellow
-    secondaryColor: "#0081E9", // Blue
-    captain: "MS Dhoni",
-    homeVenue: "M.A. Chidambaram Stadium, Chennai",
-    championships: [2010, 2011, 2018, 2021, 2023]
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/CSK/logos/Roundbig/CSKroundbig.png",
+    primaryColor: "#FFFF00",
+    secondaryColor: "#0081E7"
   },
   {
-    id: 2,
     name: "Mumbai Indians",
     shortName: "MI",
-    logo: "/assets/teams/mi.png",
-    primaryColor: "#004BA0", // Blue
-    secondaryColor: "#D1AB3E", // Gold
-    captain: "Rohit Sharma",
-    homeVenue: "Wankhede Stadium, Mumbai",
-    championships: [2013, 2015, 2017, 2019, 2020]
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/MI/Logos/Roundbig/MIroundbig.png",
+    primaryColor: "#004BA0",
+    secondaryColor: "#D1AB3E"
   },
   {
-    id: 3,
     name: "Royal Challengers Bangalore",
     shortName: "RCB",
-    logo: "/assets/teams/rcb.png",
-    primaryColor: "#EC1C24", // Red
-    secondaryColor: "#000000", // Black
-    captain: "Faf du Plessis",
-    homeVenue: "M. Chinnaswamy Stadium, Bangalore",
-    championships: []
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RCB/Logos/Roundbig/RCBroundbig.png",
+    primaryColor: "#EC1C24",
+    secondaryColor: "#000000"
   },
   {
-    id: 4, 
     name: "Kolkata Knight Riders",
     shortName: "KKR",
-    logo: "/assets/teams/kkr.png",
-    primaryColor: "#3A225D", // Purple
-    secondaryColor: "#FDB61D", // Gold
-    captain: "Shreyas Iyer",
-    homeVenue: "Eden Gardens, Kolkata",
-    championships: [2012, 2014]
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/KKR/Logos/Roundbig/KKRroundbig.png",
+    primaryColor: "#3A225D",
+    secondaryColor: "#F2C94C"
   },
   {
-    id: 5,
-    name: "Rajasthan Royals",
-    shortName: "RR",
-    logo: "/assets/teams/rr.png",
-    primaryColor: "#EA1A85", // Pink
-    secondaryColor: "#254AA5", // Blue
-    captain: "Sanju Samson",
-    homeVenue: "Sawai Mansingh Stadium, Jaipur",
-    championships: [2008]
-  },
-  {
-    id: 6,
     name: "Delhi Capitals",
     shortName: "DC",
-    logo: "/assets/teams/dc.png",
-    primaryColor: "#0078BC", // Blue
-    secondaryColor: "#EF1C25", // Red
-    captain: "David Warner",
-    homeVenue: "Arun Jaitley Stadium, Delhi",
-    championships: []
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/DC/Logos/Roundbig/DCroundbig.png",
+    primaryColor: "#0078BC",
+    secondaryColor: "#EF1C25"
   },
   {
-    id: 7,
     name: "Punjab Kings",
     shortName: "PBKS",
-    logo: "/assets/teams/pbks.png",
-    primaryColor: "#ED1B24", // Red
-    secondaryColor: "#DCDDDF", // Silver
-    captain: "Shikhar Dhawan",
-    homeVenue: "PCA Stadium, Mohali",
-    championships: []
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/PBKS/Logos/Roundbig/PBKSroundbig.png",
+    primaryColor: "#ED1B24",
+    secondaryColor: "#DCDDDF"
   },
   {
-    id: 8,
+    name: "Rajasthan Royals",
+    shortName: "RR",
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/RR/Logos/Roundbig/RRroundbig.png",
+    primaryColor: "#EA1A85",
+    secondaryColor: "#004BA0"
+  },
+  {
     name: "Sunrisers Hyderabad",
     shortName: "SRH",
-    logo: "/assets/teams/srh.png",
-    primaryColor: "#F26522", // Orange
-    secondaryColor: "#000000", // Black
-    captain: "Aiden Markram",
-    homeVenue: "Rajiv Gandhi Intl. Cricket Stadium, Hyderabad",
-    championships: [2016]
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/SRH/Logos/Roundbig/SRHroundbig.png",
+    primaryColor: "#F26522",
+    secondaryColor: "#000000"
   },
   {
-    id: 9,
     name: "Gujarat Titans",
     shortName: "GT",
-    logo: "/assets/teams/gt.png",
-    primaryColor: "#1C1C1C", // Dark Grey
-    secondaryColor: "#0093DD", // Blue
-    captain: "Hardik Pandya",
-    homeVenue: "Narendra Modi Stadium, Ahmedabad",
-    championships: [2022]
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/GT/Logos/Roundbig/GTroundbig.png",
+    primaryColor: "#1C1C1C",
+    secondaryColor: "#0B4973"
   },
   {
-    id: 10,
     name: "Lucknow Super Giants",
     shortName: "LSG",
-    logo: "/assets/teams/lsg.png",
-    primaryColor: "#A1CCA5", // Light Teal
-    secondaryColor: "#4A90E2", // Blue
-    captain: "KL Rahul",
-    homeVenue: "BRSABV Ekana Cricket Stadium, Lucknow",
-    championships: []
+    logo: "https://bcciplayerimages.s3.ap-south-1.amazonaws.com/ipl/LSG/Logos/Roundbig/LSGroundbig.png",
+    primaryColor: "#A72056",
+    secondaryColor: "#FFCC00"
   }
 ];
 
+// IPL 2023 Venues
 export const ipl2023Venues = [
   {
-    id: 1,
-    name: "M.A. Chidambaram Stadium",
+    name: "M. A. Chidambaram Stadium",
     city: "Chennai",
-    country: "India", 
+    country: "India",
     capacity: 50000,
-    attributes: ["Spinner-friendly", "Slow track"]
+    attributes: ["Spin-friendly", "Slow track", "Home to Chennai Super Kings"]
   },
   {
-    id: 2, 
     name: "Wankhede Stadium",
     city: "Mumbai",
     country: "India",
     capacity: 33108,
-    attributes: ["Good batting track", "Helps seam bowlers"]
+    attributes: ["Good batting track", "Swing early on", "Home to Mumbai Indians"]
   },
   {
-    id: 3,
-    name: "M. Chinnaswamy Stadium",
-    city: "Bangalore",
-    country: "India",
-    capacity: 40000,
-    attributes: ["Batting paradise", "Small boundaries", "High-scoring"]
-  },
-  {
-    id: 4,
     name: "Eden Gardens",
     city: "Kolkata",
     country: "India",
     capacity: 68000,
-    attributes: ["Assists spinners", "Balanced track"]
+    attributes: ["Historic venue", "Good pace and bounce", "Home to Kolkata Knight Riders"]
   },
   {
-    id: 5,
-    name: "Sawai Mansingh Stadium",
-    city: "Jaipur",
-    country: "India",
-    capacity: 30000,
-    attributes: ["Balanced wicket", "Good for batting"]
-  },
-  {
-    id: 6,
     name: "Arun Jaitley Stadium",
     city: "Delhi",
     country: "India",
-    capacity: 41000,
-    attributes: ["Batting-friendly", "Slow track"]
+    capacity: 41820,
+    attributes: ["Batting-friendly", "Good for power hitters", "Home to Delhi Capitals"]
   },
   {
-    id: 7,
-    name: "PCA Stadium",
-    city: "Mohali",
+    name: "M. Chinnaswamy Stadium", 
+    city: "Bengaluru",
     country: "India",
-    capacity: 26000,
-    attributes: ["Good bounce", "Assists fast bowlers"]
+    capacity: 40000,
+    attributes: ["Batting paradise", "High scoring", "Home to Royal Challengers Bangalore"]
   },
   {
-    id: 8,
-    name: "Rajiv Gandhi International Cricket Stadium",
-    city: "Hyderabad",
-    country: "India",
-    capacity: 39000,
-    attributes: ["Balanced track", "Good for batting"]
-  },
-  {
-    id: 9,
     name: "Narendra Modi Stadium",
     city: "Ahmedabad",
     country: "India",
     capacity: 132000,
-    attributes: ["Largest cricket stadium", "Good batting surface"]
+    attributes: ["Largest cricket stadium", "New venue", "Home to Gujarat Titans"]
   },
   {
-    id: 10,
+    name: "Rajiv Gandhi International Stadium",
+    city: "Hyderabad",
+    country: "India",
+    capacity: 39000,
+    attributes: ["Balanced pitch", "Good for batsmen", "Home to Sunrisers Hyderabad"]
+  },
+  {
+    name: "Sawai Mansingh Stadium",
+    city: "Jaipur",
+    country: "India",
+    capacity: 30000,
+    attributes: ["Batting-friendly", "Good outfield", "Home to Rajasthan Royals"]
+  },
+  {
+    name: "Punjab Cricket Association Stadium",
+    city: "Mohali",
+    country: "India",
+    capacity: 26000,
+    attributes: ["Good pace and bounce", "Helpful for fast bowlers", "Home to Punjab Kings"]
+  },
+  {
     name: "BRSABV Ekana Cricket Stadium",
     city: "Lucknow",
     country: "India",
     capacity: 50000,
-    attributes: ["Slow pitch", "Assists spinners"]
+    attributes: ["Modern facilities", "New venue", "Home to Lucknow Super Giants"]
   }
 ];
 
+// IPL 2023 Standings Data
 export const ipl2023StandingsData = [
-  { teamId: 1, position: 1, matches: 14, won: 8, lost: 5, tied: 0, noResult: 1, points: 17, nrr: 0.652 }, // CSK - Champions
-  { teamId: 9, position: 2, matches: 14, won: 7, lost: 5, tied: 0, noResult: 2, points: 16, nrr: 0.809 }, // GT
-  { teamId: 10, position: 3, matches: 14, won: 7, lost: 5, tied: 0, noResult: 2, points: 16, nrr: 0.284 }, // LSG
-  { teamId: 4, position: 4, matches: 14, won: 6, lost: 7, tied: 0, noResult: 1, points: 13, nrr: 0.256 }, // KKR
-  { teamId: 3, position: 5, matches: 14, won: 6, lost: 7, tied: 0, noResult: 1, points: 13, nrr: 0.166 }, // RCB
-  { teamId: 2, position: 6, matches: 14, won: 5, lost: 8, tied: 0, noResult: 1, points: 11, nrr: -0.146 }, // MI 
-  { teamId: 5, position: 7, matches: 14, won: 5, lost: 8, tied: 0, noResult: 1, points: 11, nrr: -0.298 }, // RR
-  { teamId: 7, position: 8, matches: 14, won: 5, lost: 9, tied: 0, noResult: 0, points: 10, nrr: -0.304 }, // PBKS
-  { teamId: 6, position: 9, matches: 14, won: 5, lost: 9, tied: 0, noResult: 0, points: 10, nrr: -0.521 }, // DC
-  { teamId: 8, position: 10, matches: 14, won: 4, lost: 9, tied: 0, noResult: 1, points: 9, nrr: -0.590 } // SRH
+  {
+    teamId: 1, // This will be mapped to Chennai Super Kings in the preloadIPL2023Tournament function
+    position: 1,
+    matches: 14,
+    won: 8,
+    lost: 5,
+    tied: 0,
+    noResult: 1,
+    points: 17,
+    nrr: 0.381
+  },
+  {
+    teamId: 9, // Gujarat Titans
+    position: 2,
+    matches: 14,
+    won: 8,
+    lost: 6,
+    tied: 0,
+    noResult: 0,
+    points: 16,
+    nrr: 0.809
+  },
+  {
+    teamId: 10, // Lucknow Super Giants
+    position: 3,
+    matches: 14,
+    won: 7,
+    lost: 7,
+    tied: 0,
+    noResult: 0,
+    points: 15,
+    nrr: 0.384
+  },
+  {
+    teamId: 2, // Mumbai Indians
+    position: 4,
+    matches: 14,
+    won: 8,
+    lost: 6,
+    tied: 0,
+    noResult: 0,
+    points: 16,
+    nrr: -0.044
+  },
+  {
+    teamId: 7, // Rajasthan Royals
+    position: 5,
+    matches: 14,
+    won: 7,
+    lost: 7,
+    tied: 0,
+    noResult: 0,
+    points: 14,
+    nrr: 0.148
+  },
+  {
+    teamId: 3, // Royal Challengers Bangalore
+    position: 6,
+    matches: 14,
+    won: 7,
+    lost: 7,
+    tied: 0,
+    noResult: 0,
+    points: 14,
+    nrr: -0.225
+  },
+  {
+    teamId: 4, // Kolkata Knight Riders
+    position: 7,
+    matches: 14,
+    won: 6,
+    lost: 8,
+    tied: 0,
+    noResult: 0,
+    points: 12,
+    nrr: 0.147
+  },
+  {
+    teamId: 6, // Punjab Kings
+    position: 8,
+    matches: 14,
+    won: 6,
+    lost: 8,
+    tied: 0,
+    noResult: 0,
+    points: 12,
+    nrr: -0.304
+  },
+  {
+    teamId: 5, // Delhi Capitals
+    position: 9,
+    matches: 14,
+    won: 5,
+    lost: 9,
+    tied: 0,
+    noResult: 0,
+    points: 10,
+    nrr: -0.605
+  },
+  {
+    teamId: 8, // Sunrisers Hyderabad
+    position: 10,
+    matches: 14,
+    won: 4,
+    lost: 10,
+    tied: 0,
+    noResult: 0,
+    points: 8,
+    nrr: -0.590
+  }
 ];
 
-// IPL 2023 Top Performers
+// IPL 2023 Top Performers Data
 export const ipl2023TopPerformers = {
   battingStats: [
-    { playerId: 101, playerName: "Shubman Gill", teamId: 9, matches: 17, runs: 890, average: 59.33, strikeRate: 157.80, fifties: 4, hundreds: 3 },
-    { playerId: 102, playerName: "Faf du Plessis", teamId: 3, matches: 14, runs: 730, average: 56.15, strikeRate: 153.68, fifties: 8, hundreds: 0 },
-    { playerId: 103, playerName: "Devon Conway", teamId: 1, matches: 16, runs: 672, average: 51.69, strikeRate: 139.70, fifties: 6, hundreds: 0 },
-    { playerId: 104, playerName: "Virat Kohli", teamId: 3, matches: 14, runs: 639, average: 53.25, strikeRate: 139.25, fifties: 6, hundreds: 2 },
-    { playerId: 105, playerName: "Yashasvi Jaiswal", teamId: 5, matches: 14, runs: 625, average: 48.08, strikeRate: 163.61, fifties: 5, hundreds: 1 }
+    {
+      playerId: 101, // Note: These are placeholder IDs
+      name: "Shubman Gill",
+      teamId: 9, // Gujarat Titans
+      matches: 16,
+      runs: 890,
+      average: 59.33,
+      strikeRate: 157.80,
+      fifties: 4,
+      hundreds: 3
+    },
+    {
+      playerId: 102,
+      name: "Faf du Plessis",
+      teamId: 3, // Royal Challengers Bangalore
+      matches: 14,
+      runs: 730,
+      average: 56.15,
+      strikeRate: 153.68,
+      fifties: 8,
+      hundreds: 0
+    },
+    {
+      playerId: 103,
+      name: "Virat Kohli",
+      teamId: 3, // Royal Challengers Bangalore
+      matches: 14,
+      runs: 639,
+      average: 53.25,
+      strikeRate: 139.82,
+      fifties: 2,
+      hundreds: 2
+    },
+    {
+      playerId: 104,
+      name: "Devon Conway",
+      teamId: 1, // Chennai Super Kings
+      matches: 15,
+      runs: 624,
+      average: 44.57,
+      strikeRate: 142.21,
+      fifties: 6,
+      hundreds: 0
+    },
+    {
+      playerId: 105,
+      name: "Yashasvi Jaiswal",
+      teamId: 7, // Rajasthan Royals
+      matches: 14,
+      runs: 625,
+      average: 48.08,
+      strikeRate: 163.61,
+      fifties: 5,
+      hundreds: 1
+    }
   ],
   bowlingStats: [
-    { playerId: 201, playerName: "Mohammed Shami", teamId: 9, matches: 17, wickets: 28, economy: 8.03, average: 18.64, bestBowling: "4/11" },
-    { playerId: 202, playerName: "Tushar Deshpande", teamId: 1, matches: 16, wickets: 21, economy: 9.92, average: 26.52, bestBowling: "3/45" },
-    { playerId: 203, playerName: "Piyush Chawla", teamId: 2, matches: 16, wickets: 22, economy: 8.11, average: 24.36, bestBowling: "3/22" },
-    { playerId: 204, playerName: "Rashid Khan", teamId: 9, matches: 17, wickets: 27, economy: 8.24, average: 20.85, bestBowling: "4/30" },
-    { playerId: 205, playerName: "Varun Chakravarthy", teamId: 4, matches: 14, wickets: 20, economy: 8.09, average: 21.55, bestBowling: "4/15" }
+    {
+      playerId: 201,
+      name: "Mohammed Shami",
+      teamId: 9, // Gujarat Titans
+      matches: 17,
+      wickets: 28,
+      economy: 8.03,
+      average: 18.64,
+      bestBowling: "4/11"
+    },
+    {
+      playerId: 202,
+      name: "Rashid Khan",
+      teamId: 9, // Gujarat Titans
+      matches: 17,
+      wickets: 27,
+      economy: 8.23,
+      average: 20.81,
+      bestBowling: "4/30"
+    },
+    {
+      playerId: 203,
+      name: "Tushar Deshpande",
+      teamId: 1, // Chennai Super Kings
+      matches: 16,
+      wickets: 21,
+      economy: 9.92,
+      average: 26.76,
+      bestBowling: "3/45"
+    },
+    {
+      playerId: 204,
+      name: "Piyush Chawla",
+      teamId: 2, // Mumbai Indians
+      matches: 16,
+      wickets: 22,
+      economy: 8.11,
+      average: 22.50,
+      bestBowling: "3/22"
+    },
+    {
+      playerId: 205,
+      name: "Varun Chakaravarthy",
+      teamId: 4, // Kolkata Knight Riders
+      matches: 14,
+      wickets: 20,
+      economy: 8.15,
+      average: 21.05,
+      bestBowling: "4/15"
+    }
   ]
 };
-
-// IPL 2023 Playoff Matches
-export const ipl2023PlayoffMatches = [
-  {
-    id: 101,
-    type: "Qualifier 1",
-    team1Id: 9, // GT
-    team2Id: 1, // CSK
-    winner: 1, // CSK
-    venue: 1, // MA Chidambaram Stadium
-    date: "2023-05-23",
-    team1Score: "172/7",
-    team2Score: "173/3",
-    result: "CSK won by 15 runs"
-  },
-  {
-    id: 102,
-    type: "Eliminator",
-    team1Id: 10, // LSG
-    team2Id: 2, // MI
-    winner: 2, // MI
-    venue: 2, // Wankhede Stadium
-    date: "2023-05-24",
-    team1Score: "182/8",
-    team2Score: "185/5",
-    result: "MI won by 5 wickets"
-  },
-  {
-    id: 103,
-    type: "Qualifier 2",
-    team1Id: 9, // GT
-    team2Id: 2, // MI
-    winner: 9, // GT
-    venue: 9, // Narendra Modi Stadium
-    date: "2023-05-26",
-    team1Score: "233/3",
-    team2Score: "171/10",
-    result: "GT won by 62 runs"
-  },
-  {
-    id: 104,
-    type: "Final",
-    team1Id: 1, // CSK
-    team2Id: 9, // GT
-    winner: 1, // CSK
-    venue: 9, // Narendra Modi Stadium
-    date: "2023-05-29",
-    team1Score: "240/8",
-    team2Score: "214/4",
-    result: "CSK won by 5 wickets (DLS)"
-  }
-];
