@@ -1941,14 +1941,24 @@ export class MemStorage implements IStorage {
     // Check if interest already exists
     const existingInterest = this.userInterests.get(compositeKey);
     
+    // Convert the incoming score to string
+    let newScore: string;
+    if (typeof insertInterest.interactionScore === 'number') {
+      newScore = insertInterest.interactionScore.toString();
+    } else if (typeof insertInterest.interactionScore === 'string') {
+      newScore = insertInterest.interactionScore;
+    } else {
+      newScore = '0';
+    }
+    
     const interest: UserInterest = existingInterest ? {
       ...existingInterest,
-      interactionScore: insertInterest.interactionScore || existingInterest.interactionScore,
+      interactionScore: newScore || existingInterest.interactionScore,
       updatedAt: new Date()
     } : {
       userId: insertInterest.userId,
       tagId: insertInterest.tagId,
-      interactionScore: insertInterest.interactionScore || 0,
+      interactionScore: newScore,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -2015,18 +2025,24 @@ export class MemStorage implements IStorage {
       
       if (existingInterest) {
         // Smooth update with more weight for new interaction
-        const newScore = existingInterest.interactionScore * 0.7 + interactionScore * 0.3;
+        const existingScore = typeof existingInterest.interactionScore === 'string' 
+          ? parseFloat(existingInterest.interactionScore) || 0 
+          : (existingInterest.interactionScore || 0);
+        const newInteractionScore = typeof interactionScore === 'string' 
+          ? parseFloat(interactionScore) || 0 
+          : (interactionScore || 0);
+        const newScore = existingScore * 0.7 + newInteractionScore * 0.3;
         await this.updateUserInterest({
           userId: insertEngagement.userId,
           tagId: tag.id,
-          interactionScore: newScore
+          interactionScore: newScore.toString()
         });
       } else {
         // Create new interest
         await this.updateUserInterest({
           userId: insertEngagement.userId,
           tagId: tag.id,
-          interactionScore
+          interactionScore: interactionScore.toString()
         });
       }
     }
@@ -2100,9 +2116,11 @@ export class MemStorage implements IStorage {
     }
     
     // Sort by start date (upcoming first)
-    tournaments.sort((a, b) => 
-      (a.startDate?.getTime() || 0) - (b.startDate?.getTime() || 0)
-    );
+    tournaments.sort((a, b) => {
+      const aDate = a.startDate instanceof Date ? a.startDate.getTime() : 0;
+      const bDate = b.startDate instanceof Date ? b.startDate.getTime() : 0;
+      return aDate - bDate;
+    });
     
     // Get the limited set of tournaments
     const limitedTournaments = tournaments.slice(0, limit);
@@ -2125,9 +2143,11 @@ export class MemStorage implements IStorage {
   async getUserTournaments(userId: number): Promise<Tournament[]> {
     const userTournaments = Array.from(this.tournaments.values())
       .filter(t => t.organizerId === userId)
-      .sort((a, b) => 
-        (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
-      );
+      .sort((a, b) => {
+        const aDate = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const bDate = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return bDate - aDate;
+      });
     
     // Enhance each tournament with teams, matches, and venues
     const enhancedTournaments = await Promise.all(userTournaments.map(async (tournament) => {
@@ -2476,7 +2496,13 @@ export class MemStorage implements IStorage {
       // Interest matching (0-40 points)
       const tagInterestScore = tags.reduce((score, tag) => {
         const matchingInterest = userInterests.find(i => i.tagId === tag.id);
-        return score + (matchingInterest ? matchingInterest.interactionScore * 40 : 0);
+        if (!matchingInterest) return score;
+        
+        const interactionScore = typeof matchingInterest.interactionScore === 'string'
+          ? parseFloat(matchingInterest.interactionScore) || 0
+          : (matchingInterest.interactionScore || 0);
+          
+        return score + (interactionScore * 40);
       }, 0);
       relevanceScore += Math.min(tagInterestScore, 40); // Cap at 40
       
@@ -2485,7 +2511,8 @@ export class MemStorage implements IStorage {
       relevanceScore += Math.min(popularityScore, 20); // Cap at 20
       
       // Recency score (0-10 points)
-      const ageInHours = ((new Date()).getTime() - (post.createdAt?.getTime() || 0)) / (1000 * 60 * 60);
+      const createdAtTime = post.createdAt instanceof Date ? post.createdAt.getTime() : 0;
+      const ageInHours = ((new Date()).getTime() - createdAtTime) / (1000 * 60 * 60);
       const recencyScore = Math.max(0, 10 - ageInHours / 12); // Decrease score over time, lowest after 5 days
       relevanceScore += recencyScore;
       
@@ -2543,7 +2570,11 @@ export class MemStorage implements IStorage {
   async getPolls(limit: number = 10, type?: string): Promise<(Poll & { options: PollOption[], creator: User })[]> {
     let polls = Array.from(this.polls.values())
       .filter(poll => poll.isActive && (!type || poll.pollType === type))
-      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .sort((a, b) => {
+        const aDate = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const bDate = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return bDate - aDate;
+      })
       .slice(0, limit);
     
     return Promise.all(polls.map(async poll => {
@@ -2561,7 +2592,11 @@ export class MemStorage implements IStorage {
   async getUserPolls(userId: number): Promise<(Poll & { options: PollOption[] })[]> {
     const userPolls = Array.from(this.polls.values())
       .filter(poll => poll.userId === userId)
-      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+      .sort((a, b) => {
+        const aDate = a.createdAt instanceof Date ? a.createdAt.getTime() : 0;
+        const bDate = b.createdAt instanceof Date ? b.createdAt.getTime() : 0;
+        return bDate - aDate;
+      });
     
     return Promise.all(userPolls.map(async poll => {
       const options = await this.getPollOptions(poll.id);

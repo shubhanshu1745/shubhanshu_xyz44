@@ -395,7 +395,7 @@ export default function TournamentManager() {
       time: matchTime || '14:00',
       stage: matchStage,
       round: matchRound,
-      matchNumber: (Array.isArray(selectedTournament.matches) ? selectedTournament.matches.length : 0) + 1,
+      matchNumber: (selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.length : 0) + 1,
       result: {
         status: 'scheduled'
       }
@@ -551,7 +551,7 @@ export default function TournamentManager() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{Array.isArray(tournament.teams) ? tournament.teams.length : 0} Teams</span>
+                    <span>{tournament.teams && Array.isArray(tournament.teams) ? tournament.teams.length : 0} Teams</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -559,11 +559,11 @@ export default function TournamentManager() {
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{Array.isArray(tournament.venues) ? tournament.venues.length : 0} Venues</span>
+                    <span>{tournament.venues && Array.isArray(tournament.venues) ? tournament.venues.length : 0} Venues</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{Array.isArray(tournament.matches) ? tournament.matches.length : 0} Matches</span>
+                    <span>{tournament.matches && Array.isArray(tournament.matches) ? tournament.matches.length : 0} Matches</span>
                   </div>
                 </div>
                 
@@ -575,7 +575,7 @@ export default function TournamentManager() {
                         ? 100 
                         : tournament.status === "upcoming" 
                           ? 0 
-                          : Array.isArray(tournament.matches) && tournament.matches.length > 0
+                          : tournament.matches && Array.isArray(tournament.matches) && tournament.matches.length > 0
                             ? Math.round(
                                 (tournament.matches.filter(m => 
                                   m.result?.status === "completed" || 
@@ -707,7 +707,7 @@ export default function TournamentManager() {
                 </div>
               </CardHeader>
               <CardContent>
-                {Array.isArray(selectedTournament.matches) && selectedTournament.matches.length > 0 ? (
+                {selectedTournament.matches && Array.isArray(selectedTournament.matches) && selectedTournament.matches.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -720,7 +720,7 @@ export default function TournamentManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(selectedTournament.matches) ? selectedTournament.matches.map((match) => (
+                      {selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.map((match) => (
                         <TableRow key={match.id}>
                           <TableCell className="font-medium">{match.matchNumber}</TableCell>
                           <TableCell>
@@ -817,7 +817,7 @@ export default function TournamentManager() {
                 </div>
               </CardHeader>
               <CardContent>
-                {Array.isArray(selectedTournament.teams) && selectedTournament.teams.length > 0 ? (
+                {selectedTournament.teams && Array.isArray(selectedTournament.teams) && selectedTournament.teams.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {selectedTournament.teams.map((teamEntry) => {
                       const team = teams?.find((t: Team) => t.id === teamEntry.teamId);
