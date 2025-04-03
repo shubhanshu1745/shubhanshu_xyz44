@@ -880,7 +880,7 @@ export default function StoryFilters() {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="team">Team</SelectItem>
                   <SelectItem value="celebration">Celebration</SelectItem>
                   <SelectItem value="stadium">Stadium</SelectItem>
@@ -895,7 +895,7 @@ export default function StoryFilters() {
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Teams</SelectItem>
+                    <SelectItem value="all_teams">All Teams</SelectItem>
                     {teams.map((team: any) => (
                       <SelectItem key={team.id} value={team.id.toString()}>
                         {team.name}
@@ -913,7 +913,7 @@ export default function StoryFilters() {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all_types">All Types</SelectItem>
                 <SelectItem value="animation">Animation</SelectItem>
                 <SelectItem value="sound">Sound</SelectItem>
                 <SelectItem value="ar">AR</SelectItem>

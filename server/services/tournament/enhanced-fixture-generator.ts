@@ -611,6 +611,7 @@ async function saveEnhancedFixtures(tournamentId: number, fixtures: EnhancedTour
     const fixturePromises = fixtures.map(fixture => {
       const match = {
         tournamentId,
+        matchId: fixture.matchNumber || Math.floor(Math.random() * 10000) + 1, // Adding the required matchId
         round: fixture.round || 1,
         matchNumber: fixture.matchNumber || 0,
         group: fixture.group,

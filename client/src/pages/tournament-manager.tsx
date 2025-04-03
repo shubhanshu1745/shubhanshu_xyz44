@@ -75,6 +75,7 @@ interface Venue {
 
 interface Match {
   id: number;
+  matchId: number; // Add this field to match the server schema
   tournamentId: number;
   stage: "group" | "knockout" | "final";
   round?: string;
@@ -96,6 +97,7 @@ interface Match {
 // Define our client-specific tournament match interface
 interface ClientTournamentMatch {
   id: number;
+  matchId: number; // Add this field to match the server schema
   tournamentId: number;
   team1Id: number;
   team2Id: number;
@@ -386,7 +388,11 @@ export default function TournamentManager() {
     }
     
     const formattedDate = format(matchDate, 'yyyy-MM-dd');
+    // Generate a unique match ID - this is required by the server
+    const nextMatchNumber = (selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.length : 0) + 1;
+    
     const matchData: Partial<Match> = {
+      matchId: nextMatchNumber, // Adding the required matchId
       tournamentId: selectedTournament.id,
       team1Id: selectedTeams[0],
       team2Id: selectedTeams[1],
@@ -395,7 +401,7 @@ export default function TournamentManager() {
       time: matchTime || '14:00',
       stage: matchStage,
       round: matchRound,
-      matchNumber: (selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.length : 0) + 1,
+      matchNumber: nextMatchNumber,
       result: {
         status: 'scheduled'
       }
