@@ -1,8 +1,23 @@
 // Import the actual types from shared schema
-import { User, Post, Comment, Like, Follow, Story, Match as DbMatch, Team as DbTeam, MatchPlayer, BallByBall, PlayerStats, PlayerVsPlayerStats, HeatMapData, Partnership, MatchHighlight } from '@shared/schema';
+import { User, Post, Comment, Like, Follow, Story, Match as DbMatch, Team as DbTeam, Tournament as DbTournament, TournamentTeam, TournamentMatch, MatchPlayer, BallByBall, PlayerStats, PlayerVsPlayerStats, HeatMapData, Partnership, MatchHighlight } from '@shared/schema';
 
 // Re-export these types for component usage
-export { User, Post, Comment, Like, Follow, Story };
+export { User, Post, Comment, Like, Follow, Story, TournamentMatch };
+
+// Define ExtendedTournamentTeam with additional UI-specific properties
+export interface ExtendedTournamentTeam extends TournamentTeam {
+  team?: Team;
+  stats?: {
+    matches: number;
+    won: number;
+    lost: number;
+    tied: number;
+    noResult: number;
+    points: number;
+    nrr: number;
+  };
+  qualified?: boolean;
+}
 
 // Export additional component-specific interfaces
 export interface Team extends DbTeam {
@@ -128,4 +143,12 @@ export interface MatchOfficials {
   pitchConditions: string;
   venue: string;
   additionalNotes: string;
+}
+
+export interface Tournament extends DbTournament {
+  teams?: (TournamentTeam & { team: Team })[];
+  matches?: TournamentMatch[] | any[]; // Allow matches to be either TournamentMatch or ClientTournamentMatch array
+  venues?: any[];
+  status: string;
+  groups?: { id: number; name: string; teams: number[] }[];
 }

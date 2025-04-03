@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiRequest } from "@/lib/queryClient";
+import { Tournament, TournamentMatch as DbTournamentMatch, ExtendedTournamentTeam } from "@/types/schema";
 import {
   CalendarDays,
   Trophy,
@@ -92,50 +93,48 @@ interface Match {
   };
 }
 
+// Define our client-specific tournament match interface
+interface ClientTournamentMatch {
+  id: number;
+  tournamentId: number;
+  team1Id: number;
+  team2Id: number;
+  venueId: number;
+  stage: string | null;
+  group: string | null;
+  date: string; 
+  time: string;
+  matchNumber: number;
+  result: {
+    status: string;
+    team1Score?: string;
+    team2Score?: string;
+    winnerId?: number;
+    description?: string;
+  };
+}
+
 interface TournamentGroup {
   id: number;
   name: string;
   teams: number[];
 }
 
+// Define our own TournamentTeam interface that includes the required fields
 interface TournamentTeam {
+  id: number;
+  tournamentId: number;
   teamId: number;
-  stats: {
-    matches: number;
-    won: number;
-    lost: number;
-    tied: number;
-    noResult: number;
-    points: number;
-    nrr: number;
-  };
-  qualified?: boolean;
+  registrationDate?: Date | null;
+  registrationStatus?: string | null;
+  paymentStatus?: string | null;
+  paidAmount?: string | null;
+  notes?: string | null;
+  createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
-interface Tournament {
-  id: number;
-  name: string;
-  shortName: string;
-  description?: string;
-  startDate: string;
-  endDate: string;
-  tournamentType: "league" | "knockout" | "group_stage_knockout";
-  format: "T20" | "ODI" | "Test" | "other";
-  overs?: number;
-  venues: number[];
-  teams: TournamentTeam[];
-  groups?: TournamentGroup[];
-  matches: Match[];
-  createdBy: number;
-  createdAt: string;
-  updatedAt: string;
-  status: "upcoming" | "ongoing" | "completed";
-  pointsPerWin: number;
-  pointsPerTie: number;
-  pointsPerNoResult: number;
-  qualificationRules?: string;
-  logoUrl?: string;
-}
+// Using the ExtendedTournamentTeam interface from schema.ts
 
 interface TournamentFormData {
   name: string;
@@ -727,7 +726,7 @@ export default function TournamentManager() {
                           <TableCell>
                             <div className="font-medium">{getTeamName(match.team1Id)} vs {getTeamName(match.team2Id)}</div>
                             <div className="text-xs text-muted-foreground">
-                              {match.stage.charAt(0).toUpperCase() + match.stage.slice(1)}
+                              {match.stage ? match.stage.charAt(0).toUpperCase() + match.stage.slice(1) : 'Unknown'}
                               {match.round && ` - ${match.round}`}
                             </div>
                           </TableCell>
