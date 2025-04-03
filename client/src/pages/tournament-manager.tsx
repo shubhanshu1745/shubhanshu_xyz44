@@ -204,9 +204,7 @@ export default function TournamentManager() {
     queryKey: ['/api/tournaments'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('/api/tournaments');
-        if (!response.ok) throw new Error('Failed to fetch tournaments');
-        return await response.json();
+        return await apiRequest('GET', '/api/tournaments');
       } catch (error) {
         console.error('Error fetching tournaments:', error);
         return [];
@@ -262,17 +260,8 @@ export default function TournamentManager() {
   const createTournamentMutation = useMutation({
     mutationFn: async (data: TournamentFormData) => {
       try {
-        const response = await apiRequest('/api/tournaments', {
-          method: 'POST',
-          body: JSON.stringify(data)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create tournament');
-        }
-        
-        return await response.json();
+        // Correctly call apiRequest with method first, then URL, then data
+        return await apiRequest('POST', '/api/tournaments', data);
       } catch (error) {
         console.error('Error creating tournament:', error);
         throw error;
@@ -300,17 +289,7 @@ export default function TournamentManager() {
   const addMatchMutation = useMutation({
     mutationFn: async ({ tournamentId, matchData }: { tournamentId: number, matchData: Partial<Match> }) => {
       try {
-        const response = await apiRequest(`/api/tournaments/${tournamentId}/matches`, {
-          method: 'POST',
-          body: JSON.stringify(matchData)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to add match');
-        }
-        
-        return await response.json();
+        return await apiRequest('POST', `/api/tournaments/${tournamentId}/matches`, matchData);
       } catch (error) {
         console.error('Error adding match:', error);
         throw error;
@@ -338,17 +317,7 @@ export default function TournamentManager() {
   const generateScheduleMutation = useMutation({
     mutationFn: async ({ tournamentId, settings }: { tournamentId: number, settings: typeof scheduleSettings }) => {
       try {
-        const response = await apiRequest(`/api/tournaments/${tournamentId}/generate-schedule`, {
-          method: 'POST',
-          body: JSON.stringify(settings)
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to generate schedule');
-        }
-        
-        return await response.json();
+        return await apiRequest('POST', `/api/tournaments/${tournamentId}/generate-schedule`, settings);
       } catch (error) {
         console.error('Error generating schedule:', error);
         throw error;
@@ -376,16 +345,7 @@ export default function TournamentManager() {
   const deleteTournamentMutation = useMutation({
     mutationFn: async (tournamentId: number) => {
       try {
-        const response = await apiRequest(`/api/tournaments/${tournamentId}`, {
-          method: 'DELETE'
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to delete tournament');
-        }
-        
-        return true;
+        return await apiRequest('DELETE', `/api/tournaments/${tournamentId}`);
       } catch (error) {
         console.error('Error deleting tournament:', error);
         throw error;

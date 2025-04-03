@@ -1,5 +1,4 @@
-import { db } from '../../db';
-import { asc, desc, eq, and, sql } from 'drizzle-orm';
+import { storage } from '../../storage';
 import * as schema from '@shared/schema';
 
 /**
@@ -28,21 +27,14 @@ export async function generateFixtures(tournamentId: number, options: {
     const fixtureOptions = { ...defaultOptions, ...options };
     
     // Get tournament details
-    const tournament = await db.query.tournaments.findFirst({
-      where: eq(schema.tournaments.id, tournamentId),
-    });
+    const tournament = await storage.getTournament(tournamentId);
 
     if (!tournament) {
       throw new Error(`Tournament with ID ${tournamentId} not found`);
     }
 
     // Get teams registered for the tournament
-    const tournamentTeams = await db.query.tournamentTeams.findMany({
-      where: eq(schema.tournamentTeams.tournamentId, tournamentId),
-      with: {
-        team: true
-      }
-    });
+    const tournamentTeams = await storage.getTournamentTeams(tournamentId);
 
     if (tournamentTeams.length < 2) {
       throw new Error("At least two teams are required to generate fixtures");
@@ -360,12 +352,14 @@ function scheduleFixtures(
 async function saveFixtures(tournamentId: number, fixtures: TournamentFixture[]) {
   try {
     // First, remove any existing fixtures for this tournament
-    await db.delete(schema.tournamentMatches)
-      .where(eq(schema.tournamentMatches.tournamentId, tournamentId));
+    const existingMatches = await storage.getTournamentMatchesByTournament(tournamentId);
+    for (const match of existingMatches) {
+      await storage.deleteTournamentMatch(match.id);
+    }
     
     // Insert new fixtures
     for (const fixture of fixtures) {
-      await db.insert(schema.tournamentMatches).values({
+      await storage.createTournamentMatch({
         tournamentId,
         team1Id: fixture.team1Id,
         team2Id: fixture.team2Id,
@@ -391,12 +385,14 @@ async function saveFixtures(tournamentId: number, fixtures: TournamentFixture[])
 async function createInitialStandings(tournamentId: number, teamIds: number[]) {
   try {
     // First, remove any existing standings for this tournament
-    await db.delete(schema.tournamentStandings)
-      .where(eq(schema.tournamentStandings.tournamentId, tournamentId));
+    const existingStandings = await storage.getTournamentStandingsByTournament(tournamentId);
+    for (const standing of existingStandings) {
+      await storage.deleteTournamentStanding(standing.id);
+    }
     
     // Insert initial standings for each team
     for (const teamId of teamIds) {
-      await db.insert(schema.tournamentStandings).values({
+      await storage.createTournamentStanding({
         tournamentId,
         teamId,
         played: 0,
@@ -623,24 +619,26 @@ export async function updateStandings(tournamentId: number, matchId: number) {
  */
 async function updateStandingsPositions(tournamentId: number) {
   try {
-    // Get all standings for this tournament, ordered by points (desc) and NRR (desc)
-    const standings = await db.query.tournamentStandings.findMany({
-      where: eq(schema.tournamentStandings.tournamentId, tournamentId),
-      orderBy: [
-        { column: schema.tournamentStandings.points, order: 'desc' },
-        { column: schema.tournamentStandings.netRunRate, order: 'desc' }
-      ]
+    // Get all standings for this tournament
+    const allStandings = await storage.getTournamentStandingsByTournament(tournamentId);
+    
+    // Sort by points (desc) and NRR (desc)
+    const standings = [...allStandings].sort((a, b) => {
+      // First sort by points
+      const pointsDiff = b.points - a.points;
+      if (pointsDiff !== 0) return pointsDiff;
+      
+      // If points are equal, sort by net run rate
+      return (b.netRunRate || 0) - (a.netRunRate || 0);
     });
     
     // Update positions
     for (let i = 0; i < standings.length; i++) {
       const standing = standings[i];
-      await db.update(schema.tournamentStandings)
-        .set({ position: i + 1 })
-        .where(and(
-          eq(schema.tournamentStandings.tournamentId, tournamentId),
-          eq(schema.tournamentStandings.teamId, standing.teamId)
-        ));
+      await storage.updateTournamentStanding(standing.id, {
+        ...standing,
+        position: i + 1
+      });
     }
     
     return true;

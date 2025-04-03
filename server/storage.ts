@@ -228,10 +228,22 @@ export interface IStorage {
   updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined>;
   deleteTournamentMatch(id: number): Promise<boolean>;
   
+  // Tournament standings methods
+  createTournamentStanding(standingData: InsertTournamentStanding): Promise<TournamentStanding>;
+  getTournamentStanding(id: number): Promise<TournamentStanding | undefined>;
+  getTournamentStandingByTeam(tournamentId: number, teamId: number): Promise<TournamentStanding | undefined>;
+  getTournamentStandingsByTournament(tournamentId: number): Promise<TournamentStanding[]>;
+  updateTournamentStanding(id: number, data: Partial<TournamentStanding>): Promise<TournamentStanding | undefined>;
+  deleteTournamentStanding(id: number): Promise<boolean>;
+  
+  // Tournament match queries
+  getTournamentMatchesByTournament(tournamentId: number): Promise<TournamentMatch[]>;
+  
   // Player tournament stats methods
   createPlayerTournamentStats(statsData: InsertPlayerTournamentStats): Promise<PlayerTournamentStats>;
   getPlayerTournamentStats(tournamentId: number, userId: number): Promise<PlayerTournamentStats | undefined>;
   getAllPlayerTournamentStats(tournamentId: number): Promise<(PlayerTournamentStats & { user: User })[]>;
+  getPlayerTournamentStatsByTournament(tournamentId: number): Promise<PlayerTournamentStats[]>;
   updatePlayerTournamentStats(tournamentId: number, userId: number, data: Partial<PlayerTournamentStats>): Promise<PlayerTournamentStats | undefined>;
   
   // Poll methods
@@ -290,6 +302,7 @@ export class MemStorage implements IStorage {
   private tournaments: Map<number, Tournament>;
   private tournamentTeams: Map<string, TournamentTeam>; // Composite key: `${tournamentId}-${teamId}`
   private tournamentMatches: Map<number, TournamentMatch>;
+  private tournamentStandings: Map<number, TournamentStanding>;
   private polls: Map<number, Poll>;
   private pollOptions: Map<number, PollOption>;
   private pollVotes: Map<string, PollVote>; // Composite key: `${userId}-${pollId}`
@@ -322,6 +335,7 @@ export class MemStorage implements IStorage {
   venueBookingCurrentId: number;
   tournamentCurrentId: number;
   tournamentMatchCurrentId: number;
+  tournamentStandingCurrentId: number;
   pollCurrentId: number;
   pollOptionCurrentId: number;
   pollVoteCurrentId: number;
@@ -346,6 +360,7 @@ export class MemStorage implements IStorage {
     this.playerStats = new Map();
     this.playerMatches = new Map();
     this.playerMatchPerformances = new Map();
+    this.playerTournamentStats = new Map();
     this.tokens = new Map();
     this.matches = new Map();
     this.teams = new Map();
@@ -362,6 +377,7 @@ export class MemStorage implements IStorage {
     this.tournaments = new Map();
     this.tournamentTeams = new Map();
     this.tournamentMatches = new Map();
+    this.tournamentStandings = new Map();
     this.polls = new Map();
     this.pollOptions = new Map();
     this.pollVotes = new Map();
@@ -391,6 +407,7 @@ export class MemStorage implements IStorage {
     this.venueBookingCurrentId = 1;
     this.tournamentCurrentId = 1;
     this.tournamentMatchCurrentId = 1;
+    this.tournamentStandingCurrentId = 1;
     this.pollCurrentId = 1;
     this.pollOptionCurrentId = 1;
     this.pollVoteCurrentId = 1;
@@ -2247,6 +2264,90 @@ export class MemStorage implements IStorage {
     return this.tournamentMatches.delete(id);
   }
   
+  // Tournament match queries
+  async getTournamentMatchesByTournament(tournamentId: number): Promise<TournamentMatch[]> {
+    return Array.from(this.tournamentMatches.values())
+      .filter(match => match.tournamentId === tournamentId);
+  }
+  
+  // Tournament standings methods
+  async createTournamentStanding(standingData: InsertTournamentStanding): Promise<TournamentStanding> {
+    const id = this.tournamentStandingCurrentId++;
+    const standing: TournamentStanding = {
+      id,
+      tournamentId: standingData.tournamentId,
+      teamId: standingData.teamId,
+      position: standingData.position || 0,
+      played: standingData.played || 0,
+      won: standingData.won || 0,
+      lost: standingData.lost || 0,
+      drawn: standingData.drawn || 0,
+      points: standingData.points || 0,
+      forScore: standingData.forScore || 0,
+      againstScore: standingData.againstScore || 0,
+      nrr: standingData.nrr || 0,
+      group: standingData.group || null,
+      stage: standingData.stage || null,
+      updatedAt: new Date(),
+      createdAt: new Date(),
+    };
+    
+    this.tournamentStandings.set(id, standing);
+    return standing;
+  }
+  
+  async getTournamentStanding(id: number): Promise<TournamentStanding | undefined> {
+    return this.tournamentStandings.get(id);
+  }
+  
+  async getTournamentStandingByTeam(tournamentId: number, teamId: number): Promise<TournamentStanding | undefined> {
+    return Array.from(this.tournamentStandings.values()).find(
+      standing => standing.tournamentId === tournamentId && standing.teamId === teamId
+    );
+  }
+  
+  async getTournamentStandingsByTournament(tournamentId: number): Promise<TournamentStanding[]> {
+    return Array.from(this.tournamentStandings.values())
+      .filter(standing => standing.tournamentId === tournamentId)
+      .sort((a, b) => {
+        // First sort by group if exists
+        if (a.group && b.group && a.group !== b.group) {
+          return a.group.localeCompare(b.group);
+        }
+        
+        // Then sort by position
+        if (a.position !== b.position) {
+          return a.position - b.position;
+        }
+        
+        // If positions are tied, sort by points
+        if (a.points !== b.points) {
+          return b.points - a.points;
+        }
+        
+        // If points are tied, sort by NRR
+        return b.nrr - a.nrr;
+      });
+  }
+  
+  async updateTournamentStanding(id: number, data: Partial<TournamentStanding>): Promise<TournamentStanding | undefined> {
+    const standing = await this.getTournamentStanding(id);
+    if (!standing) return undefined;
+    
+    const updatedStanding = { 
+      ...standing, 
+      ...data,
+      updatedAt: new Date() 
+    };
+    
+    this.tournamentStandings.set(id, updatedStanding);
+    return updatedStanding;
+  }
+  
+  async deleteTournamentStanding(id: number): Promise<boolean> {
+    return this.tournamentStandings.delete(id);
+  }
+  
   async getPersonalizedFeed(userId: number, limit: number = 20): Promise<(Post & { 
     user: User, 
     likeCount: number, 
@@ -2531,6 +2632,80 @@ export class MemStorage implements IStorage {
   
   async deletePollVote(userId: number, pollId: number): Promise<boolean> {
     return this.pollVotes.delete(`${userId}-${pollId}`);
+  }
+
+  // Player tournament stats methods
+  async createPlayerTournamentStats(statsData: InsertPlayerTournamentStats): Promise<PlayerTournamentStats> {
+    const key = `${statsData.tournamentId}-${statsData.userId}`;
+    const existingStats = this.playerTournamentStats.get(key);
+    
+    if (existingStats) {
+      // If stats already exist, update them
+      return this.updatePlayerTournamentStats(statsData.tournamentId, statsData.userId, statsData);
+    }
+    
+    const stats: PlayerTournamentStats = {
+      tournamentId: statsData.tournamentId,
+      userId: statsData.userId,
+      matches: statsData.matches || 0,
+      innings: statsData.innings || 0,
+      runs: statsData.runs || 0,
+      balls: statsData.balls || 0,
+      highestScore: statsData.highestScore || 0,
+      fifties: statsData.fifties || 0,
+      hundreds: statsData.hundreds || 0,
+      fours: statsData.fours || 0,
+      sixes: statsData.sixes || 0,
+      average: statsData.average || 0,
+      strikeRate: statsData.strikeRate || 0,
+      overs: statsData.overs || 0,
+      wickets: statsData.wickets || 0,
+      bestBowling: statsData.bestBowling || null,
+      economyRate: statsData.economyRate || 0,
+      catches: statsData.catches || 0,
+      runOuts: statsData.runOuts || 0,
+      stumpings: statsData.stumpings || 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.playerTournamentStats.set(key, stats);
+    return stats;
+  }
+
+  async getPlayerTournamentStats(tournamentId: number, userId: number): Promise<PlayerTournamentStats | undefined> {
+    return this.playerTournamentStats.get(`${tournamentId}-${userId}`);
+  }
+
+  async getAllPlayerTournamentStats(tournamentId: number): Promise<(PlayerTournamentStats & { user: User })[]> {
+    const stats = Array.from(this.playerTournamentStats.values())
+      .filter(stat => stat.tournamentId === tournamentId);
+    
+    return Promise.all(stats.map(async stat => {
+      const user = await this.getUser(stat.userId) as User;
+      return { ...stat, user };
+    }));
+  }
+  
+  async getPlayerTournamentStatsByTournament(tournamentId: number): Promise<PlayerTournamentStats[]> {
+    return Array.from(this.playerTournamentStats.values())
+      .filter(stat => stat.tournamentId === tournamentId);
+  }
+
+  async updatePlayerTournamentStats(tournamentId: number, userId: number, data: Partial<PlayerTournamentStats>): Promise<PlayerTournamentStats | undefined> {
+    const key = `${tournamentId}-${userId}`;
+    const stats = this.playerTournamentStats.get(key);
+    
+    if (!stats) return undefined;
+    
+    const updatedStats = { 
+      ...stats, 
+      ...data,
+      updatedAt: new Date()
+    };
+    
+    this.playerTournamentStats.set(key, updatedStats);
+    return updatedStats;
   }
 }
 
