@@ -436,6 +436,7 @@ export async function seedDatabase() {
     // Import IPL 2023 data and tournament services
     const { ipl2023Teams, ipl2023Venues } = await import('./data/ipl-2023-teams');
     const { enhancedFixtureGenerator } = await import('./services/tournament');
+    const { indianVenues, worldVenues } = await import('./data/world-cricket-venues');
     
     // Create IPL 2023 completed tournament
     const ipl2023 = await storage.createTournament({
@@ -487,6 +488,50 @@ export async function seedDatabase() {
         description: venue.attributes.join(", "),
         facilities: ["Parking", "Food & Beverages", "Media Box"]
       });
+    }
+
+    // Add comprehensive set of Indian venues
+    console.log("🏟️ Adding top Indian cricket venues...");
+    for (const venue of indianVenues) {
+      try {
+        await storage.createVenue({
+          name: venue.name,
+          address: `${venue.name}, ${venue.city}, ${venue.state || ''}`,
+          city: venue.city,
+          state: venue.state,
+          country: venue.country,
+          capacity: venue.capacity,
+          createdBy: demoUser1.id,
+          description: venue.attributes.join(", "),
+          facilities: venue.facilities || ["Parking", "Food & Beverages"],
+          postalCode: venue.postalCode,
+          coordinates: venue.coordinates ? JSON.stringify(venue.coordinates) : undefined
+        });
+      } catch (e) {
+        // Skip if venue already exists (likely due to overlap with IPL venues)
+        console.log(`Venue ${venue.name} might already exist, skipping`);
+      }
+    }
+    
+    // Add world's most famous cricket venues
+    console.log("🌍 Adding world-famous cricket venues...");
+    for (const venue of worldVenues) {
+      try {
+        await storage.createVenue({
+          name: venue.name,
+          address: `${venue.name}, ${venue.city}, ${venue.country}`,
+          city: venue.city,
+          country: venue.country,
+          capacity: venue.capacity,
+          createdBy: demoUser1.id,
+          description: venue.attributes.join(", "),
+          facilities: venue.facilities || ["Parking", "Food & Beverages"],
+          postalCode: venue.postalCode,
+          coordinates: venue.coordinates ? JSON.stringify(venue.coordinates) : undefined
+        });
+      } catch (e) {
+        console.log(`Venue ${venue.name} might already exist, skipping`);
+      }
     }
 
     // Use enhancedFixtureGenerator to preload IPL 2023 data

@@ -80,17 +80,34 @@ export default function StoryFilters() {
 
   // Fetch story filters
   const { data: filters, isLoading: filtersLoading } = useQuery({
-    queryKey: ['/api/stories/filters', selectedCategory],
+    queryKey: ['/api/stories/filters', selectedCategory, selectedTeam],
     queryFn: async () => {
       let url = '/api/stories/filters';
+      const params = new URLSearchParams();
+      
       if (selectedCategory) {
-        url += `?category=${selectedCategory}`;
+        params.append('category', selectedCategory);
       }
+      
+      if (selectedTeam) {
+        params.append('teamId', selectedTeam.toString());
+      }
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+      
+      console.log("Fetching filters with URL:", url);
       const response = await fetch(url);
+      
       if (!response.ok) {
         throw new Error('Failed to fetch story filters');
       }
-      return response.json();
+      
+      const data = await response.json();
+      console.log("Filters returned:", data);
+      return data;
     },
     enabled: activeTab === "filters"
   });
@@ -100,14 +117,27 @@ export default function StoryFilters() {
     queryKey: ['/api/stories/effects', selectedCategory],
     queryFn: async () => {
       let url = '/api/stories/effects';
+      const params = new URLSearchParams();
+      
       if (selectedCategory) {
-        url += `?category=${selectedCategory}`;
+        params.append('category', selectedCategory);
       }
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+      
+      console.log("Fetching effects with URL:", url);
       const response = await fetch(url);
+      
       if (!response.ok) {
         throw new Error('Failed to fetch story effects');
       }
-      return response.json();
+      
+      const data = await response.json();
+      console.log("Effects returned:", data);
+      return data;
     },
     enabled: activeTab === "effects"
   });

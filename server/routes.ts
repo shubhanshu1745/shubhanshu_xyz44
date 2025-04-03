@@ -5,7 +5,7 @@ import { setupAuth, hashPassword, isAuthenticated } from "./auth";
 import { z } from "zod";
 import * as CoachingService from "./services/coaching";
 import * as HighlightService from "./services/highlights";
-import * as StoryFiltersService from "./services/story-filters";
+import { StoryFiltersService } from "./services/story-filters";
 import * as tournamentServices from "./services/tournament";
 import { 
   insertCommentSchema, 
@@ -3302,7 +3302,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // These are imported as modules with functions, not as classes
   const coachingService = CoachingService;
   const highlightService = HighlightService;
-  const storyFiltersService = StoryFiltersService;
+  // StoryFiltersService is a class, so we need to instantiate it
+  const storyFiltersService = new StoryFiltersService(storage);
 
   // COACHING SERVICE ROUTES
   app.get("/api/coaching/tips", async (req, res) => {
@@ -4023,6 +4024,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting venues:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+  
+  // Get all countries where venues exist
+  app.get("/api/venues/countries", async (req, res) => {
+    try {
+      const venues = await storage.getVenues();
+      const countries = [...new Set(venues
+        .filter(v => v.country)
+        .map(v => v.country))]
+        .sort();
+      res.json(countries);
+    } catch (error) {
+      console.error("Error fetching countries:", error);
+      res.status(500).json({ message: "Error fetching countries" });
+    }
+  });
+
+  // Get all states in a country where venues exist
+  app.get("/api/venues/states/:country", async (req, res) => {
+    try {
+      const { country } = req.params;
+      const venues = await storage.getVenues();
+      const states = [...new Set(venues
+        .filter(v => v.country === country && v.state)
+        .map(v => v.state))]
+        .sort();
+      res.json(states);
+    } catch (error) {
+      console.error("Error fetching states:", error);
+      res.status(500).json({ message: "Error fetching states" });
+    }
+  });
+
+  // Get all cities in a state where venues exist
+  app.get("/api/venues/cities/:country/:state", async (req, res) => {
+    try {
+      const { country, state } = req.params;
+      const venues = await storage.getVenues();
+      const cities = [...new Set(venues
+        .filter(v => v.country === country && v.state === state && v.city)
+        .map(v => v.city))]
+        .sort();
+      res.json(cities);
+    } catch (error) {
+      console.error("Error fetching cities:", error);
+      res.status(500).json({ message: "Error fetching cities" });
+    }
+  });
+
+  // Get all unique facilities from venues
+  app.get("/api/venues/facilities", async (req, res) => {
+    try {
+      const venues = await storage.getVenues();
+      const facilities = [...new Set(venues
+        .filter(v => v.facilities && v.facilities.length > 0)
+        .flatMap(v => v.facilities))]
+        .sort();
+      res.json(facilities);
+    } catch (error) {
+      console.error("Error fetching facilities:", error);
+      res.status(500).json({ message: "Error fetching facilities" });
     }
   });
   
