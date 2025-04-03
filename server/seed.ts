@@ -467,9 +467,11 @@ export async function seedDatabase() {
       });
       
       // Register team for the tournament
-      await storage.createTournamentTeam({
+      await storage.addTeamToTournament({
         tournamentId: ipl2023.id,
-        teamId: teamRecord.id
+        teamId: teamRecord.id,
+        registrationStatus: "confirmed",
+        paymentStatus: "paid"
       });
     }
 

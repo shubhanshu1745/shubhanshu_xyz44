@@ -395,7 +395,7 @@ export default function TournamentManager() {
       time: matchTime || '14:00',
       stage: matchStage,
       round: matchRound,
-      matchNumber: (selectedTournament.matches?.length || 0) + 1,
+      matchNumber: (Array.isArray(selectedTournament.matches) ? selectedTournament.matches.length : 0) + 1,
       result: {
         status: 'scheduled'
       }
@@ -551,7 +551,7 @@ export default function TournamentManager() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.teams?.length || 0} Teams</span>
+                    <span>{Array.isArray(tournament.teams) ? tournament.teams.length : 0} Teams</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -559,11 +559,11 @@ export default function TournamentManager() {
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.venues?.length || 0} Venues</span>
+                    <span>{Array.isArray(tournament.venues) ? tournament.venues.length : 0} Venues</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.matches?.length || 0} Matches</span>
+                    <span>{Array.isArray(tournament.matches) ? tournament.matches.length : 0} Matches</span>
                   </div>
                 </div>
                 
@@ -575,7 +575,7 @@ export default function TournamentManager() {
                         ? 100 
                         : tournament.status === "upcoming" 
                           ? 0 
-                          : tournament.matches && tournament.matches.length > 0
+                          : Array.isArray(tournament.matches) && tournament.matches.length > 0
                             ? Math.round(
                                 (tournament.matches.filter(m => 
                                   m.result?.status === "completed" || 
@@ -707,7 +707,7 @@ export default function TournamentManager() {
                 </div>
               </CardHeader>
               <CardContent>
-                {selectedTournament.matches && selectedTournament.matches.length > 0 ? (
+                {Array.isArray(selectedTournament.matches) && selectedTournament.matches.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -720,7 +720,7 @@ export default function TournamentManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedTournament.matches && Array.isArray(selectedTournament.matches) ? selectedTournament.matches.map((match) => (
+                      {Array.isArray(selectedTournament.matches) ? selectedTournament.matches.map((match) => (
                         <TableRow key={match.id}>
                           <TableCell className="font-medium">{match.matchNumber}</TableCell>
                           <TableCell>
@@ -817,7 +817,7 @@ export default function TournamentManager() {
                 </div>
               </CardHeader>
               <CardContent>
-                {selectedTournament.teams && selectedTournament.teams.length > 0 ? (
+                {Array.isArray(selectedTournament.teams) && selectedTournament.teams.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {selectedTournament.teams.map((teamEntry) => {
                       const team = teams?.find((t: Team) => t.id === teamEntry.teamId);
@@ -840,7 +840,7 @@ export default function TournamentManager() {
                               )}
                               <div>
                                 <CardTitle className="line-clamp-1">{team.name}</CardTitle>
-                                {teamEntry.qualified !== undefined && (
+                                {('qualified' in teamEntry) && teamEntry.qualified !== undefined && (
                                   <Badge 
                                     variant="outline" 
                                     className={
@@ -858,15 +858,15 @@ export default function TournamentManager() {
                           <CardContent className="pb-2">
                             <div className="grid grid-cols-3 gap-2 text-center text-sm">
                               <div>
-                                <div className="font-semibold">{teamEntry.stats.matches}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.matches : 0}</div>
                                 <div className="text-xs text-muted-foreground">Matches</div>
                               </div>
                               <div>
-                                <div className="font-semibold">{teamEntry.stats.won}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.won : 0}</div>
                                 <div className="text-xs text-muted-foreground">Won</div>
                               </div>
                               <div>
-                                <div className="font-semibold">{teamEntry.stats.lost}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.lost : 0}</div>
                                 <div className="text-xs text-muted-foreground">Lost</div>
                               </div>
                             </div>
@@ -874,18 +874,18 @@ export default function TournamentManager() {
                           <CardFooter className="border-t bg-muted/50 px-6 py-2">
                             <div className="flex items-center justify-between w-full">
                               <div>
-                                <span className="font-medium">{teamEntry.stats.points}</span>
+                                <span className="font-medium">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.points : 0}</span>
                                 <span className="text-xs text-muted-foreground ml-1">pts</span>
                               </div>
                               <div>
                                 <span className="text-xs text-muted-foreground mr-1">NRR:</span>
                                 <span className={
-                                  teamEntry.stats.nrr > 0 
+                                  ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr > 0 
                                     ? "text-green-600" 
-                                    : teamEntry.stats.nrr < 0 
+                                    : ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr < 0 
                                       ? "text-red-600" 
                                       : ""
-                                }>{teamEntry.stats.nrr > 0 ? '+' : ''}{teamEntry.stats.nrr.toFixed(3)}</span>
+                                }>{('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr > 0 ? '+' : ''}{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.nrr.toFixed(3) : '0.000'}</span>
                               </div>
                             </div>
                           </CardFooter>
@@ -915,14 +915,14 @@ export default function TournamentManager() {
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <CardTitle>Tournament Standings</CardTitle>
-                  {selectedTournament.tournamentType === "group_stage_knockout" && selectedTournament.groups && (
+                  {selectedTournament.tournamentType === "group_stage_knockout" && Array.isArray(selectedTournament.groups) && selectedTournament.groups.length > 0 && (
                     <Select defaultValue="all">
                       <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select Group" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Groups</SelectItem>
-                        {selectedTournament.groups && Array.isArray(selectedTournament.groups) ? selectedTournament.groups.map(group => (
+                        {Array.isArray(selectedTournament.groups) ? selectedTournament.groups.map(group => (
                           <SelectItem key={group.id} value={group.id.toString()}>
                             {group.name}
                           </SelectItem>
@@ -933,7 +933,7 @@ export default function TournamentManager() {
                 </div>
               </CardHeader>
               <CardContent>
-                {selectedTournament.teams && selectedTournament.teams.length > 0 ? (
+                {Array.isArray(selectedTournament.teams) && selectedTournament.teams.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -952,10 +952,19 @@ export default function TournamentManager() {
                       {selectedTournament.teams
                         .sort((a, b) => {
                           // Sort by points first, then NRR
-                          if (a.stats.points !== b.stats.points) {
-                            return b.stats.points - a.stats.points;
+                          const aStats = 'stats' in a ? a.stats || {} : {};
+                          const bStats = 'stats' in b ? b.stats || {} : {};
+                          
+                          const aPoints = aStats.points !== undefined ? aStats.points : 0;
+                          const bPoints = bStats.points !== undefined ? bStats.points : 0;
+                          
+                          if (aPoints !== bPoints) {
+                            return bPoints - aPoints;
                           }
-                          return b.stats.nrr - a.stats.nrr;
+                          
+                          const aNrr = aStats.nrr !== undefined ? aStats.nrr : 0;
+                          const bNrr = bStats.nrr !== undefined ? bStats.nrr : 0;
+                          return bNrr - aNrr;
                         })
                         .map((teamEntry, index) => {
                           const team = teams?.find((t: Team) => t.id === teamEntry.teamId);
@@ -978,7 +987,7 @@ export default function TournamentManager() {
                                     </div>
                                   )}
                                   <span>{team.name}</span>
-                                  {teamEntry.qualified !== undefined && (
+                                  {('qualified' in teamEntry) && teamEntry.qualified !== undefined && (
                                     <Badge 
                                       variant="outline" 
                                       className={
@@ -992,21 +1001,36 @@ export default function TournamentManager() {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-center">{teamEntry.stats.matches}</TableCell>
-                              <TableCell className="text-center">{teamEntry.stats.won}</TableCell>
-                              <TableCell className="text-center">{teamEntry.stats.lost}</TableCell>
-                              <TableCell className="text-center">{teamEntry.stats.tied}</TableCell>
-                              <TableCell className="text-center">{teamEntry.stats.noResult}</TableCell>
+                              <TableCell className="text-center">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.matches !== undefined ? teamEntry.stats.matches : 0}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.won !== undefined ? teamEntry.stats.won : 0}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.lost !== undefined ? teamEntry.stats.lost : 0}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.tied !== undefined ? teamEntry.stats.tied : 0}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.noResult !== undefined ? teamEntry.stats.noResult : 0}
+                              </TableCell>
                               <TableCell className={`text-center ${
-                                teamEntry.stats.nrr > 0 
+                                ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr > 0 
                                   ? "text-green-600" 
-                                  : teamEntry.stats.nrr < 0 
+                                  : ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr < 0 
                                     ? "text-red-600" 
                                     : ""
                               }`}>
-                                {teamEntry.stats.nrr > 0 ? '+' : ''}{teamEntry.stats.nrr.toFixed(3)}
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr > 0 ? '+' : ''}
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined 
+                                  ? Number(teamEntry.stats.nrr).toFixed(3) 
+                                  : '0.000'}
                               </TableCell>
-                              <TableCell className="text-center font-bold">{teamEntry.stats.points}</TableCell>
+                              <TableCell className="text-center font-bold">
+                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.points !== undefined ? teamEntry.stats.points : 0}
+                              </TableCell>
                             </TableRow>
                           );
                         })}
@@ -1180,7 +1204,7 @@ export default function TournamentManager() {
             <Trophy className="mr-2 h-4 w-4" />
             Tournament History
           </Button>
-          <Button onClick={() => setCreateTournamentDialogOpen(true)}>
+          <Button onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-2 h-4 w-4" />
             New Tournament
           </Button>
