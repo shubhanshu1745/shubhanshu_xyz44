@@ -18,10 +18,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays, isToday, isTomorrow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
 import {
   MapPin, Search, Filter, CalendarDays, Clock, Users, CreditCard, Check,
   Plus, ChevronDown, Star, Calendar as CalendarIcon, Bookmark, 
-  Share2, ArrowRight, ChevronsUpDown, Loader2, User
+  Share2, ArrowRight, ChevronsUpDown, Loader2, User, Settings
 } from "lucide-react";
 
 // Types
@@ -125,9 +126,7 @@ export default function VenueDiscovery() {
         url += `?query=${searchQuery}&location=${locationFilter}`;
       }
       
-      const response = await apiRequest(url);
-      if (!response.ok) throw new Error('Failed to fetch venues');
-      return await response.json();
+      return await apiRequest('GET', url);
     }
   });
   
@@ -140,9 +139,7 @@ export default function VenueDiscovery() {
       
       if (!userLat || !userLng) return [];
       
-      const response = await apiRequest(`/api/venues/nearby?lat=${userLat}&lng=${userLng}&radius=20`);
-      if (!response.ok) throw new Error('Failed to fetch nearby venues');
-      return await response.json();
+      return await apiRequest('GET', `/api/venues/nearby?lat=${userLat}&lng=${userLng}&radius=20`);
     },
     enabled: !!localStorage.getItem("userLat") && !!localStorage.getItem("userLng")
   });
@@ -152,9 +149,7 @@ export default function VenueDiscovery() {
     queryKey: ['/api/venues', selectedVenue?.id, 'availability'],
     queryFn: async () => {
       if (!selectedVenue) return [];
-      const response = await apiRequest(`/api/venues/${selectedVenue.id}/availability`);
-      if (!response.ok) throw new Error('Failed to fetch venue availability');
-      return await response.json();
+      return await apiRequest('GET', `/api/venues/${selectedVenue.id}/availability`);
     },
     enabled: !!selectedVenue
   });
@@ -164,9 +159,7 @@ export default function VenueDiscovery() {
     queryKey: ['/api/users/me/venues'],
     queryFn: async () => {
       if (!user) return [];
-      const response = await apiRequest('/api/users/me/venues');
-      if (!response.ok) throw new Error('Failed to fetch your venues');
-      return await response.json();
+      return await apiRequest('GET', '/api/users/me/venues');
     },
     enabled: !!user
   });
@@ -180,9 +173,7 @@ export default function VenueDiscovery() {
       if (bookingViewMode !== 'all') {
         url += `?status=${bookingViewMode}`;
       }
-      const response = await apiRequest(url);
-      if (!response.ok) throw new Error('Failed to fetch your bookings');
-      return await response.json();
+      return await apiRequest('GET', url);
     },
     enabled: !!user
   });
@@ -201,18 +192,7 @@ export default function VenueDiscovery() {
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData: any) => {
       if (!selectedVenue) throw new Error('No venue selected');
-      
-      const response = await apiRequest(`/api/venues/${selectedVenue.id}/bookings`, {
-        method: 'POST',
-        body: JSON.stringify(bookingData)
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create booking');
-      }
-      
-      return await response.json();
+      return await apiRequest('POST', `/api/venues/${selectedVenue.id}/bookings`, bookingData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/me/bookings'] });
@@ -238,16 +218,7 @@ export default function VenueDiscovery() {
   // Mutation to cancel a booking
   const cancelBookingMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      const response = await apiRequest(`/api/bookings/${bookingId}/cancel`, {
-        method: 'POST'
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to cancel booking');
-      }
-      
-      return await response.json();
+      return await apiRequest('POST', `/api/bookings/${bookingId}/cancel`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/users/me/bookings'] });
@@ -270,7 +241,7 @@ export default function VenueDiscovery() {
     if (!selectedVenue || !venueAvailabilities || !selectedDate) return [];
     
     const dayOfWeek = selectedDate.getDay();
-    const availability = venueAvailabilities.find(a => a.dayOfWeek === dayOfWeek);
+    const availability = venueAvailabilities.find((a: VenueAvailability) => a.dayOfWeek === dayOfWeek);
     
     if (!availability) return [];
     
@@ -604,10 +575,18 @@ export default function VenueDiscovery() {
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Your Venues</h2>
-              <Button>
-                <Plus size={16} className="mr-1" />
-                Add New Venue
-              </Button>
+              <div className="flex space-x-2">
+                <Button asChild>
+                  <Link to="/venue-management">
+                    <Settings size={16} className="mr-1" />
+                    Advanced Management
+                  </Link>
+                </Button>
+                <Button>
+                  <Plus size={16} className="mr-1" />
+                  Add New Venue
+                </Button>
+              </div>
             </div>
             
             {userVenues && userVenues.length > 0 ? (

@@ -552,7 +552,7 @@ export default function TournamentManager() {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.teams.length} Teams</span>
+                    <span>{tournament.teams?.length || 0} Teams</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -560,11 +560,11 @@ export default function TournamentManager() {
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.venues.length} Venues</span>
+                    <span>{tournament.venues?.length || 0} Venues</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>{tournament.matches.length} Matches</span>
+                    <span>{tournament.matches?.length || 0} Matches</span>
                   </div>
                 </div>
                 
@@ -576,14 +576,16 @@ export default function TournamentManager() {
                         ? 100 
                         : tournament.status === "upcoming" 
                           ? 0 
-                          : Math.round(
-                              (tournament.matches.filter(m => 
-                                m.result?.status === "completed" || 
-                                m.result?.status === "abandoned" || 
-                                m.result?.status === "no_result"
-                              ).length / 
-                              tournament.matches.length) * 100
-                            )
+                          : tournament.matches && tournament.matches.length > 0
+                            ? Math.round(
+                                (tournament.matches.filter(m => 
+                                  m.result?.status === "completed" || 
+                                  m.result?.status === "abandoned" || 
+                                  m.result?.status === "no_result"
+                                ).length / 
+                                tournament.matches.length) * 100
+                              )
+                            : 0
                     } 
                   />
                 </div>
@@ -1173,6 +1175,16 @@ export default function TournamentManager() {
           <p className="text-muted-foreground mt-1">
             Create and manage your cricket tournaments
           </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => window.location.href = "/tournaments/history"}>
+            <Trophy className="mr-2 h-4 w-4" />
+            Tournament History
+          </Button>
+          <Button onClick={() => setCreateTournamentDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Tournament
+          </Button>
         </div>
       </header>
       

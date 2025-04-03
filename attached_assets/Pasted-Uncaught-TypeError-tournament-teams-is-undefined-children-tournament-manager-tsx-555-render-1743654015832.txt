@@ -1,0 +1,39 @@
+Uncaught TypeError: tournament.teams is undefined
+    children tournament-manager.tsx:555
+    renderTournamentsSection tournament-manager.tsx:538
+    TournamentManager tournament-manager.tsx:1179
+    React 13
+tournament-manager.tsx:555:27
+Uncaught TypeError: tournament.teams is undefined
+    children tournament-manager.tsx:555
+    renderTournamentsSection tournament-manager.tsx:538
+    TournamentManager tournament-manager.tsx:1179
+    React 14
+tournament-manager.tsx:555:27
+The above error occurred in the <TournamentManager> component:
+
+TournamentManager@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/pages/tournament-manager.tsx:62:20
+Route@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ed5751f1:191:13
+ProtectedRoute@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/lib/protected-route.tsx:21:31
+Switch@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=ed5751f1:247:14
+Router
+SocketProvider@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/hooks/use-socket.tsx:25:31
+UserProvider@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/hooks/use-user.tsx:21:29
+AuthProvider@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/hooks/use-auth.tsx:26:29
+ThemeProvider@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/src/hooks/use-theme.tsx:24:30
+QueryClientProvider@https://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=ed5751f1:2804:27
+App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries. react-dom.development.js:18704:14
+Uncaught TypeError: tournament.teams is undefined
+    children tournament-manager.tsx:555
+    renderTournamentsSection tournament-manager.tsx:538
+    TournamentManager tournament-manager.tsx:1179
+    React 11
+tournament-manager.tsx:555:27
+Firefox can’t establish a connection to the server at wss://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/socket.io/?EIO=4&transport=websocket. websocket.js:119:18
+The connection to wss://b386dee7-d1ea-4809-ae41-4172216f4295-00-2r115gdop569.sisko.replit.dev:5000/socket.io/?EIO=4&transport=websocket was interrupted while the page was loading. websocket.js:119:18
+
+​
+

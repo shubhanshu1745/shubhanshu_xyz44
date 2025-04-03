@@ -4823,5 +4823,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // TOURNAMENT HISTORY ENDPOINTS
+  
+  // Get tournament history (completed tournaments)
+  app.get("/api/tournaments/history", async (req, res) => {
+    try {
+      // Query tournaments with status "completed"
+      const completedTournaments = await storage.getTournaments("", "completed", 100);
+      
+      // Return the list of completed tournaments
+      res.json(completedTournaments);
+    } catch (error) {
+      console.error("Error getting tournament history:", error);
+      res.status(500).json({ message: "Failed to get tournament history" });
+    }
+  });
+
+  // Get detailed tournament information
+  app.get("/api/tournaments/:id/details", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+      
+      // Get tournament details
+      const tournament = await storage.getTournament(tournamentId);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Get tournament matches
+      const tournamentMatches = await storage.getTournamentMatchesByTournament(tournamentId);
+      
+      // Get match details for each match
+      const matchPromises = tournamentMatches.map(async (tm: any) => {
+        const match = await storage.getTournamentMatch(tm.matchId);
+        
+        if (!match) return null;
+        
+        // Get team information
+        let team1 = null;
+        let team2 = null;
+        
+        if (match.home_team_id) {
+          team1 = await storage.getTeam(match.home_team_id);
+        }
+        
+        if (match.away_team_id) {
+          team2 = await storage.getTeam(match.away_team_id);
+        }
+        
+        // Get venue information
+        let venue = null;
+        if (match.venueId) {
+          venue = await storage.getVenue(match.venueId);
+        }
+        
+        return {
+          ...match,
+          team1,
+          team2,
+          venue,
+          result: {
+            team1Score: match.home_team_score,
+            team2Score: match.away_team_score,
+            winnerId: match.result === 'home_win' ? match.home_team_id : 
+                      match.result === 'away_win' ? match.away_team_id : null,
+            status: match.status,
+            description: match.resultDescription
+          }
+        };
+      });
+      
+      const matches = await Promise.all(matchPromises);
+      
+      // Return tournament details with matches
+      res.json({
+        ...tournament,
+        matches: matches.filter(Boolean)
+      });
+    } catch (error) {
+      console.error("Error getting tournament details:", error);
+      res.status(500).json({ message: "Failed to get tournament details" });
+    }
+  });
+
+  // Get enhanced tournament statistics
+  app.get("/api/tournaments/:id/stats", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+      
+      // Use enhanced statistics service if available
+      if (tournamentServices.enhancedStatisticsService) {
+        const stats = await tournamentServices.enhancedStatisticsService.getEnhancedTournamentStats(tournamentId);
+        return res.json(stats);
+      }
+      
+      // Fallback to regular statistics service
+      const stats = await tournamentServices.statisticsService.getTournamentSummaryStats(tournamentId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting tournament statistics:", error);
+      res.status(500).json({ message: "Failed to get tournament statistics" });
+    }
+  });
+
+  // Get enhanced tournament standings
+  app.get("/api/tournaments/:id/standings", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+      
+      // Use enhanced statistics service if available
+      if (tournamentServices.enhancedStatisticsService) {
+        const standings = await tournamentServices.enhancedStatisticsService.getEnhancedTournamentStandings(tournamentId);
+        return res.json(standings);
+      }
+      
+      // Fallback to regular standings
+      const standings = await storage.getTournamentStandings(tournamentId);
+      
+      // Get team information for each standing
+      const enhancedStandings = await Promise.all(
+        standings.map(async (standing: any) => {
+          const team = await storage.getTeam(standing.teamId);
+          return {
+            ...standing,
+            team
+          };
+        })
+      );
+      
+      res.json(enhancedStandings);
+    } catch (error) {
+      console.error("Error getting tournament standings:", error);
+      res.status(500).json({ message: "Failed to get tournament standings" });
+    }
+  });
+
+  // Get tournament top performers
+  app.get("/api/tournaments/:id/top-performers", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+      
+      // Use enhanced statistics service if available
+      if (tournamentServices.enhancedStatisticsService) {
+        const topPerformers = await tournamentServices.enhancedStatisticsService.getTournamentTopPerformers(tournamentId);
+        return res.json(topPerformers);
+      }
+      
+      // Fallback to regular statistics service
+      const battingStats = await tournamentServices.statisticsService.getTopPerformers(tournamentId, 'batting', 5);
+      const bowlingStats = await tournamentServices.statisticsService.getTopPerformers(tournamentId, 'bowling', 5);
+      
+      res.json({
+        topRunScorers: battingStats,
+        topWicketTakers: bowlingStats
+      });
+    } catch (error) {
+      console.error("Error getting top performers:", error);
+      res.status(500).json({ message: "Failed to get top performers" });
+    }
+  });
+
+  // Preload IPL 2023 tournament data (for demonstration)
+  app.post("/api/tournaments/:id/preload-ipl", isAuthenticated, async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+      
+      // Check if user is the tournament organizer
+      const tournament = await storage.getTournament(tournamentId);
+      
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      
+      // Call the preload function from enhanced fixture generator
+      if (tournamentServices.enhancedFixtureGenerator) {
+        await tournamentServices.enhancedFixtureGenerator.preloadIPL2023Tournament(tournamentId);
+        return res.json({ success: true, message: "IPL 2023 data loaded successfully" });
+      }
+      
+      res.status(400).json({ error: "Enhanced fixture generator not available" });
+    } catch (error) {
+      console.error("Error preloading IPL data:", error);
+      res.status(500).json({ message: "Failed to preload IPL data" });
+    }
+  });
+
+  // Get team head-to-head statistics in a tournament
+  app.get("/api/tournaments/:id/head-to-head/:team1Id/:team2Id", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      const team1Id = parseInt(req.params.team1Id);
+      const team2Id = parseInt(req.params.team2Id);
+      
+      if (isNaN(tournamentId) || isNaN(team1Id) || isNaN(team2Id)) {
+        return res.status(400).json({ error: "Invalid ID parameters" });
+      }
+      
+      // Use enhanced statistics service if available
+      if (tournamentServices.enhancedStatisticsService) {
+        const headToHead = await tournamentServices.enhancedStatisticsService.getTeamHeadToHead(
+          tournamentId, team1Id, team2Id
+        );
+        return res.json(headToHead);
+      }
+      
+      // Fallback if enhanced service not available
+      res.status(400).json({ error: "Enhanced statistics service not available" });
+    } catch (error) {
+      console.error("Error getting head-to-head statistics:", error);
+      res.status(500).json({ message: "Failed to get head-to-head statistics" });
+    }
+  });
+
   return httpServer;
 }

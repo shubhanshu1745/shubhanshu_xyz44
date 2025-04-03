@@ -18,10 +18,12 @@ import SuggestionsPage from "@/pages/suggestions-page";
 import SettingsPage from "@/pages/settings-page";
 import AnalyticsDashboard from "@/pages/analytics-dashboard";
 import TournamentManager from "@/pages/tournament-manager";
+import TournamentHistory from "@/pages/tournament-history";
 import CricketCoaching from "@/pages/cricket-coaching";
 import MatchHighlights from "@/pages/match-highlights";
 import StoryFilters from "@/pages/story-filters";
 import VenueDiscovery from "@/pages/venue-discovery";
+import VenueManagement from "@/pages/venue-management";
 import PollsPage from "@/pages/polls";
 import StoriesPage from "@/pages/stories";
 // AI Features
@@ -59,10 +61,12 @@ function Router() {
       <ProtectedRoute path="/advanced-scoring/:matchId" component={LiveScoringAdvanced} />
       <ProtectedRoute path="/analytics" component={AnalyticsDashboard} />
       <ProtectedRoute path="/tournaments" component={TournamentManager} />
+      <ProtectedRoute path="/tournaments/history" component={TournamentHistory} />
       <ProtectedRoute path="/coaching" component={CricketCoaching} />
       <ProtectedRoute path="/highlights" component={MatchHighlights} />
       <ProtectedRoute path="/story-filters" component={StoryFilters} />
       <ProtectedRoute path="/venues" component={VenueDiscovery} />
+      <ProtectedRoute path="/venues/manage" component={VenueManagement} />
       <ProtectedRoute path="/polls" component={PollsPage} />
       <ProtectedRoute path="/stories" component={StoriesPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
