@@ -363,7 +363,7 @@ export default function TournamentManager() {
   });
   
   const handleCreateTournament = () => {
-    if (!tournamentForm.name || !tournamentForm.startDate || !tournamentForm.endDate || tournamentForm.teams.length < 2) {
+    if (!tournamentForm.name || !tournamentForm.startDate || !tournamentForm.endDate || !tournamentForm.teams || !Array.isArray(tournamentForm.teams) || tournamentForm.teams.length < 2) {
       toast({
         title: "Incomplete Form",
         description: "Please fill in all required fields and select at least two teams.",
@@ -949,7 +949,7 @@ export default function TournamentManager() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedTournament.teams
+                      {(selectedTournament.teams && Array.isArray(selectedTournament.teams) ? selectedTournament.teams : [])
                         .sort((a, b) => {
                           // Sort by points first, then NRR
                           const aStats = 'stats' in a && a.stats ? a.stats : {};
@@ -1362,17 +1362,19 @@ export default function TournamentManager() {
                   <div key={team.id} className="flex items-center space-x-2 py-2">
                     <Checkbox 
                       id={`team-${team.id}`}
-                      checked={tournamentForm.teams.includes(team.id)}
+                      checked={tournamentForm.teams && Array.isArray(tournamentForm.teams) ? tournamentForm.teams.includes(team.id) : false}
                       onCheckedChange={(checked) => {
                         if (checked) {
                           setTournamentForm({
                             ...tournamentForm,
-                            teams: [...tournamentForm.teams, team.id]
+                            teams: Array.isArray(tournamentForm.teams) ? [...tournamentForm.teams, team.id] : [team.id]
                           });
                         } else {
                           setTournamentForm({
                             ...tournamentForm,
-                            teams: tournamentForm.teams.filter(id => id !== team.id)
+                            teams: Array.isArray(tournamentForm.teams) 
+                              ? tournamentForm.teams.filter(id => id !== team.id) 
+                              : []
                           });
                         }
                       }}
@@ -1395,17 +1397,19 @@ export default function TournamentManager() {
                   <div key={venue.id} className="flex items-center space-x-2 py-2">
                     <Checkbox 
                       id={`venue-${venue.id}`}
-                      checked={tournamentForm.venues.includes(venue.id)}
+                      checked={tournamentForm.venues && Array.isArray(tournamentForm.venues) ? tournamentForm.venues.includes(venue.id) : false}
                       onCheckedChange={(checked) => {
                         if (checked) {
                           setTournamentForm({
                             ...tournamentForm,
-                            venues: [...tournamentForm.venues, venue.id]
+                            venues: Array.isArray(tournamentForm.venues) ? [...tournamentForm.venues, venue.id] : [venue.id]
                           });
                         } else {
                           setTournamentForm({
                             ...tournamentForm,
-                            venues: tournamentForm.venues.filter(id => id !== venue.id)
+                            venues: Array.isArray(tournamentForm.venues) 
+                              ? tournamentForm.venues.filter(id => id !== venue.id) 
+                              : []
                           });
                         }
                       }}

@@ -17,7 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, PlayCircle, Upload, Smile, Sparkles, Trophy, Globe, Users, User, Filter, Download, Share2, Ghost, Brush, Wand2, Flame, Crown, Gamepad2, PlusCircle, Star, CircleEllipsis, Clock, Copy, RotateCcw, Flag, Bell, Video } from "lucide-react";
+import { Camera, PlayCircle, Upload, Smile, Sparkles, Trophy, Globe, Users, User, Filter, Download, Share2, Ghost, Brush, Wand2, Flame, Crown, Gamepad2, PlusCircle, Star, CircleEllipsis, Clock, Copy, RotateCcw, Flag, Bell, Video, X, ZapOff, Zap, RefreshCw, Circle, Trash2, SendHorizontal, Users2 } from "lucide-react";
 
 interface StoryFilter {
   id: string;
@@ -772,7 +772,7 @@ export default function StoryFilters() {
                     className="bg-blue-500 hover:bg-blue-600"
                     onClick={() => setShowShareOptions(true)}
                   >
-                    <SendHorizonal className="h-4 w-4 mr-2" />
+                    <SendHorizontal className="h-4 w-4 mr-2" />
                     Share to Story
                   </Button>
                 </>
