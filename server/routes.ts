@@ -41,6 +41,7 @@ import { Server as SocketServer } from "socket.io";
 import session from "express-session";
 import multer from "multer";
 import { saveFile, FileUploadResult } from "./services/file-upload";
+import * as AIService from "./services/ai/ai-service";
 
 // Setup multer for file uploads
 const upload = multer({ 
@@ -4538,6 +4539,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching recent matches:", error);
       res.status(500).json({ error: "Failed to fetch recent matches", message: error.message });
+    }
+  });
+
+  // AI Features API Routes
+  
+  // 1. Personalized Match Prediction Challenges
+  app.post("/api/ai/match-prediction", async (req, res) => {
+    try {
+      const { matchData } = req.body;
+      
+      if (!matchData) {
+        return res.status(400).json({ message: "Match data is required" });
+      }
+      
+      // Use simulated AI service
+      const prediction = await AIService.generateMatchPrediction(matchData);
+      
+      res.status(200).json(prediction);
+    } catch (error: any) {
+      console.error("Error generating match prediction:", error);
+      res.status(500).json({ 
+        message: "Failed to generate match prediction", 
+        error: error.message 
+      });
+    }
+  });
+  
+  // 2. Interactive Player Trading Card System 
+  app.post("/api/ai/player-card", async (req, res) => {
+    try {
+      const { playerData, style } = req.body;
+      
+      if (!playerData) {
+        return res.status(400).json({ message: "Player data is required" });
+      }
+      
+      // Use simulated AI service
+      const playerCard = await AIService.generatePlayerCard(playerData, style || "standard");
+      
+      res.status(200).json(playerCard);
+    } catch (error: any) {
+      console.error("Error generating player card:", error);
+      res.status(500).json({ 
+        message: "Failed to generate player card", 
+        error: error.message 
+      });
+    }
+  });
+  
+  // 3. Cricket Meme Generator
+  app.post("/api/ai/meme-generator", async (req, res) => {
+    try {
+      const { prompt } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ message: "Meme prompt is required" });
+      }
+      
+      // Use simulated AI service
+      const meme = await AIService.generateMeme(prompt);
+      
+      res.status(200).json(meme);
+    } catch (error: any) {
+      console.error("Error generating meme:", error);
+      res.status(500).json({ 
+        message: "Failed to generate meme", 
+        error: error.message 
+      });
+    }
+  });
+  
+  // 4. Real-Time Match Emotion Tracker
+  app.post("/api/ai/match-emotions", async (req, res) => {
+    try {
+      const { matchData } = req.body;
+      
+      if (!matchData) {
+        return res.status(400).json({ message: "Match data is required" });
+      }
+      
+      // Use simulated AI service
+      const emotions = await AIService.trackMatchEmotions(matchData);
+      
+      res.status(200).json(emotions);
+    } catch (error: any) {
+      console.error("Error tracking match emotions:", error);
+      res.status(500).json({ 
+        message: "Failed to track match emotions", 
+        error: error.message 
+      });
+    }
+  });
+  
+  // 5. Player Fun Avatar Creator
+  app.post("/api/ai/player-avatar", async (req, res) => {
+    try {
+      const { playerData, style } = req.body;
+      
+      if (!playerData) {
+        return res.status(400).json({ message: "Player data is required" });
+      }
+      
+      // Use simulated AI service
+      const avatar = await AIService.generatePlayerAvatar(playerData, style || "cartoon");
+      
+      res.status(200).json(avatar);
+    } catch (error: any) {
+      console.error("Error creating player avatar:", error);
+      res.status(500).json({ 
+        message: "Failed to create player avatar", 
+        error: error.message 
+      });
     }
   });
 

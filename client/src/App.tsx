@@ -24,6 +24,13 @@ import StoryFilters from "@/pages/story-filters";
 import VenueDiscovery from "@/pages/venue-discovery";
 import PollsPage from "@/pages/polls";
 import StoriesPage from "@/pages/stories";
+// AI Features
+import AIFeatures from "@/pages/ai-features";
+import MatchPrediction from "@/pages/ai-features/match-prediction";
+import PlayerCards from "@/pages/ai-features/player-cards";
+import MemeGenerator from "@/pages/ai-features/meme-generator";
+import EmotionTracker from "@/pages/ai-features/emotion-tracker";
+import PlayerAvatar from "@/pages/ai-features/player-avatar";
 import { ProtectedRoute } from "./lib/protected-route";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -61,6 +68,13 @@ function Router() {
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      {/* AI Features Routes */}
+      <ProtectedRoute path="/ai-features" component={AIFeatures} />
+      <ProtectedRoute path="/ai-features/match-prediction" component={MatchPrediction} />
+      <ProtectedRoute path="/ai-features/player-cards" component={PlayerCards} />
+      <ProtectedRoute path="/ai-features/meme-generator" component={MemeGenerator} />
+      <ProtectedRoute path="/ai-features/emotion-tracker" component={EmotionTracker} />
+      <ProtectedRoute path="/ai-features/player-avatar" component={PlayerAvatar} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
