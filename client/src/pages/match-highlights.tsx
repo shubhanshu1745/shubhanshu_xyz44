@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -84,11 +85,12 @@ export default function MatchHighlights() {
   const { data: matches, isLoading: matchesLoading } = useQuery({
     queryKey: ['/api/cricket/matches'],
     queryFn: async () => {
-      const response = await fetch('/api/cricket/matches');
-      if (!response.ok) {
-        throw new Error('Failed to fetch matches');
+      try {
+        return await apiRequest('GET', '/api/cricket/matches');
+      } catch (error) {
+        console.error('Error fetching matches:', error);
+        throw error;
       }
-      return response.json();
     }
   });
 
@@ -97,14 +99,15 @@ export default function MatchHighlights() {
     queryKey: ['/api/highlights/match', selectedMatch],
     queryFn: async () => {
       if (!selectedMatch) return null;
-      const response = await fetch(`/api/highlights/match/${selectedMatch}`);
-      if (response.status === 404) {
-        return null;
+      try {
+        return await apiRequest('GET', `/api/highlights/match/${selectedMatch}`);
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('404')) {
+          return null;
+        }
+        console.error('Error fetching match highlights:', error);
+        throw error;
       }
-      if (!response.ok) {
-        throw new Error('Failed to fetch match highlights');
-      }
-      return response.json();
     },
     enabled: !!selectedMatch
   });
@@ -118,11 +121,12 @@ export default function MatchHighlights() {
       if (selectedClipType) {
         url += `?clipType=${selectedClipType}`;
       }
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Failed to fetch highlight clips');
+      try {
+        return await apiRequest('GET', url);
+      } catch (error) {
+        console.error('Error fetching highlight clips:', error);
+        return [];
       }
-      return response.json();
     },
     enabled: !!selectedMatch
   });
@@ -149,22 +153,10 @@ export default function MatchHighlights() {
     setIsCreatingPackage(true);
 
     try {
-      const response = await fetch(`/api/highlights/generate/${selectedMatch}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: newPackageTitle,
-          description: newPackageDescription
-        })
+      await apiRequest('POST', `/api/highlights/generate/${selectedMatch}`, {
+        title: newPackageTitle,
+        description: newPackageDescription
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create highlight package');
-      }
-
-      const result = await response.json();
       
       toast({
         title: "Success",
@@ -175,6 +167,7 @@ export default function MatchHighlights() {
       setNewPackageDescription("");
       
     } catch (error) {
+      console.error('Error creating highlight package:', error);
       toast({
         title: "Error",
         description: "Failed to create highlight package",
@@ -196,12 +189,13 @@ export default function MatchHighlights() {
     }
 
     try {
-      // Add code to like the clip
+      await apiRequest('POST', `/api/highlights/clips/${clipId}/like`);
       toast({
         title: "Success",
         description: "Clip liked successfully",
       });
     } catch (error) {
+      console.error('Error liking clip:', error);
       toast({
         title: "Error",
         description: "Failed to like clip",

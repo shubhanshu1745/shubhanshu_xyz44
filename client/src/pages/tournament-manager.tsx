@@ -217,9 +217,7 @@ export default function TournamentManager() {
     queryKey: ['/api/teams'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('/api/teams');
-        if (!response.ok) throw new Error('Failed to fetch teams');
-        return await response.json();
+        return await apiRequest('GET', '/api/teams');
       } catch (error) {
         console.error('Error fetching teams:', error);
         return [
@@ -241,9 +239,7 @@ export default function TournamentManager() {
     queryKey: ['/api/venues'],
     queryFn: async () => {
       try {
-        const response = await apiRequest('/api/venues');
-        if (!response.ok) throw new Error('Failed to fetch venues');
-        return await response.json();
+        return await apiRequest('GET', '/api/venues');
       } catch (error) {
         console.error('Error fetching venues:', error);
         return [
@@ -464,13 +460,13 @@ export default function TournamentManager() {
   
   const getTeamName = (teamId: number | null | undefined) => {
     if (!teamId || !teams) return "Unknown Team";
-    const team = teams.find(t => t.id === teamId);
+    const team = teams.find((t: Team) => t.id === teamId);
     return team ? team.name : "Unknown Team";
   };
   
   const getVenueName = (venueId: number | null | undefined) => {
     if (!venueId || !venues) return "Unknown Venue";
-    const venue = venues.find(v => v.id === venueId);
+    const venue = venues.find((v: Venue) => v.id === venueId);
     return venue ? venue.name : "Unknown Venue";
   };
   
@@ -823,7 +819,7 @@ export default function TournamentManager() {
                 {selectedTournament.teams && selectedTournament.teams.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {selectedTournament.teams.map((teamEntry) => {
-                      const team = teams?.find(t => t.id === teamEntry.teamId);
+                      const team = teams?.find((t: Team) => t.id === teamEntry.teamId);
                       if (!team) return null;
                       
                       return (
@@ -961,7 +957,7 @@ export default function TournamentManager() {
                           return b.stats.nrr - a.stats.nrr;
                         })
                         .map((teamEntry, index) => {
-                          const team = teams?.find(t => t.id === teamEntry.teamId);
+                          const team = teams?.find((t: Team) => t.id === teamEntry.teamId);
                           if (!team) return null;
                           
                           return (
