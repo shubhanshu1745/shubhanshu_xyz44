@@ -858,15 +858,15 @@ export default function TournamentManager() {
                           <CardContent className="pb-2">
                             <div className="grid grid-cols-3 gap-2 text-center text-sm">
                               <div>
-                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.matches : 0}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats && 'matches' in teamEntry.stats ? teamEntry.stats.matches : 0}</div>
                                 <div className="text-xs text-muted-foreground">Matches</div>
                               </div>
                               <div>
-                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.won : 0}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats && 'won' in teamEntry.stats ? teamEntry.stats.won : 0}</div>
                                 <div className="text-xs text-muted-foreground">Won</div>
                               </div>
                               <div>
-                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.lost : 0}</div>
+                                <div className="font-semibold">{('stats' in teamEntry) && teamEntry.stats && 'lost' in teamEntry.stats ? teamEntry.stats.lost : 0}</div>
                                 <div className="text-xs text-muted-foreground">Lost</div>
                               </div>
                             </div>
@@ -874,18 +874,18 @@ export default function TournamentManager() {
                           <CardFooter className="border-t bg-muted/50 px-6 py-2">
                             <div className="flex items-center justify-between w-full">
                               <div>
-                                <span className="font-medium">{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.points : 0}</span>
+                                <span className="font-medium">{('stats' in teamEntry) && teamEntry.stats && 'points' in teamEntry.stats ? teamEntry.stats.points : 0}</span>
                                 <span className="text-xs text-muted-foreground ml-1">pts</span>
                               </div>
                               <div>
                                 <span className="text-xs text-muted-foreground mr-1">NRR:</span>
                                 <span className={
-                                  ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr > 0 
+                                  ('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr > 0 
                                     ? "text-green-600" 
-                                    : ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr < 0 
+                                    : ('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr < 0 
                                       ? "text-red-600" 
                                       : ""
-                                }>{('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr > 0 ? '+' : ''}{('stats' in teamEntry) && teamEntry.stats ? teamEntry.stats.nrr.toFixed(3) : '0.000'}</span>
+                                }>{('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr > 0 ? '+' : ''}{('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats ? teamEntry.stats.nrr.toFixed(3) : '0.000'}</span>
                               </div>
                             </div>
                           </CardFooter>
@@ -952,18 +952,25 @@ export default function TournamentManager() {
                       {selectedTournament.teams
                         .sort((a, b) => {
                           // Sort by points first, then NRR
-                          const aStats = 'stats' in a ? a.stats || {} : {};
-                          const bStats = 'stats' in b ? b.stats || {} : {};
+                          const aStats = 'stats' in a && a.stats ? a.stats : {};
+                          const bStats = 'stats' in b && b.stats ? b.stats : {};
                           
-                          const aPoints = aStats.points !== undefined ? aStats.points : 0;
-                          const bPoints = bStats.points !== undefined ? bStats.points : 0;
+                          // Check if points exists in stats object
+                          const aPoints = aStats && typeof aStats === 'object' && 'points' in aStats ? 
+                            Number(aStats.points) : 0;
+                          const bPoints = bStats && typeof bStats === 'object' && 'points' in bStats ? 
+                            Number(bStats.points) : 0;
                           
                           if (aPoints !== bPoints) {
                             return bPoints - aPoints;
                           }
                           
-                          const aNrr = aStats.nrr !== undefined ? aStats.nrr : 0;
-                          const bNrr = bStats.nrr !== undefined ? bStats.nrr : 0;
+                          // Check if nrr exists in stats object
+                          const aNrr = aStats && typeof aStats === 'object' && 'nrr' in aStats ? 
+                            Number(aStats.nrr) : 0;
+                          const bNrr = bStats && typeof bStats === 'object' && 'nrr' in bStats ? 
+                            Number(bStats.nrr) : 0;
+                            
                           return bNrr - aNrr;
                         })
                         .map((teamEntry, index) => {
@@ -1002,34 +1009,34 @@ export default function TournamentManager() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-center">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.matches !== undefined ? teamEntry.stats.matches : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'matches' in teamEntry.stats ? teamEntry.stats.matches : 0}
                               </TableCell>
                               <TableCell className="text-center">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.won !== undefined ? teamEntry.stats.won : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'won' in teamEntry.stats ? teamEntry.stats.won : 0}
                               </TableCell>
                               <TableCell className="text-center">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.lost !== undefined ? teamEntry.stats.lost : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'lost' in teamEntry.stats ? teamEntry.stats.lost : 0}
                               </TableCell>
                               <TableCell className="text-center">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.tied !== undefined ? teamEntry.stats.tied : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'tied' in teamEntry.stats ? teamEntry.stats.tied : 0}
                               </TableCell>
                               <TableCell className="text-center">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.noResult !== undefined ? teamEntry.stats.noResult : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'noResult' in teamEntry.stats ? teamEntry.stats.noResult : 0}
                               </TableCell>
                               <TableCell className={`text-center ${
-                                ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr > 0 
+                                ('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr > 0 
                                   ? "text-green-600" 
-                                  : ('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr < 0 
+                                  : ('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr < 0 
                                     ? "text-red-600" 
                                     : ""
                               }`}>
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined && teamEntry.stats.nrr > 0 ? '+' : ''}
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.nrr !== undefined 
+                                {('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats && teamEntry.stats.nrr > 0 ? '+' : ''}
+                                {('stats' in teamEntry) && teamEntry.stats && 'nrr' in teamEntry.stats
                                   ? Number(teamEntry.stats.nrr).toFixed(3) 
                                   : '0.000'}
                               </TableCell>
                               <TableCell className="text-center font-bold">
-                                {('stats' in teamEntry) && teamEntry.stats && teamEntry.stats.points !== undefined ? teamEntry.stats.points : 0}
+                                {('stats' in teamEntry) && teamEntry.stats && 'points' in teamEntry.stats ? teamEntry.stats.points : 0}
                               </TableCell>
                             </TableRow>
                           );
