@@ -5119,5 +5119,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Account deletion endpoint
+  app.delete("/api/user/delete-account", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { password, confirmation } = req.body;
+      const userId = req.user.id;
+      
+      if (confirmation !== "DELETE") {
+        return res.status(400).json({ message: "Invalid confirmation text" });
+      }
+      
+      // Verify password before deletion
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Delete user account and all associated data
+      await storage.deleteUser(userId);
+      
+      // Log out the user
+      req.logout((err) => {
+        if (err) {
+          console.error("Error logging out user:", err);
+        }
+      });
+      
+      res.status(200).json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // Verification request endpoint
+  app.post("/api/verification-request", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { type, fullName, teamName, careerDetails } = req.body;
+      const userId = req.user.id;
+      
+      if (!type || !fullName || !teamName || !careerDetails) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      const validTypes = ["professional", "coach", "official"];
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: "Invalid verification type" });
+      }
+      
+      // Create verification request (simulated for now)
+      const verificationRequest = {
+        id: Date.now(),
+        userId,
+        type,
+        fullName,
+        teamName,
+        careerDetails,
+        status: "pending",
+        submittedAt: new Date()
+      };
+      
+      res.status(201).json({
+        message: "Verification request submitted successfully",
+        request: verificationRequest
+      });
+    } catch (error) {
+      console.error("Error creating verification request:", error);
+      res.status(500).json({ message: "Failed to submit verification request" });
+    }
+  });
+
+  // Privacy settings update
+  app.patch("/api/user/privacy", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const { privateAccount, activityStatus, tagSettings, mentionSettings } = req.body;
+      
+      const updatedUser = await storage.updateUser(userId, {
+        privateAccount,
+        activityStatus,
+        tagSettings,
+        mentionSettings
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating privacy settings:", error);
+      res.status(500).json({ message: "Failed to update privacy settings" });
+    }
+  });
+
+  // Notification settings update
+  app.patch("/api/user/notifications", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const { 
+        postNotifications, 
+        commentNotifications, 
+        followNotifications, 
+        messageNotifications, 
+        cricketUpdates 
+      } = req.body;
+      
+      const updatedUser = await storage.updateUser(userId, {
+        postNotifications,
+        commentNotifications,
+        followNotifications,
+        messageNotifications,
+        cricketUpdates
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      res.status(500).json({ message: "Failed to update notification settings" });
+    }
+  });
+
+  // Language preference update
+  app.patch("/api/user/language", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = req.user.id;
+      const { language } = req.body;
+      
+      if (!language) {
+        return res.status(400).json({ message: "Language is required" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, { language });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating language preference:", error);
+      res.status(500).json({ message: "Failed to update language preference" });
+    }
+  });
+
+  // Change password endpoint
+  app.post("/api/change-password", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { oldPassword, newPassword } = req.body;
+      const userId = req.user.id;
+      
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ message: "Both old and new passwords are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters long" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Hash new password and update
+      const hashedPassword = await hashPassword(newPassword);
+      await storage.updateUser(userId, { password: hashedPassword });
+      
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
   return httpServer;
 }

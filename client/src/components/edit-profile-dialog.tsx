@@ -5,12 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/use-auth";
 import { User } from "@shared/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Camera, X } from "lucide-react";
+import { Loader2, Camera, X, Trophy, User as UserIcon } from "lucide-react";
 
 // Extended user type to include extra fields for the edit profile feature
 type ExtendedUserProfile = Omit<User, "password"> & {
@@ -35,6 +38,15 @@ export function EditProfileDialog({
   const [location, setLocation] = useState(profile.location || "");
   const [website, setWebsite] = useState(profile.website || "");
   const [profileImage, setProfileImage] = useState<string | null>(profile.profileImage);
+  
+  // Cricket-specific fields
+  const [isPlayer, setIsPlayer] = useState(profile.isPlayer || false);
+  const [isCoach, setIsCoach] = useState(profile.isCoach || false);
+  const [preferredRole, setPreferredRole] = useState(profile.preferredRole || "");
+  const [battingStyle, setBattingStyle] = useState(profile.battingStyle || "");
+  const [bowlingStyle, setBowlingStyle] = useState(profile.bowlingStyle || "");
+  const [favoriteTeam, setFavoriteTeam] = useState(profile.favoriteTeam || "");
+  const [favoritePlayer, setFavoritePlayer] = useState(profile.favoritePlayer || "");
   
   // For image upload
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -83,7 +95,14 @@ export function EditProfileDialog({
         bio,
         location,
         website,
-        profileImage: profileImageUrl 
+        profileImage: profileImageUrl,
+        isPlayer,
+        isCoach,
+        preferredRole: preferredRole || null,
+        battingStyle: battingStyle || null,
+        bowlingStyle: bowlingStyle || null,
+        favoriteTeam: favoriteTeam || null,
+        favoritePlayer: favoritePlayer || null
       };
       
       // Make the API call to update the user profile
@@ -194,51 +213,154 @@ export function EditProfileDialog({
             </p>
           </div>
           
-          {/* Profile Details */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input 
-                id="name" 
-                value={name} 
-                onChange={(e) => setName(e.target.value)} 
-                placeholder="Your name"
-              />
-              <p className="text-xs text-neutral-500">This will update your full name</p>
-            </div>
+          {/* Profile Details Tabs */}
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic" className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4" />
+                Basic Info
+              </TabsTrigger>
+              <TabsTrigger value="cricket" className="flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
+                Cricket Profile
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea 
-                id="bio" 
-                value={bio} 
-                onChange={(e) => setBio(e.target.value)} 
-                placeholder="Tell people about yourself"
-                className="resize-none h-24"
-              />
-            </div>
+            <TabsContent value="basic" className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input 
+                  id="name" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  placeholder="Your name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea 
+                  id="bio" 
+                  value={bio} 
+                  onChange={(e) => setBio(e.target.value)} 
+                  placeholder="Tell people about yourself"
+                  className="resize-none h-24"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input 
+                  id="location" 
+                  value={location} 
+                  onChange={(e) => setLocation(e.target.value)} 
+                  placeholder="Your location"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="website">Website</Label>
+                <Input 
+                  id="website" 
+                  value={website} 
+                  onChange={(e) => setWebsite(e.target.value)} 
+                  placeholder="Your website URL"
+                />
+              </div>
+            </TabsContent>
             
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input 
-                id="location" 
-                value={location} 
-                onChange={(e) => setLocation(e.target.value)} 
-                placeholder="Your location"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input 
-                id="website" 
-                value={website} 
-                onChange={(e) => setWebsite(e.target.value)} 
-                placeholder="Your website URL"
-              />
-              <p className="text-xs text-neutral-500">This field may not be saved in the database as it's not part of the user schema</p>
-            </div>
-          </div>
+            <TabsContent value="cricket" className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isPlayer"
+                    checked={isPlayer}
+                    onCheckedChange={setIsPlayer}
+                  />
+                  <Label htmlFor="isPlayer">I'm a Player</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isCoach"
+                    checked={isCoach}
+                    onCheckedChange={setIsCoach}
+                  />
+                  <Label htmlFor="isCoach">I'm a Coach</Label>
+                </div>
+              </div>
+              
+              {isPlayer && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="preferredRole">Preferred Role</Label>
+                    <Select value={preferredRole} onValueChange={setPreferredRole}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="batsman">Batsman</SelectItem>
+                        <SelectItem value="bowler">Bowler</SelectItem>
+                        <SelectItem value="all-rounder">All-rounder</SelectItem>
+                        <SelectItem value="wicket-keeper">Wicket-keeper</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="battingStyle">Batting Style</Label>
+                    <Select value={battingStyle} onValueChange={setBattingStyle}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select batting style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="right-handed">Right-handed</SelectItem>
+                        <SelectItem value="left-handed">Left-handed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="bowlingStyle">Bowling Style</Label>
+                    <Select value={bowlingStyle} onValueChange={setBowlingStyle}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select bowling style" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="right-arm-fast">Right-arm Fast</SelectItem>
+                        <SelectItem value="left-arm-fast">Left-arm Fast</SelectItem>
+                        <SelectItem value="right-arm-medium">Right-arm Medium</SelectItem>
+                        <SelectItem value="left-arm-medium">Left-arm Medium</SelectItem>
+                        <SelectItem value="right-arm-spin">Right-arm Spin</SelectItem>
+                        <SelectItem value="left-arm-spin">Left-arm Spin</SelectItem>
+                        <SelectItem value="right-arm-wrist-spin">Right-arm Wrist Spin</SelectItem>
+                        <SelectItem value="left-arm-wrist-spin">Left-arm Wrist Spin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="favoriteTeam">Favorite Team</Label>
+                <Input 
+                  id="favoriteTeam" 
+                  value={favoriteTeam} 
+                  onChange={(e) => setFavoriteTeam(e.target.value)} 
+                  placeholder="e.g., India, Mumbai Indians"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="favoritePlayer">Favorite Player</Label>
+                <Input 
+                  id="favoritePlayer" 
+                  value={favoritePlayer} 
+                  onChange={(e) => setFavoritePlayer(e.target.value)} 
+                  placeholder="e.g., Virat Kohli, MS Dhoni"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
           
           <div className="flex justify-end pt-4 border-t space-x-2">
             <Button 

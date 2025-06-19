@@ -31,6 +31,7 @@ import { EditProfileDialog } from "@/components/edit-profile-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { FollowListDialog } from "@/components/follow-list-dialog";
 import { CommentsDialog } from "@/components/comments-dialog";
+import { VerificationBadge } from "@/components/verification-badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 type UserProfileData = User & {
@@ -41,6 +42,8 @@ type UserProfileData = User & {
   isBlocked: boolean;
   name?: string;
   website?: string;
+  // Verification attributes
+  isVerified?: boolean;
   // Cricket-specific attributes
   isPlayer?: boolean;
   isCoach?: boolean; 
@@ -238,7 +241,12 @@ export default function ProfilePage() {
                 
                 <div className="flex-1">
                   <div className="flex flex-col md:flex-row md:items-center mb-4">
-                    <h1 className="text-xl font-semibold mb-3 md:mb-0 md:mr-4">{profile.username}</h1>
+                    <div className="flex items-center gap-2 mb-3 md:mb-0 md:mr-4">
+                      <h1 className="text-xl font-semibold">{profile.username}</h1>
+                      {profile.isVerified && <VerificationBadge type="verified" size="md" />}
+                      {profile.isPlayer && <VerificationBadge type="professional" size="md" />}
+                      {profile.isCoach && <VerificationBadge type="coach" size="md" />}
+                    </div>
                     
                     {isOwnProfile ? (
                       <div className="flex gap-2">

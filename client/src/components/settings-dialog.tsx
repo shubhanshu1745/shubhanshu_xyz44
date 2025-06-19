@@ -82,6 +82,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   // Language settings
   const [language, setLanguage] = useState("english");
   
+  // Account deletion state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  
   // Update form fields when user data is loaded
   useEffect(() => {
     if (currentUser) {
@@ -258,6 +263,41 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const handleLanguageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateLanguageMutation.mutate();
+  };
+
+  // Account deletion mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      if (deleteConfirmationText !== "DELETE") {
+        throw new Error("Please type DELETE to confirm");
+      }
+      
+      return await apiRequest("DELETE", "/api/user/delete-account", {
+        password: deletePassword,
+        confirmation: deleteConfirmationText
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted."
+      });
+      // Logout and redirect
+      logoutMutation.mutate();
+      onOpenChange(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete account. Please check your password and try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleDeleteAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    deleteAccountMutation.mutate();
   };
 
   return (
@@ -576,6 +616,82 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     </Button>
                   </div>
                 </form>
+
+                {/* Account Deletion Section */}
+                <div className="mt-8 pt-6 border-t">
+                  <h4 className="text-lg font-medium text-red-600 mb-4">Danger Zone</h4>
+                  
+                  {!showDeleteConfirmation ? (
+                    <div className="border border-red-200 rounded-md p-4 bg-red-50">
+                      <h5 className="font-medium text-red-800 mb-2">Delete Account</h5>
+                      <p className="text-sm text-red-700 mb-4">
+                        Once you delete your account, there is no going back. Please be certain.
+                      </p>
+                      <Button 
+                        variant="destructive"
+                        onClick={() => setShowDeleteConfirmation(true)}
+                      >
+                        Delete My Account
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border border-red-200 rounded-md p-4 bg-red-50">
+                      <h5 className="font-medium text-red-800 mb-2">Confirm Account Deletion</h5>
+                      <p className="text-sm text-red-700 mb-4">
+                        This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                      </p>
+                      
+                      <form onSubmit={handleDeleteAccount} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="deleteConfirmation">
+                            Please type <strong>DELETE</strong> to confirm:
+                          </Label>
+                          <Input 
+                            id="deleteConfirmation"
+                            value={deleteConfirmationText}
+                            onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                            placeholder="Type DELETE here"
+                          />
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="deletePassword">Enter your password to confirm:</Label>
+                          <Input 
+                            id="deletePassword"
+                            type="password"
+                            value={deletePassword}
+                            onChange={(e) => setDeletePassword(e.target.value)}
+                            placeholder="Your password"
+                          />
+                        </div>
+                        
+                        <div className="flex gap-2 pt-4">
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setShowDeleteConfirmation(false);
+                              setDeleteConfirmationText("");
+                              setDeletePassword("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            type="submit"
+                            variant="destructive"
+                            disabled={deleteAccountMutation.isPending || deleteConfirmationText !== "DELETE" || !deletePassword}
+                          >
+                            {deleteAccountMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : null}
+                            I understand, delete my account
+                          </Button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
               
               <TabsContent value="notifications" className="m-0">
