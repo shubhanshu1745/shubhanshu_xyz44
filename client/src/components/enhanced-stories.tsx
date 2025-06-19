@@ -114,7 +114,10 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
 
   useEffect(() => {
     if (currentStory) {
-      viewMutation.mutate();
+      // Use setTimeout to avoid state update during render
+      setTimeout(() => {
+        viewMutation.mutate();
+      }, 0);
     }
   }, [currentIndex]);
 
@@ -166,7 +169,7 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
     }
   };
 
-  const isVideo = currentStory?.mediaUrl?.includes('.mp4') || currentStory?.mediaUrl?.includes('.mov');
+  const isVideo = currentStory?.videoUrl !== null;
 
   if (!currentStory) return null;
 
@@ -239,11 +242,11 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
                 playsInline
                 onClick={handleVideoToggle}
               >
-                <source src={currentStory.mediaUrl} type="video/mp4" />
+                <source src={currentStory.videoUrl || ""} type="video/mp4" />
               </video>
             ) : (
               <img
-                src={currentStory.mediaUrl}
+                src={currentStory.imageUrl || ""}
                 alt="Story"
                 className="w-full h-full object-cover"
                 onClick={() => setIsPaused(!isPaused)}
@@ -251,9 +254,9 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
             )}
 
             {/* Text overlay */}
-            {currentStory.content && (
+            {currentStory.caption && (
               <div className="absolute inset-x-4 bottom-24 bg-black/50 rounded-lg p-3">
-                <p className="text-white text-center">{currentStory.content}</p>
+                <p className="text-white text-center">{currentStory.caption}</p>
               </div>
             )}
 
@@ -352,12 +355,7 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
 
   const { data: currentUserStories } = useQuery({
     queryKey: ["/api/stories", currentUserIndex],
-    queryFn: getQueryFn({ 
-      url: storyUsers?.[currentUserIndex] 
-        ? `/api/users/${storyUsers[currentUserIndex].username}/stories`
-        : null 
-    }),
-    enabled: viewerOpen && storyUsers && currentUserIndex < storyUsers.length
+    enabled: viewerOpen && storyUsers && currentUserIndex < storyUsers.length && storyUsers[currentUserIndex]
   });
 
   const handleStoryClick = (userIndex: number) => {
