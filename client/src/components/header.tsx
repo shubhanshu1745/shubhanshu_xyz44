@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreatePostModal } from "./create-post-modal";
+import { RealTimeNotifications } from "./real-time-notifications";
 import { ThemeToggle } from "./ui/theme-toggle";
 
 export function Header() {
@@ -113,6 +114,8 @@ export function Header() {
               <span className="sr-only">Explore</span>
             </Button>
           </Link>
+          
+          <RealTimeNotifications className="text-white hover:text-[#FFC107]" />
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

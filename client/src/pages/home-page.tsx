@@ -7,6 +7,9 @@ import { MobileNav } from "@/components/mobile-nav";
 import { Sidebar } from "@/components/sidebar";
 import { EnhancedPostCard } from "@/components/enhanced-post-card";
 import { StoriesContainer } from "@/components/enhanced-stories";
+import { RealTimeNotifications } from "@/components/real-time-notifications";
+import { LiveActivityFeed } from "@/components/live-activity-feed";
+import { SocialDiscovery } from "@/components/social-discovery";
 import { MatchHighlights } from "@/components/match-highlights";
 import { MatchHistory } from "@/components/match-history";
 import { CommentsDialog } from "@/components/comments-dialog";
@@ -84,9 +87,14 @@ export default function HomePage() {
       <Header />
       
       <main className="flex-grow pt-16 pb-16 md:pb-0">
-        <div className="container mx-auto max-w-5xl px-0 md:px-4 flex flex-col md:flex-row">
-          {/* Feed Section */}
-          <div className="w-full md:w-2/3 bg-white md:bg-transparent">
+        <div className="container mx-auto max-w-7xl px-0 md:px-4 flex flex-col lg:flex-row gap-6">
+          {/* Left Sidebar - Social Discovery */}
+          <div className="hidden lg:block w-80">
+            <SocialDiscovery className="sticky top-20" />
+          </div>
+          
+          {/* Main Feed Section */}
+          <div className="flex-1 max-w-2xl mx-auto lg:mx-0 bg-white md:bg-transparent">
             {/* Match Highlights - Coming Soon */}
             <div className="px-4 py-4 md:mt-4">
               <div className="bg-[#1F3B4D] rounded-lg p-6 text-white text-center">
@@ -178,9 +186,9 @@ export default function HomePage() {
             </div>
           </div>
           
-          {/* Sidebar */}
-          <div className="hidden md:block md:w-1/3">
-            <Sidebar />
+          {/* Right Sidebar - Live Activity */}
+          <div className="hidden lg:block w-80">
+            <LiveActivityFeed className="sticky top-20" />
           </div>
         </div>
       </main>

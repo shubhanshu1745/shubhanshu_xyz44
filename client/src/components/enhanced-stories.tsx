@@ -113,13 +113,10 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
   });
 
   useEffect(() => {
-    if (currentStory) {
-      // Use setTimeout to avoid state update during render
-      setTimeout(() => {
-        viewMutation.mutate();
-      }, 0);
+    if (currentStory?.id) {
+      viewMutation.mutate();
     }
-  }, [currentIndex]);
+  }, [currentStory?.id]);
 
   useEffect(() => {
     if (!isPaused) {
@@ -353,7 +350,7 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
     queryFn: getQueryFn(),
   });
 
-  const { data: currentUserStories } = useQuery({
+  const { data: currentUserStories } = useQuery<any[]>({
     queryKey: ["/api/stories", currentUserIndex],
     enabled: viewerOpen && storyUsers && currentUserIndex < storyUsers.length && storyUsers[currentUserIndex]
   });
@@ -367,7 +364,7 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
   const handleNext = useCallback(() => {
     if (!currentUserStories) return;
     
-    if (currentStoryIndex < currentUserStories.length - 1) {
+    if (Array.isArray(currentUserStories) && currentStoryIndex < currentUserStories.length - 1) {
       setCurrentStoryIndex(prev => prev + 1);
     } else if (storyUsers && currentUserIndex < storyUsers.length - 1) {
       setCurrentUserIndex(prev => prev + 1);
@@ -426,7 +423,7 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
       {/* Story Viewer */}
       {viewerOpen && currentUserStories && (
         <StoryViewer
-          stories={currentUserStories}
+          stories={Array.isArray(currentUserStories) ? currentUserStories : []}
           currentIndex={currentStoryIndex}
           onClose={() => setViewerOpen(false)}
           onNext={handleNext}
