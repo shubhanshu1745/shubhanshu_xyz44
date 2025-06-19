@@ -5,8 +5,8 @@ import { Post, User, Story } from "@shared/schema";
 import { Header } from "@/components/header";
 import { MobileNav } from "@/components/mobile-nav";
 import { Sidebar } from "@/components/sidebar";
-import { PostCard } from "@/components/post-card";
-import { StoryCircle } from "@/components/story-circle";
+import { EnhancedPostCard } from "@/components/enhanced-post-card";
+import { StoriesContainer } from "@/components/enhanced-stories";
 import { MatchHighlights } from "@/components/match-highlights";
 import { MatchHistory } from "@/components/match-history";
 import { CommentsDialog } from "@/components/comments-dialog";
@@ -104,40 +104,8 @@ export default function HomePage() {
             </div>
 
             {/* Stories */}
-            <div className="px-4 py-4 bg-white border-b border-neutral-200 md:rounded-lg md:border overflow-x-auto custom-scrollbar">
-              <div className="flex space-x-4">
-                {isLoading || isStoriesLoading ? (
-                  // Loading skeletons for stories
-                  Array(6).fill(0).map((_, index) => (
-                    <div key={index} className="flex flex-col items-center">
-                      <div className="mb-1 bg-neutral-200 w-16 h-16 rounded-full animate-pulse"></div>
-                      <div className="w-12 h-3 bg-neutral-200 rounded animate-pulse"></div>
-                    </div>
-                  ))
-                ) : (
-                  <>
-                    {/* Create Story */}
-                    <div 
-                      className="flex flex-col items-center cursor-pointer"
-                      onClick={() => setCreateStoryOpen(true)}
-                    >
-                      <div className="mb-1 bg-gradient-to-tr from-[#FF5722] to-[#FF9800] p-[2px] w-16 h-16 rounded-full">
-                        <div className="bg-white p-0.5 rounded-full w-full h-full flex items-center justify-center">
-                          <Plus className="h-8 w-8 text-[#FF5722]" />
-                        </div>
-                      </div>
-                      <span className="text-xs">Add Story</span>
-                    </div>
-                    
-                    {/* Story Circles */}
-                    {displayedStoryUsers.map((user, index) => (
-                      <div key={user.id} onClick={() => handleStoryClick(index)}>
-                        <StoryCircle user={user} hasStory={true} />
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
+            <div className="bg-white border-b border-gray-200">
+              <StoriesContainer />
             </div>
             
             {/* Create Post Button */}
@@ -197,13 +165,15 @@ export default function HomePage() {
                   </Button>
                 </div>
               ) : (
-                posts?.map((post) => (
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                    onCommentClick={() => handleCommentClick(post)}
-                  />
-                ))
+                <div className="space-y-0">
+                  {posts?.map((post) => (
+                    <EnhancedPostCard 
+                      key={post.id} 
+                      post={post} 
+                      onCommentClick={() => handleCommentClick(post)}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           </div>
