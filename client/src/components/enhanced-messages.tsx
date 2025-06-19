@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Phone, Video, Info, Image, Smile, Mic, Heart, Camera, Search, MoreHorizontal, ArrowLeft, Check, CheckCheck, Star, Archive, Delete, Block, Mute } from "lucide-react";
+import { Send, Phone, Video, Info, Image, Smile, Mic, Heart, Camera, Search, MoreHorizontal, ArrowLeft, Check, CheckCheck, Star, Archive, Trash2, Shield, VolumeX } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -501,7 +501,7 @@ function ChatWindow({ conversation, onBack }: ChatWindowProps) {
                 View profile
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Mute className="h-4 w-4 mr-2" />
+                <VolumeX className="h-4 w-4 mr-2" />
                 Mute conversation
               </DropdownMenuItem>
               <DropdownMenuItem>
@@ -510,11 +510,11 @@ function ChatWindow({ conversation, onBack }: ChatWindowProps) {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600">
-                <Block className="h-4 w-4 mr-2" />
+                <Shield className="h-4 w-4 mr-2" />
                 Block user
               </DropdownMenuItem>
               <DropdownMenuItem className="text-red-600">
-                <Delete className="h-4 w-4 mr-2" />
+                <Trash2 className="h-4 w-4 mr-2" />
                 Delete conversation
               </DropdownMenuItem>
             </DropdownMenuContent>

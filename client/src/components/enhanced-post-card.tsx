@@ -52,8 +52,8 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
   const tapTimeoutRef = useRef<NodeJS.Timeout>();
 
   // Fetch recent comments for preview
-  const { data: recentComments } = useQuery({
-    queryKey: ["/api/posts", post.id, "comments", "preview"],
+  const { data: recentComments = [] } = useQuery({
+    queryKey: [`/api/posts/${post.id}/comments`],
     queryFn: getQueryFn(),
     enabled: showComments && post.commentCount > 0
   });
@@ -216,8 +216,8 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
             </Avatar>
             <div className="flex items-center space-x-1">
               <span className="text-sm font-semibold text-gray-900">{post.user.username}</span>
-              {post.user.isVerified && <VerificationBadge type="verified" size="sm" />}
-              {post.user.isPlayer && <VerificationBadge type="professional" size="sm" />}
+              {(post.user as any).isVerified && <VerificationBadge type="verified" size="sm" />}
+              {(post.user as any).isPlayer && <VerificationBadge type="professional" size="sm" />}
             </div>
           </Link>
           <span className="text-gray-500">•</span>

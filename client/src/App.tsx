@@ -8,6 +8,7 @@ import MatchesPage from "@/pages/matches-page";
 import MatchDetailsPage from "@/pages/match-details-page";
 import TeamsPage from "@/pages/teams-page";
 import ChatPage from "@/pages/chat-page";
+import MessagesPage from "@/pages/messages-page";
 import ReelsPage from "@/pages/reels-page";
 import PlayerStatsPage from "@/pages/player-stats-page";
 import StatsPage from "@/pages/stats-page-simplified";
@@ -71,6 +72,7 @@ function Router() {
       <ProtectedRoute path="/stories" component={StoriesPage} />
       <ProtectedRoute path="/chat" component={ChatPage} />
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
+      <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
       {/* AI Features Routes */}
       <ProtectedRoute path="/ai-features" component={AIFeatures} />
