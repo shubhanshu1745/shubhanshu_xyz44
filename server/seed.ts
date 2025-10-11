@@ -14,6 +14,13 @@ import {
 export async function seedDatabase() {
   console.log("🌱 Seeding database with sample data...");
 
+  // Check if database is already seeded (avoid duplicates)
+  const existingUser = await storage.getUserByUsername("crickfan");
+  if (existingUser) {
+    console.log("✅ Database already seeded, skipping...");
+    return;
+  }
+
   // Create demo users
   const demoUser1 = await storage.createUser({
     username: "crickfan",

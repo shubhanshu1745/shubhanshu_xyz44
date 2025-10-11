@@ -183,6 +183,7 @@ export interface IStorage {
   createTeam(team: InsertTeam): Promise<Team>;
   getTeamById(id: number): Promise<Team | undefined>;
   getTeamByName(name: string): Promise<Team | undefined>;
+  getTeamByNameOrCreate(team: Partial<InsertTeam>): Promise<Team>;
   getUserTeams(userId: number): Promise<Team[]>;
   updateTeam(id: number, teamData: Partial<Team>): Promise<Team | undefined>;
   deleteTeam(id: number): Promise<boolean>;
@@ -2863,4 +2864,766 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Hybrid DatabaseStorage - migrates core entities to PostgreSQL while delegating unported methods to MemStorage
+import { db } from "./db";
+import { eq, and, or, desc, asc, sql as drizzleSql, like, inArray } from "drizzle-orm";
+
+export class DatabaseStorage implements IStorage {
+  private memStorage: MemStorage; // Fallback for unported methods
+  
+  constructor() {
+    this.memStorage = new MemStorage();
+  }
+  
+  // Delegate sessionStore to MemStorage (will be migrated in Task 2.7)
+  get sessionStore() {
+    return this.memStorage.sessionStore;
+  }
+  
+  // ===================
+  // USER METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        fullName: insertUser.fullName ?? null,
+        bio: insertUser.bio ?? null,
+        location: insertUser.location ?? null,
+        profileImage: insertUser.profileImage ?? null,
+        isPlayer: insertUser.isPlayer ?? false,
+        emailVerified: false,
+        createdAt: new Date()
+      })
+      .returning();
+    return user;
+  }
+  
+  async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(userData)
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser || undefined;
+  }
+  
+  async searchUsers(query: string, limit: number = 20): Promise<User[]> {
+    const searchPattern = `%${query}%`;
+    return await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          like(users.username, searchPattern),
+          like(users.fullName, searchPattern),
+          like(users.email, searchPattern)
+        )
+      )
+      .limit(limit);
+  }
+  
+  // ===================
+  // TOKEN METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async createToken(insertToken: InsertToken): Promise<Token> {
+    const [token] = await db
+      .insert(tokens)
+      .values({
+        ...insertToken,
+        createdAt: new Date()
+      })
+      .returning();
+    return token;
+  }
+  
+  async getTokenByToken(tokenString: string): Promise<Token | undefined> {
+    const [token] = await db.select().from(tokens).where(eq(tokens.token, tokenString));
+    return token || undefined;
+  }
+  
+  async deleteToken(id: number): Promise<boolean> {
+    const result = await db.delete(tokens).where(eq(tokens.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  // ===================
+  // POST METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async createPost(insertPost: InsertPost): Promise<Post> {
+    const [post] = await db
+      .insert(posts)
+      .values({
+        ...insertPost,
+        createdAt: new Date()
+      })
+      .returning();
+    return post;
+  }
+  
+  async getPost(id: number): Promise<Post | undefined> {
+    const [post] = await db.select().from(posts).where(eq(posts.id, id));
+    return post || undefined;
+  }
+  
+  async getUserPosts(userId: number): Promise<Post[]> {
+    return await db
+      .select()
+      .from(posts)
+      .where(eq(posts.userId, userId))
+      .orderBy(desc(posts.createdAt));
+  }
+  
+  async getFeed(userId: number, limit: number = 20): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    // Get following IDs
+    const followingRows = await db
+      .select({ followingId: follows.followingId })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    
+    const followingIds = followingRows.map(row => row.followingId);
+    followingIds.push(userId); // Include user's own posts
+    
+    // Get posts from following users
+    const feedPosts = await db
+      .select()
+      .from(posts)
+      .where(inArray(posts.userId, followingIds))
+      .orderBy(desc(posts.createdAt))
+      .limit(limit);
+    
+    // Enrich with user data and counts
+    return await Promise.all(feedPosts.map(async post => {
+      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+      
+      return {
+        ...post,
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        commentCount: Number(commentsCount[0]?.count || 0),
+        hasLiked: !!userLike
+      };
+    }));
+  }
+  
+  async deletePost(id: number): Promise<boolean> {
+    const result = await db.delete(posts).where(eq(posts.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  async getReels(userId: number, limit: number = 20): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    // Get following IDs
+    const followingRows = await db
+      .select({ followingId: follows.followingId })
+      .from(follows)
+      .where(eq(follows.followerId, userId));
+    
+    const followingIds = followingRows.map(row => row.followingId);
+    followingIds.push(userId);
+    
+    // Get reels (posts with videoUrl and category='reel')
+    const reelPosts = await db
+      .select()
+      .from(posts)
+      .where(
+        and(
+          inArray(posts.userId, followingIds),
+          eq(posts.category, 'reel')
+        )
+      )
+      .orderBy(desc(posts.createdAt))
+      .limit(limit);
+    
+    // Enrich with user data and counts
+    return await Promise.all(reelPosts.map(async post => {
+      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+      
+      return {
+        ...post,
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        commentCount: Number(commentsCount[0]?.count || 0),
+        hasLiked: !!userLike
+      };
+    }));
+  }
+  
+  // ===================
+  // LIKE METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async likePost(insertLike: InsertLike): Promise<Like> {
+    // Check if like already exists
+    const existingLike = await this.getLike(insertLike.userId, insertLike.postId);
+    if (existingLike) return existingLike;
+    
+    const [like] = await db
+      .insert(likes)
+      .values({
+        ...insertLike,
+        createdAt: new Date()
+      })
+      .returning();
+    return like;
+  }
+  
+  async unlikePost(userId: number, postId: number): Promise<boolean> {
+    const result = await db
+      .delete(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  async getLike(userId: number, postId: number): Promise<Like | undefined> {
+    const [like] = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+    return like || undefined;
+  }
+  
+  async getLikesForPost(postId: number): Promise<Like[]> {
+    return await db.select().from(likes).where(eq(likes.postId, postId));
+  }
+  
+  // ===================
+  // COMMENT METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    const [comment] = await db
+      .insert(comments)
+      .values({
+        ...insertComment,
+        createdAt: new Date()
+      })
+      .returning();
+    return comment;
+  }
+  
+  async getCommentsForPost(postId: number): Promise<(Comment & { user: User })[]> {
+    const postComments = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.postId, postId))
+      .orderBy(asc(comments.createdAt));
+    
+    return await Promise.all(postComments.map(async comment => {
+      const [user] = await db.select().from(users).where(eq(users.id, comment.userId));
+      return { ...comment, user: user! };
+    }));
+  }
+  
+  async deleteComment(id: number): Promise<boolean> {
+    const result = await db.delete(comments).where(eq(comments.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  // ===================
+  // UNPORTED METHODS - Delegate to MemStorage
+  // ===================
+  
+  // Content categorization and discovery methods
+  async createTag(tag: InsertTag): Promise<Tag> {
+    return this.memStorage.createTag(tag);
+  }
+  async getTags(type?: string): Promise<Tag[]> {
+    return this.memStorage.getTags(type);
+  }
+  async getTagById(id: number): Promise<Tag | undefined> {
+    return this.memStorage.getTagById(id);
+  }
+  async updateTagPopularity(id: number, increment: number): Promise<Tag | undefined> {
+    return this.memStorage.updateTagPopularity(id, increment);
+  }
+  async addPostTag(postTag: InsertPostTag): Promise<PostTag> {
+    return this.memStorage.addPostTag(postTag);
+  }
+  async getPostTags(postId: number): Promise<Tag[]> {
+    return this.memStorage.getPostTags(postId);
+  }
+  async removePostTag(postId: number, tagId: number): Promise<boolean> {
+    return this.memStorage.removePostTag(postId, tagId);
+  }
+  async createContentCategory(category: InsertContentCategory): Promise<ContentCategory> {
+    return this.memStorage.createContentCategory(category);
+  }
+  async getContentCategories(): Promise<ContentCategory[]> {
+    return this.memStorage.getContentCategories();
+  }
+  async updateUserInterest(interest: InsertUserInterest): Promise<UserInterest> {
+    return this.memStorage.updateUserInterest(interest);
+  }
+  async getUserInterests(userId: number): Promise<(UserInterest & { tag: Tag })[]> {
+    return this.memStorage.getUserInterests(userId);
+  }
+  async recordContentEngagement(engagement: InsertContentEngagement): Promise<ContentEngagement> {
+    return this.memStorage.recordContentEngagement(engagement);
+  }
+  async getContentEngagementForUser(userId: number): Promise<ContentEngagement[]> {
+    return this.memStorage.getContentEngagementForUser(userId);
+  }
+  async getPersonalizedFeed(userId: number, limit?: number): Promise<(Post & { 
+    user: User, 
+    likeCount: number, 
+    commentCount: number, 
+    hasLiked: boolean,
+    tags: Tag[],
+    relevanceScore: number
+  })[]> {
+    return this.memStorage.getPersonalizedFeed(userId, limit);
+  }
+  
+  // Follow methods (Task 2.2)
+  async followUser(follow: InsertFollow): Promise<Follow> {
+    return this.memStorage.followUser(follow);
+  }
+  async unfollowUser(followerId: number, followingId: number): Promise<boolean> {
+    return this.memStorage.unfollowUser(followerId, followingId);
+  }
+  async getFollowers(userId: number): Promise<User[]> {
+    return this.memStorage.getFollowers(userId);
+  }
+  async getFollowing(userId: number): Promise<User[]> {
+    return this.memStorage.getFollowing(userId);
+  }
+  async isFollowing(followerId: number, followingId: number): Promise<boolean> {
+    return this.memStorage.isFollowing(followerId, followingId);
+  }
+  async getSuggestedUsers(userId: number, limit?: number): Promise<User[]> {
+    return this.memStorage.getSuggestedUsers(userId, limit);
+  }
+  
+  // Block methods (Task 2.2)
+  async blockUser(block: InsertBlockedUser): Promise<BlockedUser> {
+    return this.memStorage.blockUser(block);
+  }
+  async unblockUser(blockerId: number, blockedId: number): Promise<boolean> {
+    return this.memStorage.unblockUser(blockerId, blockedId);
+  }
+  async isBlocked(blockerId: number, blockedId: number): Promise<boolean> {
+    return this.memStorage.isBlocked(blockerId, blockedId);
+  }
+  async getBlockedUsers(userId: number): Promise<User[]> {
+    return this.memStorage.getBlockedUsers(userId);
+  }
+  
+  // Chat methods (Task 2.3)
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    return this.memStorage.createConversation(conversation);
+  }
+  async getConversation(user1Id: number, user2Id: number): Promise<Conversation | undefined> {
+    return this.memStorage.getConversation(user1Id, user2Id);
+  }
+  async getConversationById(id: number): Promise<Conversation | undefined> {
+    return this.memStorage.getConversationById(id);
+  }
+  async getUserConversations(userId: number): Promise<(Conversation & { 
+    otherUser: Omit<User, 'password'>, 
+    lastMessage: Message | null,
+    unreadCount: number 
+  })[]> {
+    return this.memStorage.getUserConversations(userId);
+  }
+  
+  // Message methods (Task 2.3)
+  async createMessage(message: InsertMessage): Promise<Message> {
+    return this.memStorage.createMessage(message);
+  }
+  async getConversationMessages(conversationId: number): Promise<(Message & { sender: Omit<User, 'password'> })[]> {
+    return this.memStorage.getConversationMessages(conversationId);
+  }
+  async markMessagesAsRead(conversationId: number, userId: number): Promise<boolean> {
+    return this.memStorage.markMessagesAsRead(conversationId, userId);
+  }
+  async deleteMessage(id: number, userId: number): Promise<boolean> {
+    return this.memStorage.deleteMessage(id, userId);
+  }
+  
+  // Story methods (Task 2.4)
+  async createStory(story: InsertStory): Promise<Story> {
+    return this.memStorage.createStory(story);
+  }
+  async getUserStories(userId: number): Promise<Story[]> {
+    return this.memStorage.getUserStories(userId);
+  }
+  async getStoriesForFeed(userId: number): Promise<(Story & { user: User })[]> {
+    return this.memStorage.getStoriesForFeed(userId);
+  }
+  async deleteExpiredStories(): Promise<void> {
+    return this.memStorage.deleteExpiredStories();
+  }
+  async getStoryById(storyId: number): Promise<Story | null> {
+    return this.memStorage.getStoryById(storyId);
+  }
+  
+  // Story Views (Task 2.4)
+  async createStoryView(view: InsertStoryView): Promise<StoryView> {
+    return this.memStorage.createStoryView(view);
+  }
+  async incrementStoryViewCount(storyId: number): Promise<Story | null> {
+    return this.memStorage.incrementStoryViewCount(storyId);
+  }
+  
+  // Story Reactions (Task 2.4)
+  async createStoryReaction(reaction: InsertStoryReaction): Promise<StoryReaction> {
+    return this.memStorage.createStoryReaction(reaction);
+  }
+  async getStoryReaction(storyId: number, userId: number): Promise<StoryReaction | null> {
+    return this.memStorage.getStoryReaction(storyId, userId);
+  }
+  async updateStoryReaction(reactionId: number, data: Partial<InsertStoryReaction>): Promise<StoryReaction | null> {
+    return this.memStorage.updateStoryReaction(reactionId, data);
+  }
+  async deleteStoryReaction(reactionId: number): Promise<void> {
+    return this.memStorage.deleteStoryReaction(reactionId);
+  }
+  async getStoryReactions(storyId: number): Promise<StoryReaction[]> {
+    return this.memStorage.getStoryReactions(storyId);
+  }
+  
+  // Story Comments (Task 2.4)
+  async createStoryComment(comment: InsertStoryComment): Promise<StoryComment> {
+    return this.memStorage.createStoryComment(comment);
+  }
+  async getStoryComments(storyId: number): Promise<StoryComment[]> {
+    return this.memStorage.getStoryComments(storyId);
+  }
+  async getStoryCommentById(commentId: number): Promise<StoryComment | null> {
+    return this.memStorage.getStoryCommentById(commentId);
+  }
+  async deleteStoryComment(commentId: number): Promise<void> {
+    return this.memStorage.deleteStoryComment(commentId);
+  }
+  
+  // Player Stats methods (Task 2.5)
+  async createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats> {
+    return this.memStorage.createPlayerStats(stats);
+  }
+  async getPlayerStats(userId: number): Promise<PlayerStats | undefined> {
+    return this.memStorage.getPlayerStats(userId);
+  }
+  async updatePlayerStats(userId: number, stats: Partial<PlayerStats>): Promise<PlayerStats | undefined> {
+    return this.memStorage.updatePlayerStats(userId, stats);
+  }
+  
+  // Player Match methods (Task 2.5)
+  async createPlayerMatch(match: InsertPlayerMatch): Promise<PlayerMatch> {
+    return this.memStorage.createPlayerMatch(match);
+  }
+  async getPlayerMatch(id: number): Promise<PlayerMatch | undefined> {
+    return this.memStorage.getPlayerMatch(id);
+  }
+  async getUserMatches(userId: number): Promise<PlayerMatch[] | Match[]> {
+    return this.memStorage.getUserMatches(userId);
+  }
+  
+  // Player Match Performance methods (Task 2.5)
+  async createPlayerMatchPerformance(performance: InsertPlayerMatchPerformance): Promise<PlayerMatchPerformance> {
+    return this.memStorage.createPlayerMatchPerformance(performance);
+  }
+  async getPlayerMatchPerformance(userId: number, matchId: number): Promise<PlayerMatchPerformance | undefined> {
+    return this.memStorage.getPlayerMatchPerformance(userId, matchId);
+  }
+  async getMatchPerformances(matchId: number): Promise<(PlayerMatchPerformance & { user: User })[]> {
+    return this.memStorage.getMatchPerformances(matchId);
+  }
+  
+  // Match management methods (Task 2.5)
+  async createMatch(match: InsertMatch): Promise<Match> {
+    return this.memStorage.createMatch(match);
+  }
+  async getMatchById(id: number): Promise<Match | undefined> {
+    return this.memStorage.getMatchById(id);
+  }
+  async updateMatch(id: number, matchData: Partial<Match>): Promise<Match | undefined> {
+    return this.memStorage.updateMatch(id, matchData);
+  }
+  async deleteMatch(id: number): Promise<boolean> {
+    return this.memStorage.deleteMatch(id);
+  }
+  
+  // Team management methods (Task 2.5)
+  async createTeam(team: InsertTeam): Promise<Team> {
+    return this.memStorage.createTeam(team);
+  }
+  async getTeamById(id: number): Promise<Team | undefined> {
+    return this.memStorage.getTeamById(id);
+  }
+  async getTeamByName(name: string): Promise<Team | undefined> {
+    return this.memStorage.getTeamByName(name);
+  }
+  async getTeamByNameOrCreate(team: Partial<InsertTeam>): Promise<Team> {
+    return this.memStorage.getTeamByNameOrCreate(team);
+  }
+  async getUserTeams(userId: number): Promise<Team[]> {
+    return this.memStorage.getUserTeams(userId);
+  }
+  async updateTeam(id: number, teamData: Partial<Team>): Promise<Team | undefined> {
+    return this.memStorage.updateTeam(id, teamData);
+  }
+  async deleteTeam(id: number): Promise<boolean> {
+    return this.memStorage.deleteTeam(id);
+  }
+  
+  // Match player management methods (Task 2.5)
+  async addMatchPlayer(player: InsertMatchPlayer): Promise<MatchPlayer> {
+    return this.memStorage.addMatchPlayer(player);
+  }
+  async getMatchPlayersByTeam(matchId: number, teamId: number): Promise<MatchPlayer[]> {
+    return this.memStorage.getMatchPlayersByTeam(matchId, teamId);
+  }
+  async updateMatchPlayer(id: number, playerData: Partial<MatchPlayer>): Promise<MatchPlayer | undefined> {
+    return this.memStorage.updateMatchPlayer(id, playerData);
+  }
+  async removeMatchPlayer(id: number): Promise<boolean> {
+    return this.memStorage.removeMatchPlayer(id);
+  }
+  
+  // Ball-by-ball data methods (Task 2.5)
+  async recordBallByBall(ball: InsertBallByBall): Promise<BallByBall> {
+    return this.memStorage.recordBallByBall(ball);
+  }
+  async getMatchBalls(matchId: number): Promise<BallByBall[]> {
+    return this.memStorage.getMatchBalls(matchId);
+  }
+  
+  // Venue management methods (Task 2.6)
+  async createVenue(venue: InsertVenue): Promise<Venue> {
+    return this.memStorage.createVenue(venue);
+  }
+  async getVenue(id: number): Promise<Venue | undefined> {
+    return this.memStorage.getVenue(id);
+  }
+  async getVenueByName(name: string): Promise<Venue | undefined> {
+    return this.memStorage.getVenueByName(name);
+  }
+  async getVenues(query?: string, limit?: number): Promise<Venue[]> {
+    return this.memStorage.getVenues(query, limit);
+  }
+  async getNearbyVenues(lat: number, lng: number, radiusKm: number): Promise<Venue[]> {
+    return this.memStorage.getNearbyVenues(lat, lng, radiusKm);
+  }
+  async updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | undefined> {
+    return this.memStorage.updateVenue(id, venueData);
+  }
+  async deleteVenue(id: number): Promise<boolean> {
+    return this.memStorage.deleteVenue(id);
+  }
+  async getUserVenues(userId: number): Promise<Venue[]> {
+    return this.memStorage.getUserVenues(userId);
+  }
+  
+  // Venue availability methods (Task 2.6)
+  async createVenueAvailability(availability: InsertVenueAvailability): Promise<VenueAvailability> {
+    return this.memStorage.createVenueAvailability(availability);
+  }
+  async getVenueAvailabilities(venueId: number): Promise<VenueAvailability[]> {
+    return this.memStorage.getVenueAvailabilities(venueId);
+  }
+  async updateVenueAvailability(id: number, data: Partial<VenueAvailability>): Promise<VenueAvailability | undefined> {
+    return this.memStorage.updateVenueAvailability(id, data);
+  }
+  async deleteVenueAvailability(id: number): Promise<boolean> {
+    return this.memStorage.deleteVenueAvailability(id);
+  }
+  
+  // Venue booking methods (Task 2.6)
+  async createVenueBooking(booking: InsertVenueBooking): Promise<VenueBooking> {
+    return this.memStorage.createVenueBooking(booking);
+  }
+  async getVenueBooking(id: number): Promise<VenueBooking | undefined> {
+    return this.memStorage.getVenueBooking(id);
+  }
+  async getUserBookings(userId: number): Promise<(VenueBooking & { venue: Venue })[]> {
+    return this.memStorage.getUserBookings(userId);
+  }
+  async getVenueBookings(venueId: number, startDate?: Date, endDate?: Date): Promise<(VenueBooking & { user: User })[]> {
+    return this.memStorage.getVenueBookings(venueId, startDate, endDate);
+  }
+  async updateVenueBooking(id: number, data: Partial<VenueBooking>): Promise<VenueBooking | undefined> {
+    return this.memStorage.updateVenueBooking(id, data);
+  }
+  async cancelVenueBooking(id: number): Promise<boolean> {
+    return this.memStorage.cancelVenueBooking(id);
+  }
+  async checkVenueAvailability(venueId: number, date: Date, startTime: string, endTime: string): Promise<boolean> {
+    return this.memStorage.checkVenueAvailability(venueId, date, startTime, endTime);
+  }
+  
+  // Tournament methods (Task 2.6)
+  async createTournament(tournament: InsertTournament): Promise<Tournament> {
+    return this.memStorage.createTournament(tournament);
+  }
+  async getTournament(id: number): Promise<Tournament | undefined> {
+    return this.memStorage.getTournament(id);
+  }
+  async getTournaments(query?: string, status?: string, limit?: number): Promise<Tournament[]> {
+    return this.memStorage.getTournaments(query, status, limit);
+  }
+  async getUserTournaments(userId: number): Promise<Tournament[]> {
+    return this.memStorage.getUserTournaments(userId);
+  }
+  async updateTournament(id: number, data: Partial<Tournament>): Promise<Tournament | undefined> {
+    return this.memStorage.updateTournament(id, data);
+  }
+  async deleteTournament(id: number): Promise<boolean> {
+    return this.memStorage.deleteTournament(id);
+  }
+  
+  // Tournament team methods (Task 2.6)
+  async addTeamToTournament(teamData: InsertTournamentTeam): Promise<TournamentTeam> {
+    return this.memStorage.addTeamToTournament(teamData);
+  }
+  async getTournamentTeams(tournamentId: number): Promise<(TournamentTeam & { team: Team })[]> {
+    return this.memStorage.getTournamentTeams(tournamentId);
+  }
+  async updateTournamentTeam(tournamentId: number, teamId: number, data: Partial<TournamentTeam>): Promise<TournamentTeam | undefined> {
+    return this.memStorage.updateTournamentTeam(tournamentId, teamId, data);
+  }
+  async removeTeamFromTournament(tournamentId: number, teamId: number): Promise<boolean> {
+    return this.memStorage.removeTeamFromTournament(tournamentId, teamId);
+  }
+  
+  // Tournament match methods (Task 2.6)
+  async createTournamentMatch(matchData: InsertTournamentMatch): Promise<TournamentMatch> {
+    return this.memStorage.createTournamentMatch(matchData);
+  }
+  async getTournamentMatch(id: number): Promise<TournamentMatch | undefined> {
+    return this.memStorage.getTournamentMatch(id);
+  }
+  async getTournamentMatches(tournamentId: number): Promise<(TournamentMatch & { match: Match, venue?: Venue })[]> {
+    return this.memStorage.getTournamentMatches(tournamentId);
+  }
+  async updateTournamentMatch(id: number, data: Partial<TournamentMatch>): Promise<TournamentMatch | undefined> {
+    return this.memStorage.updateTournamentMatch(id, data);
+  }
+  async deleteTournamentMatch(id: number): Promise<boolean> {
+    return this.memStorage.deleteTournamentMatch(id);
+  }
+  
+  // Tournament standings methods (Task 2.6)
+  async createTournamentStanding(standingData: InsertTournamentStanding): Promise<TournamentStanding> {
+    return this.memStorage.createTournamentStanding(standingData);
+  }
+  async getTournamentStanding(id: number): Promise<TournamentStanding | undefined> {
+    return this.memStorage.getTournamentStanding(id);
+  }
+  async getTournamentStandingByTeam(tournamentId: number, teamId: number): Promise<TournamentStanding | undefined> {
+    return this.memStorage.getTournamentStandingByTeam(tournamentId, teamId);
+  }
+  async getTournamentStandingsByTournament(tournamentId: number): Promise<TournamentStanding[]> {
+    return this.memStorage.getTournamentStandingsByTournament(tournamentId);
+  }
+  async updateTournamentStanding(id: number, data: Partial<TournamentStanding>): Promise<TournamentStanding | undefined> {
+    return this.memStorage.updateTournamentStanding(id, data);
+  }
+  async deleteTournamentStanding(id: number): Promise<boolean> {
+    return this.memStorage.deleteTournamentStanding(id);
+  }
+  
+  // Tournament match queries (Task 2.6)
+  async getTournamentMatchesByTournament(tournamentId: number): Promise<TournamentMatch[]> {
+    return this.memStorage.getTournamentMatchesByTournament(tournamentId);
+  }
+  
+  // Player tournament stats methods (Task 2.6)
+  async createPlayerTournamentStats(statsData: InsertPlayerTournamentStats): Promise<PlayerTournamentStats> {
+    return this.memStorage.createPlayerTournamentStats(statsData);
+  }
+  async getPlayerTournamentStats(tournamentId: number, userId: number): Promise<PlayerTournamentStats | undefined> {
+    return this.memStorage.getPlayerTournamentStats(tournamentId, userId);
+  }
+  async getAllPlayerTournamentStats(tournamentId: number): Promise<(PlayerTournamentStats & { user: User })[]> {
+    return this.memStorage.getAllPlayerTournamentStats(tournamentId);
+  }
+  async getPlayerTournamentStatsByTournament(tournamentId: number): Promise<PlayerTournamentStats[]> {
+    return this.memStorage.getPlayerTournamentStatsByTournament(tournamentId);
+  }
+  async updatePlayerTournamentStats(tournamentId: number, userId: number, data: Partial<PlayerTournamentStats>): Promise<PlayerTournamentStats | undefined> {
+    return this.memStorage.updatePlayerTournamentStats(tournamentId, userId, data);
+  }
+  
+  // Poll methods (Task 2.6)
+  async createPoll(poll: InsertPoll): Promise<Poll> {
+    return this.memStorage.createPoll(poll);
+  }
+  async getPoll(id: number): Promise<(Poll & { options: PollOption[], creator: User }) | undefined> {
+    return this.memStorage.getPoll(id);
+  }
+  async getPolls(limit?: number, type?: string): Promise<(Poll & { options: PollOption[], creator: User })[]> {
+    return this.memStorage.getPolls(limit, type);
+  }
+  async getUserPolls(userId: number): Promise<(Poll & { options: PollOption[] })[]> {
+    return this.memStorage.getUserPolls(userId);
+  }
+  async updatePoll(id: number, data: Partial<Poll>): Promise<Poll | undefined> {
+    return this.memStorage.updatePoll(id, data);
+  }
+  async deletePoll(id: number): Promise<boolean> {
+    return this.memStorage.deletePoll(id);
+  }
+  
+  // Poll option methods (Task 2.6)
+  async createPollOption(option: InsertPollOption): Promise<PollOption> {
+    return this.memStorage.createPollOption(option);
+  }
+  async getPollOption(id: number): Promise<PollOption | undefined> {
+    return this.memStorage.getPollOption(id);
+  }
+  async getPollOptions(pollId: number): Promise<PollOption[]> {
+    return this.memStorage.getPollOptions(pollId);
+  }
+  async updatePollOption(id: number, data: Partial<PollOption>): Promise<PollOption | undefined> {
+    return this.memStorage.updatePollOption(id, data);
+  }
+  async deletePollOption(id: number): Promise<boolean> {
+    return this.memStorage.deletePollOption(id);
+  }
+  
+  // Poll vote methods (Task 2.6)
+  async createPollVote(vote: InsertPollVote): Promise<PollVote> {
+    return this.memStorage.createPollVote(vote);
+  }
+  async getUserVote(userId: number, pollId: number): Promise<PollVote | undefined> {
+    return this.memStorage.getUserVote(userId, pollId);
+  }
+  async getPollVotes(pollId: number): Promise<(PollVote & { user: User })[]> {
+    return this.memStorage.getPollVotes(pollId);
+  }
+  async getPollResults(pollId: number): Promise<{ optionId: number, option: string, count: number, percentage: number }[]> {
+    return this.memStorage.getPollResults(pollId);
+  }
+  async deletePollVote(userId: number, pollId: number): Promise<boolean> {
+    return this.memStorage.deletePollVote(userId, pollId);
+  }
+}
+
+// Temporarily using MemStorage until full database migration is complete
+// TODO: Complete migration of all features to DatabaseStorage to avoid data inconsistency
 export const storage = new MemStorage();

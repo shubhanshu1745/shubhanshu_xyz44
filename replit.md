@@ -59,9 +59,20 @@ Preferred communication style: Simple, everyday language.
 
 **Data Layer:**
 - Currently using in-memory storage (MemStorage class) for development
-- Drizzle ORM configured for PostgreSQL migration (schema defined, migration ready)
-- Database schema includes comprehensive cricket-specific entities
+- PostgreSQL database provisioned and schema successfully pushed to database
+- Drizzle ORM configured with Neon serverless driver
+- Database schema includes comprehensive cricket-specific entities (95+ tables)
 - Session store using memorystore (production should use persistent store)
+
+**Database Migration Status (October 2025):**
+- ✅ PostgreSQL database created and configured
+- ✅ Drizzle schema successfully pushed (all 95+ tables)
+- ⚠️ **Critical Learning**: Hybrid storage approach (partial migration) doesn't work due to data consistency issues
+  - Attempted to migrate core entities (users, posts, likes, comments) while keeping other features on MemStorage
+  - Failed because DatabaseStorage creates isolated MemStorage instance - unported features can't access PostgreSQL data
+  - Example: Users created in PostgreSQL are invisible to followUser() method in MemStorage
+- 📋 **Next Steps**: Full migration required - all 100+ storage methods must be migrated together to avoid data split
+- 🔄 Currently using MemStorage for all features until complete migration strategy is implemented
 
 **API Architecture:**
 - RESTful endpoints organized by feature domain
