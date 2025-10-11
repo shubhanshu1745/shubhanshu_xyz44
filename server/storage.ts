@@ -8,9 +8,16 @@ import {
   conversations, type Conversation, type InsertConversation,
   messages, type Message, type InsertMessage,
   stories, type Story, type InsertStory,
+  storyViews, type StoryView, type InsertStoryView,
+  storyReactions, type StoryReaction, type InsertStoryReaction,
+  storyComments, type StoryComment, type InsertStoryComment,
   playerStats, type PlayerStats, type InsertPlayerStats,
   playerMatches, type PlayerMatch, type InsertPlayerMatch,
   playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance,
+  matches, type Match, type InsertMatch,
+  teams, type Team, type InsertTeam,
+  matchPlayers, type MatchPlayer, type InsertMatchPlayer,
+  ballByBall, type BallByBall, type InsertBallByBall,
   tokens, type Token, type InsertToken,
   tags, type Tag, type InsertTag,
   postTags, type PostTag, type InsertPostTag,
@@ -23,10 +30,16 @@ import {
   tournaments, type Tournament, type InsertTournament,
   tournamentTeams, type TournamentTeam, type InsertTournamentTeam,
   tournamentMatches, type TournamentMatch, type InsertTournamentMatch,
+  tournamentStandings, type TournamentStandings, type InsertTournamentStandings,
+  playerTournamentStats, type PlayerTournamentStats, type InsertPlayerTournamentStats,
   polls, type Poll, type InsertPoll,
   pollOptions, type PollOption, type InsertPollOption,
   pollVotes, type PollVote, type InsertPollVote
 } from "@shared/schema";
+
+// Type aliases for storage interface
+export type TournamentStanding = TournamentStandings;
+export type InsertTournamentStanding = InsertTournamentStandings;
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -471,12 +484,25 @@ export class MemStorage implements IStorage {
       username: insertUser.username,
       email: insertUser.email,
       password: insertUser.password,
-      fullName: insertUser.fullName || null,
-      bio: insertUser.bio || null,
-      location: insertUser.location || null,
-      profileImage: insertUser.profileImage || null,
-      isPlayer: insertUser.isPlayer || false,
-      emailVerified: false,
+      fullName: insertUser.fullName ?? null,
+      bio: insertUser.bio ?? null,
+      location: insertUser.location ?? null,
+      profileImage: insertUser.profileImage ?? null,
+      isPlayer: insertUser.isPlayer ?? false,
+      isCoach: (insertUser as any).isCoach ?? false,
+      isAdmin: (insertUser as any).isAdmin ?? false,
+      isFan: (insertUser as any).isFan ?? true,
+      preferredRole: (insertUser as any).preferredRole ?? null,
+      battingStyle: (insertUser as any).battingStyle ?? null,
+      bowlingStyle: (insertUser as any).bowlingStyle ?? null,
+      favoriteTeam: (insertUser as any).favoriteTeam ?? null,
+      favoritePlayer: (insertUser as any).favoritePlayer ?? null,
+      emailVerified: (insertUser as any).emailVerified ?? false,
+      phoneNumber: (insertUser as any).phoneNumber ?? null,
+      phoneVerified: (insertUser as any).phoneVerified ?? false,
+      verificationBadge: (insertUser as any).verificationBadge ?? false,
+      registrationMethod: (insertUser as any).registrationMethod ?? 'email',
+      lastLoginAt: (insertUser as any).lastLoginAt ?? null,
       createdAt: new Date() 
     };
     this.users.set(id, user);
@@ -604,8 +630,10 @@ export class MemStorage implements IStorage {
     
     const id = this.likeCurrentId++;
     const like: Like = {
-      ...insertLike,
       id,
+      userId: insertLike.userId,
+      postId: insertLike.postId,
+      reactionType: insertLike.reactionType || 'like',
       createdAt: new Date()
     };
     this.likes.set(id, like);
@@ -963,8 +991,16 @@ export class MemStorage implements IStorage {
     const story: Story = {
       id,
       userId: insertStory.userId,
-      imageUrl: insertStory.imageUrl || "",
+      imageUrl: insertStory.imageUrl || null,
+      videoUrl: insertStory.videoUrl || null,
+      matchId: insertStory.matchId || null,
       caption: insertStory.caption || null,
+      filterId: insertStory.filterId || null,
+      effectIds: insertStory.effectIds || null,
+      mediaType: insertStory.mediaType || 'image',
+      musicTrackId: insertStory.musicTrackId || null,
+      isHighlight: insertStory.isHighlight || false,
+      viewCount: 0,
       createdAt: new Date(),
       expiresAt
     };
@@ -1145,6 +1181,8 @@ export class MemStorage implements IStorage {
       position: insertStats.position || null,
       battingStyle: insertStats.battingStyle || null,
       bowlingStyle: insertStats.bowlingStyle || null,
+      playerOfMatchAwards: insertStats.playerOfMatchAwards || 0,
+      highestScoreNotOut: insertStats.highestScoreNotOut || false,
       totalMatches: insertStats.totalMatches || 0,
       totalRuns: insertStats.totalRuns || 0,
       totalWickets: insertStats.totalWickets || 0,
@@ -1152,10 +1190,11 @@ export class MemStorage implements IStorage {
       totalSixes: insertStats.totalSixes || 0,
       totalFours: insertStats.totalFours || 0,
       highestScore: insertStats.highestScore || 0,
-      bestBowling: insertStats.bestBowling || null,
+      bestBowling: insertStats.bestBowling || "0/0",
       battingAverage: insertStats.battingAverage || "0",
       bowlingAverage: insertStats.bowlingAverage || "0",
-      // Extended stats for UI display
+      strikeRate: insertStats.strikeRate || "0",
+      economyRate: insertStats.economyRate || "0",
       innings: insertStats.innings || 0,
       notOuts: insertStats.notOuts || 0,
       ballsFaced: insertStats.ballsFaced || 0,

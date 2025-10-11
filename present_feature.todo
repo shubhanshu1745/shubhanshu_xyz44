@@ -1,0 +1,397 @@
+# CricSocial - Current Features & Tech Stack Documentation
+
+## Technology Stack
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite (fast dev server & optimized builds)
+- **Routing**: Wouter (lightweight client-side routing)
+- **State Management**:
+  - TanStack Query v5 for server state & caching
+  - Context API for auth, theme, sockets
+- **UI Library**: Shadcn UI (Radix UI primitives + Tailwind CSS)
+- **Forms**: React Hook Form with Zod validation
+- **Styling**: Tailwind CSS with custom cricket theme
+- **Icons**: Lucide React + React Icons
+- **Real-time**: Socket.io client
+
+### Backend
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript
+- **Database ORM**: Drizzle ORM (configured for PostgreSQL)
+- **Current Storage**: In-memory (MemStorage) - **needs migration to PostgreSQL**
+- **Authentication**: Passport.js with local strategy + express-session
+- **Password Security**: Node.js crypto (scrypt algorithm)
+- **Email**: Nodemailer (Ethereal for dev, SMTP ready)
+- **File Uploads**: Multer middleware
+- **Real-time**: Socket.io server
+
+### External Services
+- **Cricket Data**: RapidAPI Cricbuzz API
+  - Live match scores
+  - Player & team statistics
+  - Series data
+  - Ball-by-ball commentary
+- **Database (Planned)**: PostgreSQL with Neon serverless driver
+- **Email Service**: Nodemailer (dev: Ethereal, prod: SMTP)
+
+### Development Tools
+- **Testing**: Jest + Supertest (configured)
+- **Type Checking**: TypeScript compiler
+- **Build**: ESBuild for production
+- **Package Manager**: npm
+
+---
+
+## Current Features Status
+
+### ✅ FULLY IMPLEMENTED (95-100%)
+
+#### 1. Authentication & User Management
+- ✅ Email registration with password validation
+- ✅ Secure login (session-based)
+- ✅ Password hashing (scrypt)
+- ✅ Email verification flow
+- ✅ Password reset functionality
+- ✅ Session management
+- ✅ User profiles (username, bio, profile image)
+- ⚠️ **Incomplete**: Cricket-specific attributes (batting/bowling style)
+
+#### 2. Social Feed & Posts
+- ✅ Create text posts with media (images/videos)
+- ✅ Chronological feed
+- ✅ Like/unlike posts (with cricket reactions)
+- ✅ Comment system with threading
+- ✅ Share functionality
+- ✅ User following/followers system
+- ✅ User blocking
+- ✅ Post categories (match_discussion, highlights, meme, etc.)
+
+#### 3. Stories (80%)
+- ✅ Create 24-hour ephemeral stories
+- ✅ Image/video stories
+- ✅ Story viewing & view count
+- ✅ Story reactions & comments
+- ✅ Cricket-themed filters
+- ⚠️ **Missing**: Advanced AR filters, music integration, highlights feature
+
+#### 4. Reels/Short-form Video (80%)
+- ✅ Video posts (reels category)
+- ✅ Video duration tracking
+- ✅ Thumbnails support
+- ✅ Feed display
+- ⚠️ **Missing**: Advanced video editing, music library, trending algorithm
+
+#### 5. Messaging & Chat (85%)
+- ✅ Direct messaging between users
+- ✅ Real-time message delivery (Socket.io)
+- ✅ Message read status
+- ✅ Conversation list
+- ✅ Image/document sharing
+- ⚠️ **Missing**: Group chats, advanced media handling
+
+#### 6. Live Match Scoring System (90%)
+- ✅ Match creation & management
+- ✅ Team management
+- ✅ Ball-by-ball scoring
+- ✅ Detailed scoring options (shot type, direction, ball speed, etc.)
+- ✅ Wicket management (all dismissal types)
+- ✅ Extras tracking (wide, no-ball, bye, leg-bye)
+- ✅ Over management
+- ✅ Innings progression
+- ✅ Live scorecard display
+- ✅ Match statistics & analytics
+- ✅ Heatmaps & wagon wheels
+- ⚠️ **Missing**: Offline scoring with sync, multi-user collaboration
+
+#### 7. Cricket Data Integration (85%)
+- ✅ Live match data (Cricbuzz API)
+- ✅ Match listings
+- ✅ Player statistics
+- ✅ Team information
+- ✅ Match highlights
+- ⚠️ **Missing**: Advanced caching, fallback strategies
+
+#### 8. Player Statistics & Performance (90%)
+- ✅ Player stats tracking (batting, bowling, fielding)
+- ✅ Match-by-match performance
+- ✅ Career statistics
+- ✅ Performance analytics
+- ✅ Player vs player stats
+- ✅ Heatmap data
+
+#### 9. Tournament Management (75%)
+- ✅ Tournament creation
+- ✅ Team registration
+- ✅ Fixture generation (league, knockout)
+- ✅ Match scheduling
+- ✅ Points table
+- ✅ Tournament standings
+- ✅ Player tournament statistics
+- ⚠️ **Missing**: Group stage + knockout format, payment integration
+
+#### 10. Venue Management (70%)
+- ✅ Venue discovery
+- ✅ Venue profiles (capacity, facilities, location)
+- ✅ Venue search
+- ✅ Venue availability tracking
+- ⚠️ **Missing**: Booking system, payment integration, venue owner portal
+
+#### 11. Content Discovery & Personalization (70%)
+- ✅ Tag system (player, team, format, skill, location, event, topic)
+- ✅ Content categories
+- ✅ User interests tracking
+- ✅ Content engagement tracking
+- ✅ Personalized feed (algorithm-based)
+- ⚠️ **Incomplete**: Advanced recommendation algorithm
+
+#### 12. Polls & Predictions (90%)
+- ✅ Create polls
+- ✅ Multiple poll types (match prediction, player performance, etc.)
+- ✅ Poll options with images
+- ✅ Vote tracking
+- ✅ Poll results display
+- ✅ Time-based poll closing
+
+#### 13. Notifications (70%)
+- ✅ Real-time notifications (Socket.io)
+- ✅ Social interaction notifications
+- ✅ Match updates
+- ⚠️ **Missing**: Push notifications, advanced settings
+
+---
+
+### ⚠️ PARTIALLY IMPLEMENTED (40-70%)
+
+#### 14. AI Features (40% - SIMULATED)
+- ⚠️ Match prediction (mocked algorithm)
+- ⚠️ Player trading cards (simulated)
+- ⚠️ Meme generator (simulated)
+- ⚠️ Match emotion tracking (simulated)
+- ⚠️ Player avatar creator (simulated)
+- **Status**: All AI features use placeholder algorithms - need real AI/ML integration
+
+#### 15. Cricket Coaching (60%)
+- ✅ Coaching interface structure
+- ✅ Training programs framework
+- ⚠️ **Missing**: Video analysis, AI recommendations, progress tracking
+
+#### 16. Match Highlights (60%)
+- ✅ Highlight creation
+- ✅ Highlight viewing
+- ⚠️ **Missing**: Automated generation, AI key moment detection
+
+---
+
+### ❌ NOT IMPLEMENTED / PLANNED
+
+#### 17. Advanced Features
+- ❌ Social media authentication (Google, Facebook)
+- ❌ Two-factor authentication
+- ❌ Professional player verification
+- ❌ Payment processing (Stripe/Razorpay)
+- ❌ Video processing & compression
+- ❌ Cloud storage integration
+- ❌ Advanced AR filters
+- ❌ Live audio rooms
+- ❌ NFT marketplace
+- ❌ Multi-language support
+- ❌ Progressive Web App (PWA) features
+- ❌ Offline functionality
+- ❌ Native mobile apps
+
+---
+
+## Critical Issues to Fix
+
+### 1. **Database Migration (HIGH PRIORITY)**
+- **Current**: In-memory storage (data lost on restart)
+- **Needed**: Migrate to PostgreSQL
+- **Impact**: Production-ready persistence
+
+### 2. **TypeScript Errors (67 remaining)**
+- Missing property definitions
+- Type mismatches in object creation
+- Needs schema alignment
+
+### 3. **AI Services Integration**
+- All AI features are mocked/simulated
+- Need real ML/AI model integration
+- Requires external AI service setup
+
+### 4. **Payment Integration**
+- Tournament entry fees
+- Venue bookings
+- Need Stripe/Razorpay integration
+
+### 5. **Performance Optimization**
+- Caching strategy
+- Database query optimization
+- Bundle size reduction
+- Image/video compression
+
+### 6. **Security Enhancements**
+- Rate limiting
+- Input validation
+- Content moderation
+- Two-factor authentication
+
+### 7. **Testing & Documentation**
+- Comprehensive test suite
+- API documentation
+- Component library docs
+- Deployment guides
+
+---
+
+## Architecture Decisions
+
+### Why In-Memory Storage?
+- **Current**: Fast development iteration
+- **Limitation**: Data loss on restart
+- **Next Step**: PostgreSQL migration ready (Drizzle ORM configured)
+
+### Why Socket.io?
+- Real-time match updates
+- Live chat
+- Instant notifications
+- Presence tracking
+
+### Why Vite?
+- Fastest development server
+- Optimized production builds
+- Better than Create React App
+- Native ES modules
+
+### Why Drizzle ORM?
+- Type-safe database queries
+- Better TypeScript support than Prisma
+- Lightweight and performant
+- SQL-like syntax
+
+---
+
+## Current Database Schema
+
+### Core Tables
+- users (30+ fields including cricket-specific attributes)
+- posts, likes, comments
+- follows, blocked_users
+- conversations, messages
+- stories, story_views, story_reactions, story_comments
+
+### Cricket-Specific Tables
+- player_stats, player_matches, player_match_performance
+- matches, teams, team_players, match_players
+- ball_by_ball (detailed scoring)
+- partnerships, match_highlights
+- player_vs_player_stats, heat_map_data
+
+### Tournament Tables
+- tournaments, tournament_teams, tournament_matches
+- tournament_standings, player_tournament_stats
+- tournament_statistics
+
+### Content & Discovery
+- tags, post_tags
+- content_categories, user_interests
+- content_engagement
+
+### Venue Management
+- venues, venue_availability, venue_bookings
+
+### Engagement
+- polls, poll_options, poll_votes
+
+---
+
+## API Endpoints Summary
+
+### Authentication
+- POST /api/register
+- POST /api/login
+- POST /api/logout
+- GET /api/user
+- PATCH /api/user
+- GET /api/verify-email
+- POST /api/forgot-password
+- POST /api/reset-password
+
+### Social
+- GET /api/posts (feed)
+- POST /api/posts
+- GET /api/posts/:id
+- POST /api/posts/:id/like
+- POST /api/posts/:id/comments
+- GET /api/users/:username
+- POST /api/users/:username/follow
+
+### Stories
+- POST /api/stories
+- GET /api/stories/feed
+- POST /api/stories/:id/view
+- POST /api/stories/:id/react
+- POST /api/stories/:id/comments
+
+### Messaging
+- GET /api/conversations
+- POST /api/conversations
+- GET /api/conversations/:id/messages
+- POST /api/conversations/:id/messages
+
+### Matches & Scoring
+- GET /api/cricket/matches
+- GET /api/match/:id
+- POST /api/matches (create)
+- POST /api/matches/:id/ball (record ball)
+- GET /api/matches/:id/balls
+
+### Tournaments
+- GET /api/tournaments
+- POST /api/tournaments
+- GET /api/tournaments/:id
+- POST /api/tournaments/:id/teams
+- POST /api/tournaments/:id/fixtures
+
+### Venues
+- GET /api/venues
+- POST /api/venues
+- GET /api/venues/:id
+- GET /api/venues/:id/availability
+
+### AI Features
+- POST /api/ai/predict-match
+- POST /api/ai/player-card
+- POST /api/ai/generate-meme
+- POST /api/ai/track-emotion
+- POST /api/ai/avatar
+
+### Polls
+- GET /api/polls
+- POST /api/polls
+- POST /api/polls/:id/vote
+
+---
+
+## Next Steps (Priority Order)
+
+1. **Fix TypeScript errors** (67 remaining)
+2. **Migrate to PostgreSQL** (from in-memory)
+3. **Complete tournament group stage + knockout**
+4. **Implement real AI services**
+5. **Add payment integration**
+6. **Performance optimization**
+7. **Comprehensive testing**
+8. **Production deployment**
+
+---
+
+## Development Notes
+
+- Server runs on port 5000
+- Single port for frontend & backend (Vite proxy)
+- Hot reload enabled
+- Sample data seeding on startup
+- Socket.io for real-time features
+- Cricbuzz API for cricket data
+- Ethereal Email for dev email testing
