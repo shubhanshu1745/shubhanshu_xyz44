@@ -159,7 +159,7 @@ export function SocialDiscovery({ className = "" }: SocialDiscoveryProps) {
               </div>
             )}
             
-            {user.commonInterests.length > 0 && (
+            {user.commonInterests && user.commonInterests.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {user.commonInterests.slice(0, 3).map((interest) => (
                   <Badge key={interest} variant="outline" className="text-xs">
