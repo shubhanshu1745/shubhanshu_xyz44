@@ -744,32 +744,21 @@ export class MemStorage implements IStorage {
   }
   
   async getSuggestedUsers(userId: number, limit: number = 5): Promise<User[]> {
-    // Get users that the current user is not already following
-    const followingIds = Array.from(this.follows.values())
-      .filter(follow => follow.followerId === userId)
-      .map(follow => follow.followingId);
-    
-    // Don't suggest the current user
-    followingIds.push(userId);
-    
-    const suggestedUsers = Array.from(this.users.values())
-      .filter(user => !followingIds.includes(user.id))
-      .slice(0, limit);
-    
-    return suggestedUsers;
-  }
-  
-  async searchUsers(query: string, limit: number = 10): Promise<User[]> {
-    if (!query) return [];
-    
-    const lowerCaseQuery = query.toLowerCase();
+    const following = await this.getFollowing(userId);
+    const followingIds = new Set(following.map(u => u.id));
+    followingIds.add(userId);
     
     return Array.from(this.users.values())
-      .filter(user => 
-        user.username.toLowerCase().includes(lowerCaseQuery) || 
-        (user.fullName && user.fullName.toLowerCase().includes(lowerCaseQuery)) ||
-        (user.bio && user.bio.toLowerCase().includes(lowerCaseQuery)) ||
-        (user.location && user.location.toLowerCase().includes(lowerCaseQuery))
+      .filter(u => !followingIds.has(u.id))
+      .slice(0, limit);
+  }
+
+  async searchUsers(query: string, limit: number = 10): Promise<User[]> {
+    const lowercaseQuery = query.toLowerCase();
+    return Array.from(this.users.values())
+      .filter(u => 
+        u.username.toLowerCase().includes(lowercaseQuery) || 
+        (u.fullName && u.fullName.toLowerCase().includes(lowercaseQuery))
       )
       .slice(0, limit);
   }
