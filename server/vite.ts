@@ -72,30 +72,45 @@ export async function setupVite(app: Express, server: Server) {
 
 export function serveStatic(app: Express) {
   // In production, the build output is in dist/public
+  // __dirname in compiled code is /app/dist, so public is at /app/dist/public
   const distPath = path.resolve(__dirname, "public");
-  const altDistPath = path.resolve(__dirname, "..", "dist", "public");
+  const altDistPath = path.resolve(process.cwd(), "dist", "public");
+  const dockerPath = "/app/dist/public";
   
-  // Try the primary path first, then fallback
-  const actualPath = fs.existsSync(distPath) ? distPath : altDistPath;
+  // Try multiple paths for different environments
+  let actualPath = distPath;
+  if (!fs.existsSync(distPath)) {
+    if (fs.existsSync(altDistPath)) {
+      actualPath = altDistPath;
+    } else if (fs.existsSync(dockerPath)) {
+      actualPath = dockerPath;
+    }
+  }
 
   if (!fs.existsSync(actualPath)) {
     console.warn(
-      `Warning: Could not find the build directory at ${distPath} or ${altDistPath}. Static files may not be served.`,
+      `Warning: Could not find the build directory. Tried: ${distPath}, ${altDistPath}, ${dockerPath}`,
     );
-    // Don't throw - allow the server to start anyway
     return;
+  }
+
+  // Check if index.html exists
+  const indexPath = path.resolve(actualPath, "index.html");
+  if (!fs.existsSync(indexPath)) {
+    console.warn(`Warning: index.html not found at ${indexPath}`);
+  } else {
+    console.log(`Found index.html at ${indexPath}`);
   }
 
   console.log(`Serving static files from: ${actualPath}`);
   app.use(express.static(actualPath));
 
-  // fall through to index.html if the file doesn't exist
+  // fall through to index.html if the file doesn't exist (SPA routing)
   app.use("*", (_req, res) => {
-    const indexPath = path.resolve(actualPath, "index.html");
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
     } else {
-      res.status(404).send("Not found");
+      res.status(404).send("Not found - index.html missing");
     }
   });
 }

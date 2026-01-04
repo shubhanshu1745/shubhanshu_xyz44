@@ -60,7 +60,8 @@ setTimeout(async () => {
       console.error("Application error:", err);
     });
   
-    // Setup Vite or static serving
+    // Setup Vite or static serving based on NODE_ENV
+    console.log(`Setting up ${isProduction ? 'static file serving' : 'Vite dev server'}...`);
     if (!isProduction) {
       await setupVite(app, server);
     } else {
