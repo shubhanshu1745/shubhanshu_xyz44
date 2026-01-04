@@ -1635,10 +1635,14 @@ export class MemStorage implements IStorage {
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
     
     // Enrich story data with user info
-    return Promise.all(sortedStories.map(async story => {
-      const user = await this.getUser(story.userId) as User;
+    const enrichedStories = await Promise.all(sortedStories.map(async story => {
+      const user = await this.getUser(story.userId);
+      if (!user) return null;
       return { ...story, user };
     }));
+    
+    // Filter out stories where user was not found
+    return enrichedStories.filter((story): story is (Story & { user: User }) => story !== null);
   }
   
   async deleteExpiredStories(): Promise<void> {

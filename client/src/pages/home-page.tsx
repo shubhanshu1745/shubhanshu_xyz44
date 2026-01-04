@@ -50,6 +50,9 @@ export default function HomePage() {
   
   if (stories?.length) {
     stories.forEach(story => {
+      // Skip stories without user data
+      if (!story?.user?.id) return;
+      
       if (!storyUserMap.has(story.user.id)) {
         storyUserMap.set(story.user.id, []);
         storyUsers.push(story.user);
