@@ -33,7 +33,15 @@ app.use((req, res, next) => {
 // This ensures the port is opened quickly for the workflow system
 const server = http.createServer(app);
 const port = parseInt(process.env.PORT || '5000', 10);
-const isProduction = process.env.NODE_ENV === 'production';
+
+// Detect production: either NODE_ENV is set OR we're running from dist folder
+const isRunningFromDist = import.meta.url.includes('/dist/');
+const isProduction = process.env.NODE_ENV === 'production' || isRunningFromDist;
+
+// Force NODE_ENV if running from dist
+if (isRunningFromDist && process.env.NODE_ENV !== 'production') {
+  process.env.NODE_ENV = 'production';
+}
 
 // Open the port immediately
 console.log(`SERVER IS STARTING ON PORT ${port}...`);
