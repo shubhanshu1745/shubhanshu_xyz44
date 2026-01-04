@@ -8,14 +8,17 @@ RUN apk add --no-cache wget
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies (using npm install instead of npm ci to handle lock file issues)
-RUN npm install
+# Install dependencies with production flag for smaller image
+RUN npm install --production=false
 
 # Copy source code
 COPY . .
 
 # Build the application
 RUN npm run build
+
+# Remove dev dependencies after build to reduce image size
+RUN npm prune --production
 
 # Create uploads directory structure
 RUN mkdir -p dist/public/uploads/stories/images \
@@ -25,8 +28,12 @@ RUN mkdir -p dist/public/uploads/stories/images \
     dist/public/uploads/profiles \
     dist/public/uploads/messages
 
-# Expose port
-EXPOSE 5000
+# Railway uses PORT env variable
+ENV PORT=5000
+ENV NODE_ENV=production
+
+# Expose port (Railway will override with its own)
+EXPOSE $PORT
 
 # Start the application
 CMD ["npm", "run", "start"]
