@@ -37,5 +37,5 @@ ENV PORT=5000
 # Expose port (Railway will override with its own)
 EXPOSE $PORT
 
-# Start the application
-CMD ["npm", "run", "start"]
+# Start the application with explicit NODE_ENV
+CMD ["sh", "-c", "NODE_ENV=production node dist/index.js"]
