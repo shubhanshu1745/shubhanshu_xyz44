@@ -8,7 +8,7 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { AlertCircle, Loader2, Search, User as UserIcon, UserPlus, X, CheckCheck, UserCheck } from "lucide-react";
+import { AlertCircle, Loader2, Search, User as UserIcon, UserPlus, X, CheckCheck, UserCheck, UserMinus } from "lucide-react";
 import { useState } from "react";
 
 type ListType = "followers" | "following";
@@ -16,6 +16,7 @@ type ListType = "followers" | "following";
 // Extended user type with additional properties for the follow list
 type FollowListUser = User & {
   isFollowing?: boolean;
+  isMutual?: boolean;
 };
 
 interface FollowListDialogProps {
@@ -37,12 +38,13 @@ export function FollowListDialog({
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isOwnProfile = currentUser?.username === username;
 
   const endpointSuffix = listType === "followers" ? "followers" : "following";
   
   const { data: users, isLoading, error } = useQuery<FollowListUser[]>({
     queryKey: [`/api/users/${username}/${endpointSuffix}`],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: getQueryFn(),
     enabled: open, // Only fetch when dialog is open
   });
 
@@ -88,12 +90,38 @@ export function FollowListDialog({
     }
   });
 
+  // Remove follower mutation (for own profile's followers list)
+  const removeFollowerMutation = useMutation({
+    mutationFn: async (followerUsername: string) => {
+      return await apiRequest("DELETE", `/api/users/${followerUsername}/remove-follower`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}/${endpointSuffix}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
+      toast({
+        title: "Follower Removed",
+        description: "This user is no longer following you"
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to remove follower",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleFollow = (userToFollowUsername: string) => {
     followMutation.mutate(userToFollowUsername);
   };
 
   const handleUnfollow = (userToUnfollowUsername: string) => {
     unfollowMutation.mutate(userToUnfollowUsername);
+  };
+
+  const handleRemoveFollower = (followerUsername: string) => {
+    removeFollowerMutation.mutate(followerUsername);
   };
 
   // Filter users based on search term
@@ -173,38 +201,66 @@ export function FollowListDialog({
                       <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-sm">{user.username}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="font-semibold text-sm">{user.username}</p>
+                        {user.isMutual && (
+                          <span className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                            Mutual
+                          </span>
+                        )}
+                      </div>
                       {user.fullName && <p className="text-xs text-neutral-500">{user.fullName}</p>}
                     </div>
                   </div>
                 </Link>
                 
-                {currentUser && currentUser.id !== user.id && (
-                  followMutation.isPending || unfollowMutation.isPending ? (
-                    <Button disabled variant="ghost" size="sm" className="h-9 rounded-full">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className={user.isFollowing ? "h-9 rounded-full" : "h-9 rounded-full bg-[#FF5722] hover:bg-[#E64A19] text-white hover:text-white border-none"}
-                      onClick={() => user.isFollowing ? handleUnfollow(user.username) : handleFollow(user.username)}
+                <div className="flex items-center gap-2">
+                  {/* Remove follower button (only for own profile's followers list) */}
+                  {isOwnProfile && listType === "followers" && currentUser && currentUser.id !== user.id && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-neutral-500 hover:text-red-500"
+                      onClick={() => handleRemoveFollower(user.username)}
+                      disabled={removeFollowerMutation.isPending}
+                      title="Remove follower"
                     >
-                      {user.isFollowing ? (
-                        <>
-                          <UserCheck className="h-4 w-4 mr-1" />
-                          Following
-                        </>
+                      {removeFollowerMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <>
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Follow
-                        </>
+                        <UserMinus className="h-4 w-4" />
                       )}
                     </Button>
-                  )
-                )}
+                  )}
+                  
+                  {/* Follow/Unfollow button */}
+                  {currentUser && currentUser.id !== user.id && (
+                    followMutation.isPending || unfollowMutation.isPending ? (
+                      <Button disabled variant="ghost" size="sm" className="h-9 rounded-full">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className={user.isFollowing ? "h-9 rounded-full" : "h-9 rounded-full bg-[#FF5722] hover:bg-[#E64A19] text-white hover:text-white border-none"}
+                        onClick={() => user.isFollowing ? handleUnfollow(user.username) : handleFollow(user.username)}
+                      >
+                        {user.isFollowing ? (
+                          <>
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Following
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Follow
+                          </>
+                        )}
+                      </Button>
+                    )
+                  )}
+                </div>
               </div>
             ))
           )}

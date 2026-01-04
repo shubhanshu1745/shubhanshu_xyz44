@@ -17,7 +17,8 @@ import {
   Video,
   Sparkles,
   GraduationCap,
-  MapPin
+  MapPin,
+  Bookmark
 } from "lucide-react";
 
 export function Sidebar() {
@@ -187,6 +188,13 @@ export function Sidebar() {
           <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/venues" ? "font-semibold" : ""}`}>
             <MapPin className="h-5 w-5 mr-3 text-[#1F3B4D]" />
             <span className="cricket-primary">Venue Discovery</span>
+          </div>
+        </Link>
+        
+        <Link href="/saved">
+          <div className={`flex items-center p-2 rounded-md hover:bg-gray-100 ${location === "/saved" ? "font-semibold" : ""}`}>
+            <Bookmark className="h-5 w-5 mr-3 text-[#1F3B4D]" />
+            <span className="cricket-primary">Saved Posts</span>
           </div>
         </Link>
       </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,12 +12,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, PlusCircle, Image, Video } from "lucide-react";
 import StoryCard from "@/components/stories/story-card";
+import { InstagramStoryViewer } from "@/components/instagram-story-viewer";
+import { StoryCircle } from "@/components/story-circle";
 
 export default function StoriesPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
+  const [selectedUserIndex, setSelectedUserIndex] = useState(0);
   const [caption, setCaption] = useState("");
   const [mediaUrl, setMediaUrl] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video">("image");
@@ -27,11 +32,26 @@ export default function StoriesPage() {
   // Fetch stories for feed
   const { data: stories, isLoading, error } = useQuery({
     queryKey: ["/api/stories/feed"],
+    queryFn: getQueryFn(),
+  });
+
+  // Fetch users with stories
+  const { data: storyUsers } = useQuery({
+    queryKey: ["/api/stories/users"],
+    queryFn: getQueryFn(),
+  });
+
+  // Fetch stories for selected user
+  const { data: selectedUserStories } = useQuery({
+    queryKey: ["/api/stories/user", selectedUserIndex],
     queryFn: async () => {
-      const response = await fetch("/api/stories/feed");
-      if (!response.ok) throw new Error("Failed to fetch stories");
+      if (!storyUsers || selectedUserIndex >= storyUsers.length) return null;
+      const userId = storyUsers[selectedUserIndex].id;
+      const response = await fetch(`/api/stories/user/${userId}`);
+      if (!response.ok) throw new Error("Failed to fetch user stories");
       return response.json();
     },
+    enabled: viewerOpen && !!storyUsers && selectedUserIndex < storyUsers.length,
   });
 
   // Fetch user's own stories
@@ -112,8 +132,21 @@ export default function StoriesPage() {
       
       const data = await response.json();
       
-      // Set the image URL in the state
-      setMediaUrl(data.url);
+      // Ensure we get the URL from the response
+      const uploadedUrl = data.url || data.filename || data.path;
+      if (!uploadedUrl) {
+        throw new Error('No URL returned from upload');
+      }
+      
+      // Set the media URL and type in the state
+      setMediaUrl(uploadedUrl);
+      if (data.mediaType) {
+        setMediaType(data.mediaType);
+      } else {
+        // Determine type from file
+        const fileType = file.type.startsWith('video/') ? 'video' : 'image';
+        setMediaType(fileType);
+      }
       
       toast({
         title: "Upload successful",
@@ -167,7 +200,8 @@ export default function StoriesPage() {
         method: "POST",
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        credentials: 'include'
       });
       
       // Invalidate relevant queries
@@ -177,6 +211,12 @@ export default function StoriesPage() {
     } catch (error) {
       console.error("Error marking story as viewed:", error);
     }
+  };
+
+  const handleStoryCircleClick = (userIndex: number) => {
+    setSelectedUserIndex(userIndex);
+    setSelectedStoryIndex(0);
+    setViewerOpen(true);
   };
 
   if (isLoading) {
@@ -197,8 +237,46 @@ export default function StoriesPage() {
     );
   }
 
+  // Prepare users with stories for viewer
+  const usersWithStories = storyUsers?.map((storyUser: any, index: number) => ({
+    ...storyUser,
+    stories: index === selectedUserIndex && selectedUserStories?.stories 
+      ? selectedUserStories.stories 
+      : []
+  })) || [];
+
   return (
     <div className="container mx-auto p-4">
+      {/* Story Circles */}
+      <div className="mb-6">
+        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+          {user && (
+            <StoryCircle
+              user={user}
+              hasStory={userStories?.stories && userStories.stories.length > 0}
+              onClick={() => {
+                if (userStories?.stories && userStories.stories.length > 0) {
+                  // Find user index or add to beginning
+                  setSelectedUserIndex(-1);
+                  setSelectedStoryIndex(0);
+                  setViewerOpen(true);
+                } else {
+                  setCreateDialogOpen(true);
+                }
+              }}
+            />
+          )}
+          {storyUsers?.map((storyUser: any, index: number) => (
+            <StoryCircle
+              key={storyUser.id}
+              user={storyUser}
+              hasStory={storyUser.hasStory}
+              onClick={() => handleStoryCircleClick(index)}
+            />
+          ))}
+        </div>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Stories</h1>
         
@@ -367,6 +445,25 @@ export default function StoriesPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      {/* Instagram Story Viewer */}
+      {viewerOpen && (
+        <InstagramStoryViewer
+          open={viewerOpen}
+          onClose={() => {
+            setViewerOpen(false);
+            queryClient.invalidateQueries({ queryKey: ["/api/stories/users"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/stories/feed"] });
+          }}
+          stories={selectedUserIndex === -1 && userStories?.stories 
+            ? userStories.stories.map((s: any) => ({ ...s, user: user! }))
+            : []
+          }
+          initialStoryIndex={selectedStoryIndex}
+          initialUserIndex={selectedUserIndex}
+          users={usersWithStories}
+        />
+      )}
     </div>
   );
 }

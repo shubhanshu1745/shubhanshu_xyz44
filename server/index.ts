@@ -4,10 +4,11 @@ import http from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
+import { ensureMigrationsComplete } from "./db";
 
 // Create Express app with minimal configuration for fast startup
 const app = express();
-app.use(express.json({ limit: '10mb' }));  // Reduced from 50mb for faster startup
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 // Add simple health check endpoints that respond immediately
@@ -31,10 +32,13 @@ app.use((req, res, next) => {
 // Start the server first with a minimal configuration
 // This ensures the port is opened quickly for the workflow system
 const server = http.createServer(app);
-const port = 5000;
+const port = parseInt(process.env.PORT || '5000', 10);
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Open the port immediately
 console.log(`SERVER IS STARTING ON PORT ${port}...`);
+console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
+
 server.listen(port, "0.0.0.0", () => {
   console.log(`PORT ${port} IS NOW OPEN AND READY`);
 });
@@ -42,6 +46,9 @@ server.listen(port, "0.0.0.0", () => {
 // Then set up all the routes and other functionality in the background
 setTimeout(async () => {
   try {
+    // Wait for database migrations to complete
+    await ensureMigrationsComplete();
+    
     // Register all API routes
     await registerRoutes(app);
     
@@ -54,7 +61,7 @@ setTimeout(async () => {
     });
   
     // Setup Vite or static serving
-    if (app.get("env") === "development") {
+    if (!isProduction) {
       await setupVite(app, server);
     } else {
       serveStatic(app);

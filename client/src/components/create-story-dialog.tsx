@@ -11,13 +11,14 @@ import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Upload, X, Image } from "lucide-react";
-import { CreateStoryFormData } from "@shared/schema";
 
-// Create a form schema for the story creation
-const storySchema = z.object({
-  imageUrl: z.string().url("Please enter a valid URL").min(1, "Image URL is required"),
-  caption: z.string().max(100, "Caption must be less than 100 characters").optional(),
+// Define the form schema locally to ensure it matches exactly what we need
+const createStorySchema = z.object({
+  imageUrl: z.string().min(1, "Image URL is required"),
+  caption: z.string().optional(),
 });
+
+type CreateStoryFormData = z.infer<typeof createStorySchema>;
 
 interface CreateStoryDialogProps {
   open: boolean;
@@ -29,13 +30,14 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  // Create form
+  // Create form using the shared schema
   const form = useForm<CreateStoryFormData>({
-    resolver: zodResolver(storySchema),
+    resolver: zodResolver(createStorySchema),
     defaultValues: {
       imageUrl: "",
       caption: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   // Reset form when dialog closes
@@ -72,9 +74,18 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
       
       const data = await response.json();
       
+      // Ensure we get the URL from the response
+      const uploadedUrl = data.url || data.filename || data.path;
+      if (!uploadedUrl) {
+        throw new Error('No URL returned from upload');
+      }
+      
       // Set the image URL in the form
-      form.setValue("imageUrl", data.url);
-      setPreviewUrl(data.url);
+      form.setValue("imageUrl", uploadedUrl);
+      setPreviewUrl(uploadedUrl);
+      
+      // Clear any previous validation errors
+      form.clearErrors("imageUrl");
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
@@ -90,35 +101,63 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
   // Create story mutation
   const createStoryMutation = useMutation({
     mutationFn: async (data: CreateStoryFormData) => {
-      return await apiRequest("POST", "/api/stories", data);
+      try {
+        const response = await apiRequest("POST", "/api/stories", data);
+        return response;
+      } catch (error) {
+        throw error;
+      }
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       toast({
         title: "Success",
-        description: "Story created successfully",
+        description: "Story created successfully! Your story will be visible for 24 hours.",
       });
       handleOpenChange(false);
-      setPreviewUrl("");
-      form.reset();
       
       // Force immediate refetch of stories
       await queryClient.invalidateQueries({ queryKey: ["/api/stories"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/stories/feed"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/stories/user"] });
     },
-    onError: (error) => {
-      console.error("Error creating story:", error);
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Failed to create story";
       toast({
         title: "Error",
-        description: "Failed to create story",
+        description: errorMessage,
         variant: "destructive",
       });
     },
   });
   
   // Form submission
-  const onSubmit = (data: CreateStoryFormData) => {
-    createStoryMutation.mutate(data);
+  const onSubmit = async (data: CreateStoryFormData) => {
+    // Validate that we have an image
+    if (!data.imageUrl || data.imageUrl.trim() === "") {
+      toast({
+        title: "Error",
+        description: "Please upload an image or provide an image URL",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await createStoryMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Failed to create story:", error);
+    }
+  };
+
+  // Handle form errors
+  const onError = (errors: any) => {
+    // Show toast for validation errors
+    const errorMessages = Object.values(errors).map((error: any) => error.message).join(", ");
+    toast({
+      title: "Validation Error",
+      description: errorMessages,
+      variant: "destructive",
+    });
   };
   
   return (
@@ -132,7 +171,8 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">
+
             {/* Image preview */}
             {previewUrl ? (
               <div className="relative w-full aspect-[9/16] rounded-md overflow-hidden bg-black">
@@ -176,6 +216,18 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
                         Upload
                       </>
                     )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const testUrl = "https://via.placeholder.com/400x600/FF5722/FFFFFF?text=Test+Story";
+                      form.setValue("imageUrl", testUrl);
+                      setPreviewUrl(testUrl);
+                    }}
+                  >
+                    Use Test Image
                   </Button>
                   <FormField
                     control={form.control}
@@ -240,13 +292,18 @@ export function CreateStoryDialog({ open, onOpenChange }: CreateStoryDialogProps
               </Button>
               <Button
                 type="submit"
-                className="bg-[#FF5722] hover:bg-[#E64A19]"
-                disabled={createStoryMutation.isPending || uploadingImage}
+                className="bg-[#FF5722] hover:bg-[#E64A19] disabled:opacity-50"
+                disabled={createStoryMutation.isPending || uploadingImage || form.formState.isSubmitting}
               >
-                {createStoryMutation.isPending ? (
+                {createStoryMutation.isPending || form.formState.isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating...
+                  </>
+                ) : uploadingImage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Uploading...
                   </>
                 ) : (
                   "Share Story"

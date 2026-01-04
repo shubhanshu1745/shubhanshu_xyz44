@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
-import { Search, MapPin, Trophy, Users, Star, UserCheck } from "lucide-react";
+import { Search, MapPin, Trophy, Users, Star, UserCheck, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface SuggestedUser {
   id: number;
@@ -41,239 +42,344 @@ export function SocialDiscovery({ className = "" }: SocialDiscoveryProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: suggestedUsers = [] } = useQuery<SuggestedUser[]>({
+  const { data: suggestedUsers = [], isLoading: isLoadingSuggested } = useQuery<SuggestedUser[]>({
     queryKey: ["/api/users/suggested"],
     queryFn: getQueryFn()
   });
 
-  const { data: searchResults = [] } = useQuery<SuggestedUser[]>({
-    queryKey: ["/api/users/search", searchQuery],
-    queryFn: getQueryFn(),
+  const { data: searchData, isLoading: isSearching } = useQuery<{ users: SuggestedUser[] }>({
+    queryKey: ["/api/search", searchQuery],
+    queryFn: async () => {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!res.ok) throw new Error("Search failed");
+      return res.json();
+    },
     enabled: searchQuery.length > 2
   });
+
+  const searchResults = searchData?.users || [];
 
   const { data: trendingHashtags = [] } = useQuery<TrendingHashtag[]>({
     queryKey: ["/api/hashtags/trending"],
     queryFn: getQueryFn()
   });
 
-  const { data: nearbyUsers = [] } = useQuery<SuggestedUser[]>({
-    queryKey: ["/api/users/nearby"],
-    queryFn: getQueryFn()
-  });
-
+  // Follow mutation - uses username in the URL
   const followMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      return await apiRequest("POST", `/api/users/${userId}/follow`);
+    mutationFn: async (username: string) => {
+      return await apiRequest("POST", `/api/users/${username}/follow`);
     },
-    onSuccess: () => {
+    onSuccess: (_, username) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/suggested"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/search"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/nearby"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/search"] });
       toast({
-        title: "Following user",
-        description: "You are now following this user"
+        title: "Following!",
+        description: `You are now following @${username}`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to follow user. Please try again.",
+        variant: "destructive"
       });
     }
   });
 
-  const handleFollow = (userId: number) => {
-    followMutation.mutate(userId);
+  // Unfollow mutation
+  const unfollowMutation = useMutation({
+    mutationFn: async (username: string) => {
+      return await apiRequest("DELETE", `/api/users/${username}/follow`);
+    },
+    onSuccess: (_, username) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/suggested"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/search"] });
+      toast({
+        title: "Unfollowed",
+        description: `You unfollowed @${username}`
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to unfollow user. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleFollow = (username: string, isFollowing: boolean) => {
+    if (isFollowing) {
+      unfollowMutation.mutate(username);
+    } else {
+      followMutation.mutate(username);
+    }
   };
 
-  const UserCard = ({ user }: { user: SuggestedUser }) => (
-    <Card className="hover:shadow-md transition-all duration-300 border border-zinc-100 dark:border-zinc-800 shadow-sm bg-white dark:bg-zinc-950 overflow-hidden">
-      <CardContent className="p-5">
-        <div className="flex items-start gap-4">
-          <div className="relative group">
-            <Avatar className="h-16 w-16 border-2 border-primary/10 shadow-sm transition-transform duration-300 group-hover:scale-105">
-              <AvatarImage src={user.profileImage || ""} alt={user.username} className="object-cover" />
-              <AvatarFallback className="bg-primary/5 text-primary font-bold text-lg">
-                {user.username.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            {user.isFollowing && (
-              <div className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1 border-2 border-white dark:border-zinc-950">
-                <UserCheck className="h-3 w-3" />
-              </div>
-            )}
+  // Compact User Card for sidebar
+  const CompactUserCard = ({ user }: { user: SuggestedUser }) => (
+    <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+      <div className="relative flex-shrink-0">
+        <Avatar className="h-12 w-12 border-2 border-white shadow-sm">
+          <AvatarImage src={user.profileImage || ""} alt={user.username} className="object-cover" />
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold">
+            {user.username.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        {user.isFollowing && (
+          <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 text-white rounded-full p-0.5 border-2 border-white">
+            <UserCheck className="h-2.5 w-2.5" />
           </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h4 className="font-bold text-lg truncate text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
-                  {user.fullName || user.username}
-                </h4>
-                <p className="text-sm text-zinc-500 font-medium">@{user.username}</p>
-              </div>
-              
-              <Button
-                size="sm"
-                variant={user.isFollowing ? "outline" : "default"}
-                onClick={() => handleFollow(user.id)}
-                disabled={followMutation.isPending || user.isFollowing}
-                className={`transition-all duration-300 min-w-[100px] h-9 font-semibold ${
-                  user.isFollowing 
-                    ? "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md"
-                }`}
-              >
-                {user.isFollowing ? "Following" : "Follow"}
-              </Button>
-            </div>
-            
-            {user.bio && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 line-clamp-2 leading-relaxed">
-                {user.bio}
-              </p>
-            )}
-            
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-[13px] text-zinc-500 font-medium">
-              {user.location && (
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                  <span>{user.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-zinc-400" />
-                <span>{user.followersCount} followers</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Trophy className="h-3.5 w-3.5 text-zinc-400" />
-                <span>{user.postsCount} posts</span>
-              </div>
-            </div>
+        )}
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-sm text-slate-800 truncate">
+          @{user.username}
+        </p>
+        <p className="text-xs text-slate-500 truncate">
+          {user.fullName || user.bio || "Cricket enthusiast"}
+        </p>
+        {user.location && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <MapPin className="h-3 w-3 text-slate-400" />
+            <span className="text-xs text-slate-400 truncate">{user.location}</span>
           </div>
+        )}
+      </div>
+      
+      <Button
+        size="sm"
+        variant={user.isFollowing ? "outline" : "default"}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleFollow(user.username, user.isFollowing);
+        }}
+        disabled={followMutation.isPending || unfollowMutation.isPending}
+        className={`flex-shrink-0 h-8 px-3 text-xs font-semibold transition-all ${
+          user.isFollowing 
+            ? "bg-slate-100 border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-500 hover:border-red-200" 
+            : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+        }`}
+      >
+        {user.isFollowing ? "Following" : "Follow"}
+      </Button>
+    </div>
+  );
+
+  // Horizontal scrollable user card
+  const HorizontalUserCard = ({ user }: { user: SuggestedUser }) => (
+    <div className="flex-shrink-0 w-[140px] p-3 rounded-xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all">
+      <div className="flex flex-col items-center text-center">
+        <Avatar className="h-14 w-14 border-2 border-white shadow-md mb-2">
+          <AvatarImage src={user.profileImage || ""} alt={user.username} className="object-cover" />
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-lg">
+            {user.username.charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        <p className="font-semibold text-sm text-slate-800 truncate w-full">
+          @{user.username}
+        </p>
+        <p className="text-xs text-slate-500 truncate w-full mb-2">
+          {user.location || "Cricket fan"}
+        </p>
+        <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
+          <span>{user.followersCount || 0} followers</span>
         </div>
-      </CardContent>
-    </Card>
+        <Button
+          size="sm"
+          variant={user.isFollowing ? "outline" : "default"}
+          onClick={() => handleFollow(user.username, user.isFollowing)}
+          disabled={followMutation.isPending || unfollowMutation.isPending}
+          className={`w-full h-7 text-xs font-semibold ${
+            user.isFollowing 
+              ? "bg-slate-100 border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-500" 
+              : "bg-blue-600 hover:bg-blue-700 text-white"
+          }`}
+        >
+          {user.isFollowing ? "Following" : "Follow"}
+        </Button>
+      </div>
+    </div>
   );
 
   return (
-    <div className={`space-y-6 ${className}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <Card className={`border-0 shadow-lg bg-white overflow-hidden ${className}`}>
+      <CardHeader className="pb-3 pt-5 px-5">
         <div className="flex items-center gap-3">
-          <div className="bg-primary/10 p-2.5 rounded-xl">
-            <Users className="h-7 w-7 text-primary" />
+          <div className="p-2.5 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl shadow-sm">
+            <Users className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-none">Discover People</h2>
-            <p className="text-sm text-zinc-500 mt-1.5 font-medium">Find and follow fellow cricket enthusiasts</p>
+            <h2 className="text-lg font-bold text-slate-800">Discover People</h2>
+            <p className="text-xs text-slate-500">Find and follow fellow cricket enthusiasts</p>
           </div>
         </div>
-      </div>
+      </CardHeader>
       
-      <div className="space-y-6">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-400 group-focus-within:text-primary transition-colors" />
+      <CardContent className="px-5 pb-5">
+        {/* Search Input */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Search by name or username..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 h-14 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 rounded-2xl focus:ring-4 focus:ring-primary/10 transition-all text-base shadow-sm"
+            className="pl-10 h-10 bg-slate-50 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 text-sm"
           />
         </div>
 
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start gap-8 bg-transparent border-b border-zinc-100 dark:border-zinc-900 rounded-none h-auto p-0 mb-6 flex overflow-x-auto no-scrollbar">
-            {["suggested", "search", "nearby", "trending"].map((tab) => (
-              <TabsTrigger 
-                key={tab}
-                value={tab} 
-                className="px-1 py-4 text-[15px] font-bold border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:bg-transparent rounded-none transition-all capitalize"
-              >
-                {tab}
-              </TabsTrigger>
-            ))}
+          <TabsList className="w-full grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl h-auto mb-4">
+            <TabsTrigger 
+              value="suggested" 
+              className="text-xs py-2 px-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-medium"
+            >
+              Suggested
+            </TabsTrigger>
+            <TabsTrigger 
+              value="search" 
+              className="text-xs py-2 px-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-medium"
+            >
+              Search
+            </TabsTrigger>
+            <TabsTrigger 
+              value="nearby" 
+              className="text-xs py-2 px-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-medium"
+            >
+              Nearby
+            </TabsTrigger>
+            <TabsTrigger 
+              value="trending" 
+              className="text-xs py-2 px-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-medium"
+            >
+              Trending
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="suggested" className="space-y-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {suggestedUsers.length === 0 ? (
-              <div className="text-center py-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/50">
-                <Users className="h-16 w-16 mx-auto text-zinc-300 dark:text-zinc-800 mb-4" />
-                <p className="text-zinc-500 font-semibold text-lg">No suggestions available</p>
-                <p className="text-zinc-400 text-sm mt-1">Try again later or search for specific users</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {suggestedUsers.slice(0, 8).map((user) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="search" className="space-y-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-            {searchQuery.length <= 2 ? (
-              <div className="text-center py-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/50">
-                <Search className="h-16 w-16 mx-auto text-zinc-300 dark:text-zinc-800 mb-4" />
-                <p className="text-zinc-500 font-semibold text-lg">Type to search users</p>
-                <p className="text-zinc-400 text-sm mt-1">Enter at least 3 characters to start searching</p>
-              </div>
-            ) : searchResults.length === 0 ? (
-              <div className="text-center py-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/50">
-                <Search className="h-16 w-16 mx-auto text-zinc-300 dark:text-zinc-800 mb-4" />
-                <p className="text-zinc-500 font-semibold text-lg">No users found</p>
-                <p className="text-zinc-400 text-sm mt-1">Try different keywords</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {searchResults.map((user) => (
-                  <UserCard key={user.id} user={user} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="nearby" className="outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="text-center py-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/50">
-              <MapPin className="h-16 w-16 mx-auto text-zinc-300 dark:text-zinc-800 mb-4" />
-              <p className="text-zinc-500 font-semibold text-lg">No nearby users found</p>
-              <p className="text-zinc-400 text-sm mt-1">Enable location services to find cricket fans near you</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="trending" className="outline-none animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="grid gap-3">
-              {trendingHashtags.length === 0 ? (
-                <div className="text-center py-16 bg-zinc-50/50 dark:bg-zinc-900/30 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800/50">
-                  <Star className="h-16 w-16 mx-auto text-zinc-300 dark:text-zinc-800 mb-4" />
-                  <p className="text-zinc-500 font-semibold text-lg">No trending hashtags</p>
+          <TabsContent value="suggested" className="mt-0 space-y-1">
+            {/* Horizontal scroll for first few users */}
+            {suggestedUsers.length > 0 && (
+              <ScrollArea className="w-full whitespace-nowrap mb-3">
+                <div className="flex gap-3 pb-2">
+                  {suggestedUsers.slice(0, 6).map((user) => (
+                    <HorizontalUserCard key={user.id} user={user} />
+                  ))}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {trendingHashtags.slice(0, 10).map((hashtag, index) => (
-                    <div
-                      key={hashtag.tag}
-                      className="flex items-center justify-between p-5 bg-white dark:bg-zinc-950 rounded-2xl hover:shadow-lg transition-all duration-300 border border-zinc-100 dark:border-zinc-800 group cursor-pointer"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center justify-center w-11 h-11 bg-primary/5 rounded-2xl text-[15px] font-bold text-primary group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <p className="font-bold text-zinc-900 dark:text-zinc-100 text-base">#{hashtag.tag}</p>
-                          <p className="text-[13px] text-zinc-500 font-medium">
-                            {hashtag.count} posts this week
-                          </p>
-                        </div>
+                <ScrollBar orientation="horizontal" className="h-2" />
+              </ScrollArea>
+            )}
+            
+            {/* Vertical list */}
+            <div className="space-y-1 max-h-[300px] overflow-y-auto">
+              {isLoadingSuggested ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-200 animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-1" />
+                        <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
                       </div>
-                      
-                      {hashtag.growth > 0 && (
-                        <Badge className="bg-green-100/80 hover:bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-none px-3 py-1 font-bold text-xs rounded-full">
-                          +{hashtag.growth}%
-                        </Badge>
-                      )}
+                      <div className="h-8 w-16 bg-slate-200 rounded animate-pulse" />
                     </div>
                   ))}
                 </div>
+              ) : suggestedUsers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-500 text-sm">No suggestions available</p>
+                </div>
+              ) : (
+                suggestedUsers.slice(0, 8).map((user) => (
+                  <CompactUserCard key={user.id} user={user} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="search" className="mt-0">
+            <div className="max-h-[350px] overflow-y-auto space-y-1">
+              {searchQuery.length <= 2 ? (
+                <div className="text-center py-8">
+                  <Search className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-500 text-sm">Type to search users</p>
+                  <p className="text-slate-400 text-xs mt-1">Enter at least 3 characters</p>
+                </div>
+              ) : isSearching ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <div className="h-12 w-12 rounded-full bg-slate-200 animate-pulse" />
+                      <div className="flex-1">
+                        <div className="h-4 w-24 bg-slate-200 rounded animate-pulse mb-1" />
+                        <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
+                      </div>
+                      <div className="h-8 w-16 bg-slate-200 rounded animate-pulse" />
+                    </div>
+                  ))}
+                </div>
+              ) : searchResults.length === 0 ? (
+                <div className="text-center py-8">
+                  <Search className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-500 text-sm">No users found for "{searchQuery}"</p>
+                </div>
+              ) : (
+                searchResults.map((user) => (
+                  <CompactUserCard key={user.id} user={user} />
+                ))
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="nearby" className="mt-0">
+            <div className="text-center py-8">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
+                <MapPin className="h-7 w-7 text-green-500" />
+              </div>
+              <p className="text-slate-600 font-medium">Nearby Users</p>
+              <p className="text-slate-400 text-xs mt-1">Enable location to find cricket fans near you</p>
+              <Button variant="outline" size="sm" className="mt-3 text-xs">
+                Enable Location
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="trending" className="mt-0">
+            <div className="space-y-2 max-h-[350px] overflow-y-auto">
+              {trendingHashtags.length === 0 ? (
+                <div className="text-center py-8">
+                  <TrendingUp className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                  <p className="text-slate-500 text-sm">No trending hashtags</p>
+                </div>
+              ) : (
+                trendingHashtags.slice(0, 8).map((hashtag, index) => (
+                  <div
+                    key={hashtag.tag}
+                    className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-slate-800">#{hashtag.tag}</p>
+                        <p className="text-xs text-slate-500">{hashtag.count} posts</p>
+                      </div>
+                    </div>
+                    {hashtag.growth > 0 && (
+                      <Badge className="bg-green-100 text-green-700 border-0 text-xs font-semibold">
+                        +{hashtag.growth}%
+                      </Badge>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

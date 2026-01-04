@@ -40,6 +40,9 @@ type UserProfileData = User & {
   followingCount: number;
   isFollowing: boolean;
   isBlocked: boolean;
+  followRequestStatus?: string | null; // "pending", "accepted", or null
+  canViewPosts?: boolean;
+  isMutual?: boolean; // true if both users follow each other
   name?: string;
   website?: string;
   // Verification attributes
@@ -77,6 +80,15 @@ export default function ProfilePage() {
   } | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(false);
 
+  const isOwnProfile = user?.username === username;
+
+  // Fetch mutual friends (only for other users' profiles)
+  const { data: mutualFriendsData } = useQuery<{ mutualFriends: User[]; count: number }>({
+    queryKey: [`/api/users/${username}/mutual-friends`],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !isOwnProfile && !!username,
+  });
+
   const { 
     data: profile, 
     isLoading: isProfileLoading 
@@ -94,34 +106,69 @@ export default function ProfilePage() {
     enabled: !!username,
   });
 
+  const { 
+    data: savedPosts, 
+    isLoading: isSavedPostsLoading 
+  } = useQuery<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean, isSaved: boolean })[]>({
+    queryKey: ["/api/user/saved"],
+    queryFn: getQueryFn({ on401: "throw" }),
+    enabled: isOwnProfile,
+  });
+
+  const { 
+    data: taggedPosts, 
+    isLoading: isTaggedPostsLoading 
+  } = useQuery<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean, isSaved: boolean })[]>({
+    queryKey: ["/api/user/tagged"],
+    queryFn: getQueryFn({ on401: "throw" }),
+    enabled: isOwnProfile,
+  });
+
   const followMutation = useMutation({
     mutationFn: async () => {
       if (profile?.isFollowing) {
+        // Unfollow
         await apiRequest("DELETE", `/api/users/${username}/follow`);
-        return false;
+        return { isFollowing: false, status: null, action: "unfollow" };
+      } else if (profile?.followRequestStatus === "pending") {
+        // Cancel pending request
+        await apiRequest("DELETE", `/api/users/${username}/follow-request`);
+        return { isFollowing: false, status: null, action: "cancel" };
       } else {
-        await apiRequest("POST", `/api/users/${username}/follow`);
-        return true;
+        // Send follow request
+        const response = await apiRequest("POST", `/api/users/${username}/follow`);
+        const data = await response.json();
+        return { isFollowing: data.status === "accepted", status: data.status, action: "follow" };
       }
     },
     onMutate: async () => {
-      // Optimistic update
-      if (profile) {
-        const updatedProfile = {
-          ...profile,
-          isFollowing: !profile.isFollowing,
-          followerCount: profile.isFollowing ? profile.followerCount - 1 : profile.followerCount + 1
-        };
-        queryClient.setQueryData([`/api/users/${username}`], updatedProfile);
-      }
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`/api/users/${username}`] });
     },
-    onSuccess: (isFollowing) => {
-      toast({
-        title: isFollowing ? "Following" : "Unfollowed",
-        description: isFollowing 
-          ? `You are now following ${username}` 
-          : `You are no longer following ${username}`,
-      });
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${username}`] });
+      
+      if (result.action === "cancel") {
+        toast({
+          title: "Request Cancelled",
+          description: `Your follow request to ${username} has been cancelled.`,
+        });
+      } else if (result.status === "pending") {
+        toast({
+          title: "Follow Request Sent",
+          description: `Your follow request to ${username} is pending approval.`,
+        });
+      } else if (result.isFollowing) {
+        toast({
+          title: "Following",
+          description: `You are now following ${username}`,
+        });
+      } else {
+        toast({
+          title: "Unfollowed",
+          description: `You are no longer following ${username}`,
+        });
+      }
     },
     onError: (error) => {
       // Revert optimistic update
@@ -212,7 +259,6 @@ export default function ProfilePage() {
     blockMutation.mutate();
   };
 
-  const isOwnProfile = user?.username === username;
   const isFollowing = profile?.isFollowing;
 
   return (
@@ -285,8 +331,8 @@ export default function ProfilePage() {
                     ) : (
                       <div className="flex gap-2">
                         <Button 
-                          variant={isFollowing ? "outline" : "default"}
-                          className={!isFollowing ? "bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-semibold" : "text-sm font-semibold"}
+                          variant={isFollowing || profile?.followRequestStatus === "pending" ? "outline" : "default"}
+                          className={!isFollowing && profile?.followRequestStatus !== "pending" ? "bg-[#FF5722] hover:bg-[#E64A19] text-white text-sm font-semibold" : "text-sm font-semibold"}
                           onClick={handleFollowToggle}
                           disabled={followMutation.isPending}
                         >
@@ -296,6 +342,11 @@ export default function ProfilePage() {
                             <>
                               <UserPlus className="h-4 w-4 mr-1" />
                               Following
+                            </>
+                          ) : profile?.followRequestStatus === "pending" ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-1" />
+                              Requested
                             </>
                           ) : (
                             <>
@@ -353,6 +404,27 @@ export default function ProfilePage() {
                       <span className="font-semibold">{profile.followingCount}</span> following
                     </div>
                   </div>
+
+                  {/* Mutual Friends Display */}
+                  {!isOwnProfile && mutualFriendsData && mutualFriendsData.count > 0 && (
+                    <div className="mb-4 text-sm text-neutral-600">
+                      <span className="font-medium">Followed by </span>
+                      {mutualFriendsData.mutualFriends.slice(0, 3).map((friend, index) => (
+                        <span key={friend.id}>
+                          <a 
+                            href={`/profile/${friend.username}`} 
+                            className="font-semibold hover:underline"
+                          >
+                            {friend.username}
+                          </a>
+                          {index < Math.min(mutualFriendsData.mutualFriends.length, 3) - 1 && ", "}
+                        </span>
+                      ))}
+                      {mutualFriendsData.count > 3 && (
+                        <span> + {mutualFriendsData.count - 3} more you follow</span>
+                      )}
+                    </div>
+                  )}
                   
                   <div>
                     <p className="font-semibold">{profile.name || profile.fullName}</p>
@@ -472,15 +544,119 @@ export default function ProfilePage() {
                 </TabsContent>
                 
                 <TabsContent value="saved" className="mt-4">
-                  <div className="text-center py-10">
-                    <p className="text-neutral-500">No saved posts yet.</p>
-                  </div>
+                  {!isOwnProfile ? (
+                    <div className="text-center py-10">
+                      <p className="text-neutral-500">Only you can see your saved posts.</p>
+                    </div>
+                  ) : isSavedPostsLoading ? (
+                    <div className="grid grid-cols-3 gap-1 md:gap-4">
+                      {Array(6).fill(0).map((_, index) => (
+                        <div 
+                          key={index} 
+                          className="aspect-square bg-neutral-200 animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  ) : savedPosts?.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-neutral-500">No saved posts yet.</p>
+                      <p className="text-sm text-neutral-400 mt-2">Save posts by clicking the bookmark icon.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1 md:gap-4">
+                      {savedPosts?.map(post => (
+                        <div 
+                          key={post.id} 
+                          className="aspect-square bg-neutral-100 overflow-hidden cursor-pointer relative group"
+                          onClick={() => handlePostClick(post)}
+                        >
+                          {post.imageUrl ? (
+                            <>
+                              <img 
+                                src={post.imageUrl} 
+                                alt="Post" 
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="flex space-x-6 text-white font-semibold">
+                                  <div className="flex items-center">
+                                    <span className="mr-1">❤️</span>
+                                    <span>{post.likeCount}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <span className="mr-1">💬</span>
+                                    <span>{post.commentCount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                              <p className="text-sm">No image</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="tagged" className="mt-4">
-                  <div className="text-center py-10">
-                    <p className="text-neutral-500">No tagged posts yet.</p>
-                  </div>
+                  {!isOwnProfile ? (
+                    <div className="text-center py-10">
+                      <p className="text-neutral-500">Only you can see posts you're tagged in.</p>
+                    </div>
+                  ) : isTaggedPostsLoading ? (
+                    <div className="grid grid-cols-3 gap-1 md:gap-4">
+                      {Array(6).fill(0).map((_, index) => (
+                        <div 
+                          key={index} 
+                          className="aspect-square bg-neutral-200 animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  ) : taggedPosts?.length === 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-neutral-500">No tagged posts yet.</p>
+                      <p className="text-sm text-neutral-400 mt-2">When someone tags you in a post, it will appear here.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1 md:gap-4">
+                      {taggedPosts?.map(post => (
+                        <div 
+                          key={post.id} 
+                          className="aspect-square bg-neutral-100 overflow-hidden cursor-pointer relative group"
+                          onClick={() => handlePostClick(post)}
+                        >
+                          {post.imageUrl ? (
+                            <>
+                              <img 
+                                src={post.imageUrl} 
+                                alt="Post" 
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="flex space-x-6 text-white font-semibold">
+                                  <div className="flex items-center">
+                                    <span className="mr-1">❤️</span>
+                                    <span>{post.likeCount}</span>
+                                  </div>
+                                  <div className="flex items-center">
+                                    <span className="mr-1">💬</span>
+                                    <span>{post.commentCount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-neutral-400">
+                              <p className="text-sm">No image</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="stats" className="mt-4">

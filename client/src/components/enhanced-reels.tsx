@@ -12,7 +12,6 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { VerificationBadge } from "@/components/verification-badge";
-import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 
 interface ReelCardProps {
   reel: Post & { 
@@ -192,7 +191,7 @@ export function ReelCard({ reel, isActive, onVideoRef }: ReelCardProps) {
         onClick={handleVideoClick}
         onDoubleClick={handleDoubleClick}
       >
-        <source src={reel.imageUrl} type="video/mp4" />
+        <source src={reel.videoUrl || reel.imageUrl || ''} type="video/mp4" />
       </video>
 
       {/* Progress bar */}
@@ -233,7 +232,7 @@ export function ReelCard({ reel, isActive, onVideoRef }: ReelCardProps) {
             <Link href={`/profile/${reel.user.username}`}>
               <span className="font-semibold text-white">{reel.user.username}</span>
             </Link>
-            {reel.user.isVerified && <VerificationBadge type="verified" size="sm" />}
+            {reel.user.verificationBadge && <VerificationBadge type="verified" size="sm" />}
             {reel.user.isPlayer && <VerificationBadge type="professional" size="sm" />}
             <span className="text-white/60">•</span>
             <Button
@@ -420,9 +419,13 @@ export function ReelsViewer({ className = "" }: ReelsViewerProps) {
   
   const { data: reels, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: ["/api/reels"],
-    queryFn: ({ pageParam = 1 }) => getQueryFn({ 
-      url: `/api/posts?type=reel&page=${pageParam}&limit=10` 
-    })(),
+    queryFn: async ({ pageParam = 1 }) => {
+      const response = await fetch(`/api/posts?type=reel&page=${pageParam}&limit=10`, {
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to fetch reels");
+      return response.json();
+    },
     getNextPageParam: (lastPage, pages) => {
       return lastPage.length === 10 ? pages.length + 1 : undefined;
     },

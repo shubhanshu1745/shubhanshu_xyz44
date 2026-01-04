@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Heart, MessageCircle, Send, Play, Pause, Volume2, VolumeX, MoreHorizontal, ArrowLeft, ArrowRight, Plus, Camera, Type, Smile, Music } from "lucide-react";
+import { X, Heart, MessageCircle, Send, Play, Pause, Volume2, VolumeX, MoreHorizontal, Plus, Camera } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { formatDistanceToNow } from "date-fns";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
 interface StoryCircleProps {
@@ -20,28 +19,35 @@ interface StoryCircleProps {
 }
 
 export function StoryCircle({ user, onClick, isOwn = false }: StoryCircleProps) {
-  const gradientClass = user.hasStory && !user.isViewed 
-    ? "bg-gradient-to-tr from-yellow-400 via-red-500 to-pink-500" 
-    : user.isViewed 
-    ? "bg-gray-300" 
-    : "bg-gray-200";
-
+  const hasUnviewedStory = user.hasStory && !user.isViewed;
+  
   return (
-    <div className="flex flex-col items-center space-y-1 cursor-pointer" onClick={onClick}>
-      <div className={`p-0.5 rounded-full ${gradientClass}`}>
-        <div className="bg-white p-0.5 rounded-full">
-          <Avatar className="h-14 w-14">
-            <AvatarImage src={user.profileImage || ""} alt={user.username} />
-            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+    <div 
+      className="flex flex-col items-center gap-1.5 cursor-pointer group"
+      onClick={onClick}
+    >
+      <div className={`relative p-[3px] rounded-full ${
+        hasUnviewedStory 
+          ? "bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-500" 
+          : user.isViewed 
+            ? "bg-slate-300" 
+            : "bg-slate-200"
+      }`}>
+        <div className="bg-white p-[2px] rounded-full">
+          <Avatar className="h-16 w-16 border-0 transition-transform group-hover:scale-105">
+            <AvatarImage src={user.profileImage || ""} alt={user.username} className="object-cover" />
+            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-lg">
+              {user.username.charAt(0).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
         </div>
         {isOwn && (
-          <div className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1">
+          <div className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-1.5 border-2 border-white shadow-md">
             <Plus className="h-3 w-3 text-white" />
           </div>
         )}
       </div>
-      <span className="text-xs text-gray-600 text-center max-w-[60px] truncate">
+      <span className="text-xs text-slate-600 font-medium text-center max-w-[70px] truncate">
         {isOwn ? "Your story" : user.username}
       </span>
     </div>
@@ -69,9 +75,8 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
   const progressIntervalRef = useRef<NodeJS.Timeout>();
   
   const currentStory = stories[currentIndex];
-  const storyDuration = 5000; // 5 seconds per story
+  const storyDuration = 5000;
 
-  // Story reactions
   const reactions = ["❤️", "😂", "😮", "😢", "👏", "🔥", "🏏", "⚡"];
 
   const reactMutation = useMutation({
@@ -172,14 +177,14 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md mx-auto h-full max-h-screen p-0 bg-black">
+      <DialogContent className="max-w-md mx-auto h-full max-h-screen p-0 bg-black border-0">
         <div className="relative h-full flex flex-col">
           {/* Progress bars */}
-          <div className="absolute top-2 left-2 right-2 z-10 flex space-x-1">
+          <div className="absolute top-2 left-2 right-2 z-10 flex gap-1">
             {stories.map((_, index) => (
-              <div key={index} className="flex-1 h-0.5 bg-white/30 rounded">
+              <div key={index} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-white rounded transition-all duration-100"
+                  className="h-full bg-white rounded-full transition-all duration-100"
                   style={{ 
                     width: index < currentIndex ? '100%' : 
                            index === currentIndex ? `${progress}%` : '0%' 
@@ -190,39 +195,41 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
           </div>
 
           {/* Header */}
-          <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pt-6">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-8 w-8 border-2 border-white">
+          <div className="absolute top-6 left-4 right-4 z-10 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-white shadow-lg">
                 <AvatarImage src={currentStory.user.profileImage || ""} />
-                <AvatarFallback>{currentStory.user.username.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                  {currentStory.user.username.charAt(0)}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <p className="text-white text-sm font-semibold">{currentStory.user.username}</p>
-                <p className="text-white/80 text-xs">
+                <p className="text-white/70 text-xs">
                   {formatDistanceToNow(new Date(currentStory.createdAt!), { addSuffix: true })}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                className="h-9 w-9 p-0 text-white hover:bg-white/20 rounded-full"
                 onMouseDown={() => setIsPaused(true)}
                 onMouseUp={() => setIsPaused(false)}
                 onTouchStart={() => setIsPaused(true)}
                 onTouchEnd={() => setIsPaused(false)}
               >
-                <MoreHorizontal className="h-4 w-4" />
+                {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                className="h-9 w-9 p-0 text-white hover:bg-white/20 rounded-full"
                 onClick={onClose}
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -252,7 +259,7 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
 
             {/* Text overlay */}
             {currentStory.caption && (
-              <div className="absolute inset-x-4 bottom-24 bg-black/50 rounded-lg p-3">
+              <div className="absolute inset-x-4 bottom-28 bg-black/60 backdrop-blur-sm rounded-xl p-4">
                 <p className="text-white text-center">{currentStory.caption}</p>
               </div>
             )}
@@ -269,14 +276,14 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
 
             {/* Video controls */}
             {isVideo && (
-              <div className="absolute bottom-4 right-4">
+              <div className="absolute bottom-28 right-4">
                 <Button
                   size="sm"
                   variant="secondary"
-                  className="h-8 w-8 p-0 bg-black/50 border-0 text-white"
+                  className="h-10 w-10 p-0 bg-black/50 border-0 text-white rounded-full"
                   onClick={() => setIsMuted(!isMuted)}
                 >
-                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
                 </Button>
               </div>
             )}
@@ -287,11 +294,11 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
             <div className="absolute bottom-4 left-4 right-4 z-10">
               {/* Quick reactions */}
               {showReactions && (
-                <div className="bg-black/70 rounded-full p-2 mb-3 flex justify-center space-x-2">
+                <div className="bg-black/80 backdrop-blur-sm rounded-full p-3 mb-3 flex justify-center gap-2">
                   {reactions.map(reaction => (
                     <button
                       key={reaction}
-                      className="text-2xl hover:scale-110 transition-transform"
+                      className="text-2xl hover:scale-125 transition-transform active:scale-95"
                       onClick={() => handleReaction(reaction)}
                     >
                       {reaction}
@@ -300,31 +307,32 @@ export function StoryViewer({ stories, currentIndex, onClose, onNext, onPrevious
                 </div>
               )}
 
-              <div className="flex items-center space-x-3">
-                <form onSubmit={handleReply} className="flex-1 flex items-center space-x-2">
+              <div className="flex items-center gap-3">
+                <form onSubmit={handleReply} className="flex-1">
                   <Input
                     placeholder="Send message..."
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
-                    className="flex-1 bg-transparent border border-white/30 text-white placeholder-white/60 rounded-full px-4"
+                    className="bg-white/10 backdrop-blur-sm border-white/20 text-white placeholder-white/60 rounded-full px-4 h-11 focus:ring-2 focus:ring-white/30"
                   />
                 </form>
                 
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                  className="h-11 w-11 p-0 text-white hover:bg-white/20 rounded-full"
                   onClick={() => setShowReactions(!showReactions)}
                 >
-                  <Heart className="h-5 w-5" />
+                  <Heart className="h-6 w-6" />
                 </Button>
                 
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 w-8 p-0 text-white hover:bg-white/20"
+                  className="h-11 w-11 p-0 text-white hover:bg-white/20 rounded-full"
+                  onClick={handleReply}
                 >
-                  <Send className="h-5 w-5" />
+                  <Send className="h-6 w-6" />
                 </Button>
               </div>
             </div>
@@ -339,7 +347,12 @@ interface StoriesContainerProps {
   className?: string;
 }
 
-export function StoriesContainer({ className = "" }: StoriesContainerProps) {
+interface StoriesContainerProps {
+  className?: string;
+  onCreateStory?: () => void;
+}
+
+export function StoriesContainer({ className = "", onCreateStory }: StoriesContainerProps) {
   const { user } = useAuth();
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentStoryIndex, setCurrentStoryIndex] = useState(0);
@@ -348,6 +361,18 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
   const { data: storyUsers, isLoading } = useQuery({
     queryKey: ["/api/stories/users"],
     queryFn: getQueryFn(),
+  });
+
+  // Get current user's stories
+  const { data: currentUserStoriesData } = useQuery({
+    queryKey: ["/api/stories/user", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const response = await fetch(`/api/stories/user/${user.id}`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!user,
   });
 
   const { data: currentUserStories } = useQuery<any[]>({
@@ -359,6 +384,21 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
     setCurrentUserIndex(userIndex);
     setCurrentStoryIndex(0);
     setViewerOpen(true);
+  };
+
+  const handleOwnStoryClick = () => {
+    // If user has stories, show them, otherwise open create dialog
+    if (currentUserStoriesData?.stories && currentUserStoriesData.stories.length > 0) {
+      // Show own stories in viewer
+      setCurrentUserIndex(-1);
+      setCurrentStoryIndex(0);
+      setViewerOpen(true);
+    } else {
+      // Open create story dialog
+      if (onCreateStory) {
+        onCreateStory();
+      }
+    }
   };
 
   const handleNext = useCallback(() => {
@@ -387,11 +427,11 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
 
   if (isLoading) {
     return (
-      <div className={`flex space-x-4 p-4 ${className}`}>
-        {Array(5).fill(0).map((_, i) => (
-          <div key={i} className="flex flex-col items-center space-y-1">
-            <div className="h-14 w-14 bg-gray-200 rounded-full animate-pulse" />
-            <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
+      <div className={`flex gap-4 p-4 overflow-x-auto ${className}`}>
+        {Array(6).fill(0).map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0">
+            <div className="h-[70px] w-[70px] bg-slate-200 rounded-full animate-pulse" />
+            <div className="h-3 w-14 bg-slate-200 rounded animate-pulse" />
           </div>
         ))}
       </div>
@@ -400,12 +440,13 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
 
   return (
     <>
-      <div className={`flex space-x-4 p-4 overflow-x-auto ${className}`}>
+      <div className={`flex gap-4 p-4 overflow-x-auto scrollbar-hide ${className}`}>
         {/* Own story */}
         {user && (
           <StoryCircle
-            user={{ ...user, hasStory: true }}
-            onClick={() => handleStoryClick(0)}
+            user={user}
+            hasStory={currentUserStoriesData?.stories && currentUserStoriesData.stories.length > 0}
+            onClick={handleOwnStoryClick}
             isOwn
           />
         )}
@@ -418,12 +459,36 @@ export function StoriesContainer({ className = "" }: StoriesContainerProps) {
             onClick={() => handleStoryClick(index)}
           />
         ))}
+        
+        {/* Placeholder circles when no stories */}
+        {(!storyUsers || storyUsers.length === 0) && (
+          <>
+            {Array(5).fill(0).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-1.5 flex-shrink-0 opacity-40">
+                <div className="p-[3px] rounded-full bg-slate-200">
+                  <div className="bg-white p-[2px] rounded-full">
+                    <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center">
+                      <Camera className="h-6 w-6 text-slate-300" />
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400">No stories</span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Story Viewer */}
-      {viewerOpen && currentUserStories && (
+      {viewerOpen && (
         <StoryViewer
-          stories={Array.isArray(currentUserStories) ? currentUserStories : []}
+          stories={
+            currentUserIndex === -1 && currentUserStoriesData?.stories
+              ? currentUserStoriesData.stories.map((s: any) => ({ ...s, user: user! }))
+              : Array.isArray(currentUserStories) 
+                ? currentUserStories 
+                : []
+          }
           currentIndex={currentStoryIndex}
           onClose={() => setViewerOpen(false)}
           onNext={handleNext}

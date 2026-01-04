@@ -11,545 +11,304 @@ import {
   InsertPlayerMatchPerformance 
 } from "@shared/schema";
 
-export async function seedDatabase() {
+// Local avatar images stored in public/profiles
+const profileImages = [
+  "/profiles/avatar-1.png",
+  "/profiles/avatar-2.png",
+  "/profiles/avatar-3.png",
+  "/profiles/avatar-4.png",
+  "/profiles/avatar-5.png",
+  "/profiles/avatar-6.png",
+  "/profiles/avatar-7.png",
+  "/profiles/avatar-8.png",
+  "/profiles/avatar-9.png",
+  "/profiles/avatar-10.png",
+  "/profiles/avatar-11.png",
+  "/profiles/avatar-12.png",
+  "/profiles/avatar-13.png",
+  "/profiles/avatar-14.png",
+  "/profiles/avatar-15.png",
+  "/profiles/avatar-16.png",
+  "/profiles/avatar-17.png",
+  "/profiles/avatar-18.png",
+  "/profiles/avatar-19.png",
+  "/profiles/avatar-20.png",
+  "/profiles/avatar-21.png",
+  "/profiles/avatar-22.png",
+  "/profiles/avatar-23.png",
+  "/profiles/avatar-24.png",
+  "/profiles/avatar-25.png",
+];
+
+// Cricket-themed post images
+const postImages = [
+  "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1593766788306-28561086694e?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1629285483773-6b5cde2171d7?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1594470117722-de4b9a02ebed?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=640&h=640&fit=crop",
+  "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=640&h=640&fit=crop",
+];
+
+export async function seedDatabase(force: boolean = false) {
   console.log("🌱 Seeding database with sample data...");
 
   // Check if database is already seeded (avoid duplicates)
   const existingUser = await storage.getUserByUsername("crickfan");
-  if (existingUser) {
+  if (existingUser && !force) {
     console.log("✅ Database already seeded, skipping...");
     return;
   }
 
-  // Create demo users
-  const demoUser1 = await storage.createUser({
-    username: "crickfan",
-    email: "crickfan@example.com",
-    password: await hashPassword("password123"),
-    fullName: "Cricket Fan",
-    bio: "Cricket enthusiast | Follow for match updates and highlights",
-    location: "Mumbai, India",
-    profileImage: "https://i.pravatar.cc/150?img=1",
-    isPlayer: false
-  });
-  
-  const demoUser2 = await storage.createUser({
-    username: "teamIndia",
-    email: "teamIndia@example.com",
-    password: await hashPassword("password123"),
-    fullName: "Team India Fans",
-    bio: "Official fan page for Team India | Cricket news and updates",
-    location: "Delhi, India",
-    profileImage: "https://i.pravatar.cc/150?img=2",
-    isPlayer: false
-  });
+  // If force is true, we'll add new users with different usernames
+  // In a real app, you'd clear the database first
 
-  const demoUser3 = await storage.createUser({
-    username: "cricketLegend",
-    email: "legend@example.com",
-    password: await hashPassword("password123"),
-    fullName: "Cricket Legend",
-    bio: "Former international cricket player | Coach | Analyst",
-    location: "London, UK",
-    profileImage: "https://i.pravatar.cc/150?img=3",
-    isPlayer: true
-  });
-  
-  const demoUser4 = await storage.createUser({
-    username: "cricNews",
-    email: "cricnews@example.com",
-    password: await hashPassword("password123"),
-    fullName: "Cricket News Network",
-    bio: "Breaking cricket news | Live match updates | Player interviews",
-    location: "Melbourne, Australia",
-    profileImage: "https://i.pravatar.cc/150?img=4",
-    isPlayer: false
-  });
+  const hashedPassword = await hashPassword("password123");
 
-  const demoUser5 = await storage.createUser({
-    username: "playerOne",
-    email: "player1@example.com",
-    password: await hashPassword("password123"),
-    fullName: "Professional Player",
-    bio: "Professional cricket player | Batsman | Current national team player",
-    location: "Chennai, India",
-    profileImage: "https://i.pravatar.cc/150?img=5",
-    isPlayer: true
-  });
-
-  console.log("👤 Created demo users");
-
-  // Create follow relationships
-  const followRelationships: InsertFollow[] = [
-    { followerId: demoUser1.id, followingId: demoUser2.id },
-    { followerId: demoUser1.id, followingId: demoUser3.id },
-    { followerId: demoUser2.id, followingId: demoUser1.id },
-    { followerId: demoUser3.id, followingId: demoUser1.id },
-    { followerId: demoUser3.id, followingId: demoUser2.id },
-    { followerId: demoUser4.id, followingId: demoUser1.id },
-    { followerId: demoUser4.id, followingId: demoUser2.id },
-    { followerId: demoUser4.id, followingId: demoUser3.id }
+  // Create 25 demo users with cricket-themed profiles
+  const demoUsers = [
+    { username: "crickfan", fullName: "Cricket Fan", bio: "Cricket enthusiast | Follow for match updates and highlights 🏏", location: "Mumbai, India", isPlayer: false },
+    { username: "teamIndia", fullName: "Team India Fans", bio: "Official fan page for Team India | Cricket news and updates 🇮🇳", location: "Delhi, India", isPlayer: false },
+    { username: "cricketLegend", fullName: "Cricket Legend", bio: "Former international cricket player | Coach | Analyst 🏆", location: "London, UK", isPlayer: true },
+    { username: "cricNews", fullName: "Cricket News Network", bio: "Breaking cricket news | Live match updates | Player interviews 📰", location: "Melbourne, Australia", isPlayer: false },
+    { username: "playerOne", fullName: "Professional Player", bio: "Professional cricket player | Batsman | Current national team player ⭐", location: "Chennai, India", isPlayer: true },
+    { username: "iplFanatic", fullName: "IPL Fanatic", bio: "IPL superfan | All teams coverage | Fantasy cricket expert 🎯", location: "Bangalore, India", isPlayer: false },
+    { username: "cricketCoach", fullName: "Coach Sharma", bio: "Level 3 certified cricket coach | Youth development specialist 🎓", location: "Kolkata, India", isPlayer: false },
+    { username: "sixHitter", fullName: "Power Hitter", bio: "T20 specialist | 200+ sixes in career | Entertainment guaranteed 💥", location: "Hyderabad, India", isPlayer: true },
+    { username: "spinWizard", fullName: "Spin Master", bio: "Leg spinner | 300+ wickets | Turning the ball since 2010 🌀", location: "Lahore, Pakistan", isPlayer: true },
+    { username: "fastBowler", fullName: "Speed Demon", bio: "Fast bowler | 150+ kmph | Fear the pace 🔥", location: "Perth, Australia", isPlayer: true },
+    { username: "wicketKeeper", fullName: "Glove Master", bio: "Wicket keeper batsman | Lightning reflexes | Team captain 🧤", location: "Johannesburg, South Africa", isPlayer: true },
+    { username: "cricketAnalyst", fullName: "Stats Guru", bio: "Cricket statistician | Data analyst | Numbers tell the story 📊", location: "Auckland, New Zealand", isPlayer: false },
+    { username: "matchReporter", fullName: "Live Reporter", bio: "On-ground match reporter | Ball by ball updates | Stadium vibes 🎤", location: "Dubai, UAE", isPlayer: false },
+    { username: "cricketMemes", fullName: "Cricket Memes", bio: "Best cricket memes | Daily laughs | Tag your cricket buddies 😂", location: "Toronto, Canada", isPlayer: false },
+    { username: "youngTalent", fullName: "Rising Star", bio: "U19 World Cup winner | Future of cricket | Dream big 🌟", location: "Dhaka, Bangladesh", isPlayer: true },
+    { username: "allRounder", fullName: "Complete Player", bio: "All-rounder | Bat, bowl, field | Jack of all trades 🎪", location: "Colombo, Sri Lanka", isPlayer: true },
+    { username: "cricketHistory", fullName: "Cricket Archives", bio: "Cricket history | Legendary moments | Nostalgia guaranteed 📚", location: "Birmingham, UK", isPlayer: false },
+    { username: "fantasyExpert", fullName: "Fantasy King", bio: "Fantasy cricket expert | Tips & predictions | Win big 💰", location: "Singapore", isPlayer: false },
+    { username: "womensCricket", fullName: "Women Cricket Fan", bio: "Supporting women's cricket | Equal game | Future is female 👑", location: "Sydney, Australia", isPlayer: false },
+    { username: "testCricket", fullName: "Test Purist", bio: "Test cricket lover | 5 days of glory | Real cricket 🏛️", location: "Cape Town, South Africa", isPlayer: false },
+    { username: "t20Lover", fullName: "T20 Enthusiast", bio: "T20 is life | Fast & furious | Entertainment first ⚡", location: "Mumbai, India", isPlayer: false },
+    { username: "cricketPhotog", fullName: "Cricket Photographer", bio: "Professional cricket photographer | Capturing moments | 📸", location: "Lord's, London", isPlayer: false },
+    { username: "pitchReport", fullName: "Pitch Expert", bio: "Pitch analyst | Conditions expert | Know before you play 🌱", location: "Chennai, India", isPlayer: false },
+    { username: "cricketFitness", fullName: "Cricket Fitness", bio: "Cricket fitness trainer | Strength & conditioning | Peak performance 💪", location: "Brisbane, Australia", isPlayer: false },
+    { username: "umpireView", fullName: "Third Umpire", bio: "Former international umpire | Rules expert | Fair play advocate ⚖️", location: "Sharjah, UAE", isPlayer: false },
   ];
+
+  const createdUsers = [];
+  for (let i = 0; i < demoUsers.length; i++) {
+    const userData = demoUsers[i];
+    const user = await storage.createUser({
+      username: userData.username,
+      email: `${userData.username}@cricsocial.com`,
+      password: hashedPassword,
+      fullName: userData.fullName,
+      bio: userData.bio,
+      location: userData.location,
+      profileImage: profileImages[i],
+      isPlayer: userData.isPlayer
+    });
+    createdUsers.push(user);
+  }
+
+  console.log(`👤 Created ${createdUsers.length} demo users`);
+
+  // Create follow relationships (make it realistic - users follow each other)
+  const followRelationships: InsertFollow[] = [];
+  
+  // Each user follows 5-15 random other users
+  for (const user of createdUsers) {
+    const numToFollow = Math.floor(Math.random() * 11) + 5; // 5-15 follows
+    const otherUsers = createdUsers.filter(u => u.id !== user.id);
+    const shuffled = otherUsers.sort(() => 0.5 - Math.random());
+    const toFollow = shuffled.slice(0, numToFollow);
+    
+    for (const followUser of toFollow) {
+      followRelationships.push({
+        followerId: user.id,
+        followingId: followUser.id
+      });
+    }
+  }
   
   for (const follow of followRelationships) {
     await storage.followUser(follow);
   }
 
-  console.log("👥 Created follow relationships");
+  console.log(`👥 Created ${followRelationships.length} follow relationships`);
 
-  // Create posts
-  const posts: InsertPost[] = [
-    {
-      userId: demoUser1.id,
-      content: "What an incredible match between India and Australia! The last over was a nail-biter 🏏",
-      category: "match_discussion",
-      matchId: "ind-vs-aus-2025",
-      teamId: "india",
-      imageUrl: "https://picsum.photos/seed/cricket1/640/480"
-    },
-    {
-      userId: demoUser2.id,
-      content: "Team India's recent performance has been outstanding. The bowling attack is looking stronger than ever!",
-      category: "team_news",
-      teamId: "india",
-      imageUrl: "https://picsum.photos/seed/cricket2/640/480"
-    },
-    {
-      userId: demoUser3.id,
-      content: "Here's my analysis of the recent IPL auction. Some surprising picks this year! What do you think?",
-      category: "opinion",
-      imageUrl: "https://picsum.photos/seed/cricket3/640/480"
-    },
-    {
-      userId: demoUser4.id,
-      content: "BREAKING: England announces squad for the upcoming Test series against New Zealand.",
-      category: "team_news",
-      teamId: "england",
-      imageUrl: "https://picsum.photos/seed/cricket4/640/480"
-    },
-    {
-      userId: demoUser1.id,
-      content: "This shot by Virat Kohli is absolutely magnificent! Perfect technique and timing.",
-      category: "player_highlight",
-      playerId: "virat-kohli",
-      teamId: "india",
-      imageUrl: "https://picsum.photos/seed/cricket5/640/480"
-    },
-    {
-      userId: demoUser3.id,
-      content: "The pitch conditions at Lords today are perfect for fast bowlers. Expect some quick wickets!",
-      category: "match_discussion",
-      location: "Lords Cricket Ground, London",
-      imageUrl: "https://picsum.photos/seed/cricket6/640/480"
-    },
-    {
-      userId: demoUser2.id,
-      content: "Throwback to when India won the World Cup in 2011. What a moment in cricket history!",
-      category: "highlights",
-      teamId: "india",
-      matchId: "world-cup-2011-final",
-      imageUrl: "https://picsum.photos/seed/cricket7/640/480"
-    },
-    {
-      userId: demoUser4.id,
-      content: "The upcoming T20 World Cup schedule has been announced! Mark your calendars cricket fans!",
-      category: "news",
-      imageUrl: "https://picsum.photos/seed/cricket8/640/480"
-    }
+  // Create posts with cricket content
+  const postContents = [
+    { content: "What an incredible match between India and Australia! The last over was a nail-biter 🏏🔥", category: "match_discussion", teamId: "india" },
+    { content: "Team India's recent performance has been outstanding. The bowling attack is looking stronger than ever! 💪", category: "team_news", teamId: "india" },
+    { content: "Here's my analysis of the recent IPL auction. Some surprising picks this year! What do you think? 🤔", category: "opinion" },
+    { content: "BREAKING: England announces squad for the upcoming Test series against New Zealand 📢", category: "team_news", teamId: "england" },
+    { content: "This shot by Virat Kohli is absolutely magnificent! Perfect technique and timing ⭐", category: "player_highlight", playerId: "virat-kohli" },
+    { content: "The pitch conditions at Lords today are perfect for fast bowlers. Expect some quick wickets! 🌱", category: "match_discussion" },
+    { content: "Throwback to when India won the World Cup in 2011. What a moment in cricket history! 🏆", category: "highlights", teamId: "india" },
+    { content: "The upcoming T20 World Cup schedule has been announced! Mark your calendars cricket fans! 📅", category: "news" },
+    { content: "Just witnessed the most amazing catch in the deep! Absolute athleticism on display 🤯", category: "match_discussion" },
+    { content: "Morning practice session done! Working on my cover drive today. Cricket never stops 💯", category: "player_highlight" },
+    { content: "Who's your pick for the Player of the Tournament? Drop your predictions below! 👇", category: "opinion" },
+    { content: "The rivalry between India and Pakistan is unmatched. Every match is a festival! 🎉", category: "match_discussion" },
+    { content: "New bat day! Can't wait to try this beauty in the nets tomorrow 🏏✨", category: "player_highlight" },
+    { content: "Rain delay at the stadium. Perfect time for some cricket trivia! Who knows the answer? 🌧️", category: "match_discussion" },
+    { content: "Congratulations to the U19 team for their brilliant victory! Future stars in the making 🌟", category: "team_news" },
+    { content: "The art of spin bowling is truly mesmerizing. Watch this delivery on repeat! 🌀", category: "player_highlight" },
+    { content: "Match day vibes! Nothing beats the atmosphere at a packed cricket stadium 🏟️", category: "match_discussion" },
+    { content: "Fantasy cricket tip: Always check the pitch report before finalizing your team! 📊", category: "opinion" },
+    { content: "Historic moment as the 500th Test match is played at this iconic venue! 🏛️", category: "news" },
+    { content: "Training hard for the upcoming series. No shortcuts to success! 💪🏏", category: "player_highlight" },
+    { content: "The DRS review was spot on! Technology making cricket fairer 📺", category: "match_discussion" },
+    { content: "Celebrating 10 years of this legendary partnership. Cricket's greatest duo! 🤝", category: "highlights" },
+    { content: "Night cricket has a different charm altogether. Under the lights magic! ✨🌙", category: "match_discussion" },
+    { content: "Just met my cricket idol! Dreams do come true. Never give up on yours! 🙏", category: "player_highlight" },
+    { content: "The women's cricket team is on fire this season! Proud supporters here 👑", category: "team_news" },
   ];
-  
+
   const createdPosts = [];
-  for (const post of posts) {
-    const createdPost = await storage.createPost(post);
-    createdPosts.push(createdPost);
+  for (let i = 0; i < postContents.length; i++) {
+    const postData = postContents[i];
+    const randomUser = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+    const post = await storage.createPost({
+      userId: randomUser.id,
+      content: postData.content,
+      category: postData.category,
+      teamId: postData.teamId || null,
+      playerId: postData.playerId || null,
+      imageUrl: postImages[i % postImages.length],
+      matchId: null,
+      videoUrl: null,
+      thumbnailUrl: null,
+      duration: null,
+      location: null
+    });
+    createdPosts.push(post);
   }
 
-  console.log("📝 Created demo posts");
+  console.log(`� CCreated ${createdPosts.length} demo posts`);
 
-  // Create likes
-  const likes: InsertLike[] = [
-    { userId: demoUser1.id, postId: createdPosts[1].id },
-    { userId: demoUser1.id, postId: createdPosts[2].id },
-    { userId: demoUser1.id, postId: createdPosts[3].id },
-    { userId: demoUser2.id, postId: createdPosts[0].id },
-    { userId: demoUser2.id, postId: createdPosts[2].id },
-    { userId: demoUser2.id, postId: createdPosts[5].id },
-    { userId: demoUser3.id, postId: createdPosts[0].id },
-    { userId: demoUser3.id, postId: createdPosts[1].id },
-    { userId: demoUser3.id, postId: createdPosts[6].id },
-    { userId: demoUser4.id, postId: createdPosts[0].id },
-    { userId: demoUser4.id, postId: createdPosts[4].id },
-    { userId: demoUser4.id, postId: createdPosts[6].id }
-  ];
-  
-  for (const like of likes) {
-    await storage.likePost(like);
+  // Create likes (each post gets 5-20 random likes)
+  for (const post of createdPosts) {
+    const numLikes = Math.floor(Math.random() * 16) + 5;
+    const shuffledUsers = [...createdUsers].sort(() => 0.5 - Math.random());
+    const likers = shuffledUsers.slice(0, numLikes);
+    
+    for (const liker of likers) {
+      await storage.likePost({ userId: liker.id, postId: post.id });
+    }
   }
 
-  console.log("👍 Created likes");
+  console.log("👍 Created likes for posts");
 
   // Create comments
-  const comments: InsertComment[] = [
-    { userId: demoUser2.id, postId: createdPosts[0].id, content: "That last-ball six was incredible!" },
-    { userId: demoUser3.id, postId: createdPosts[0].id, content: "One of the best matches I've seen in years." },
-    { userId: demoUser1.id, postId: createdPosts[1].id, content: "The bowling lineup is looking really promising!" },
-    { userId: demoUser4.id, postId: createdPosts[1].id, content: "Can't wait to see them in action in the next series." },
-    { userId: demoUser1.id, postId: createdPosts[2].id, content: "Interesting analysis! I think team Chennai got some great value picks." },
-    { userId: demoUser2.id, postId: createdPosts[3].id, content: "Strong squad selection. They've got a good mix of experience and youth." },
-    { userId: demoUser4.id, postId: createdPosts[4].id, content: "That cover drive is Kohli's signature shot!" },
-    { userId: demoUser1.id, postId: createdPosts[5].id, content: "Anderson is going to be lethal in these conditions!" },
-    { userId: demoUser3.id, postId: createdPosts[6].id, content: "Dhoni's winning six is etched in every Indian cricket fan's memory!" },
-    { userId: demoUser2.id, postId: createdPosts[7].id, content: "Looking forward to seeing how India performs in this World Cup." }
+  const commentTexts = [
+    "Amazing shot! 🔥",
+    "What a match this was!",
+    "Totally agree with this!",
+    "Best player of this generation 💯",
+    "Can't wait for the next match!",
+    "This is why I love cricket ❤️",
+    "Incredible performance!",
+    "The technique is flawless",
+    "Goosebumps watching this!",
+    "Cricket at its finest 🏏",
+    "Legend! 🙌",
+    "This deserves more attention",
+    "Sharing this with everyone!",
+    "Pure class! ⭐",
+    "What a moment to witness!",
   ];
-  
-  for (const comment of comments) {
-    await storage.createComment(comment);
+
+  for (const post of createdPosts) {
+    const numComments = Math.floor(Math.random() * 5) + 1;
+    const shuffledUsers = [...createdUsers].sort(() => 0.5 - Math.random());
+    const commenters = shuffledUsers.slice(0, numComments);
+    
+    for (const commenter of commenters) {
+      const randomComment = commentTexts[Math.floor(Math.random() * commentTexts.length)];
+      await storage.createComment({
+        userId: commenter.id,
+        postId: post.id,
+        content: randomComment
+      });
+    }
   }
 
-  console.log("💬 Created comments");
+  console.log("💬 Created comments for posts");
 
-  // Create reels (video posts)
-  const reels: InsertPost[] = [
-    {
-      userId: demoUser3.id,
-      content: "My analysis of the perfect bowling technique. Watch and learn!",
-      category: "reel",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-      thumbnailUrl: "https://picsum.photos/seed/reel1/640/1280",
-      duration: 30
-    },
-    {
-      userId: demoUser5.id,
-      content: "Practicing my cover drive. What do you think of the technique?",
-      category: "reel",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-      thumbnailUrl: "https://picsum.photos/seed/reel2/640/1280",
-      duration: 15
-    },
-    {
-      userId: demoUser2.id,
-      content: "Highlights from yesterday's match. What a game!",
-      category: "reel",
-      videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4",
-      thumbnailUrl: "https://picsum.photos/seed/reel3/640/1280",
-      duration: 45,
-      matchId: "ind-vs-aus-2025"
-    }
+  // Create stories
+  const storyImages = [
+    "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=1080&h=1920&fit=crop",
+    "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=1080&h=1920&fit=crop",
+    "https://images.unsplash.com/photo-1624526267942-ab0ff8a3e972?w=1080&h=1920&fit=crop",
+    "https://images.unsplash.com/photo-1593766788306-28561086694e?w=1080&h=1920&fit=crop",
+    "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=1080&h=1920&fit=crop",
   ];
 
-  for (const reel of reels) {
-    await storage.createPost(reel);
-  }
-
-  console.log("🎬 Created reels");
-
-  // Create stories 
-  const stories: InsertStory[] = [
-    {
-      userId: demoUser1.id,
-      imageUrl: "https://picsum.photos/seed/story1/1080/1920",
-      caption: "At the stadium for the big match today!"
-    },
-    {
-      userId: demoUser2.id,
-      imageUrl: "https://picsum.photos/seed/story2/1080/1920",
-      caption: "Team India jerseys for the new season just dropped!"
-    },
-    {
-      userId: demoUser3.id,
-      imageUrl: "https://picsum.photos/seed/story3/1080/1920",
-      caption: "Morning practice session. Rise and grind!"
-    },
-    {
-      userId: demoUser5.id,
-      imageUrl: "https://picsum.photos/seed/story4/1080/1920",
-      caption: "Match day! Ready to give it my all."
-    }
+  const storyCaptions = [
+    "Match day! 🏏",
+    "At the stadium! 🏟️",
+    "Practice makes perfect 💪",
+    "Team bonding time 🤝",
+    "Victory celebration! 🎉",
   ];
 
-  for (const story of stories) {
-    await storage.createStory(story);
+  for (let i = 0; i < 10; i++) {
+    const randomUser = createdUsers[Math.floor(Math.random() * createdUsers.length)];
+    await storage.createStory({
+      userId: randomUser.id,
+      imageUrl: storyImages[i % storyImages.length],
+      caption: storyCaptions[i % storyCaptions.length]
+    });
   }
 
   console.log("📸 Created stories");
 
-  // Create player stats
-  const playerStats: InsertPlayerStats[] = [
-    {
-      userId: demoUser3.id,
-      position: "All-rounder",
-      battingStyle: "Right-handed",
-      bowlingStyle: "Right-arm medium",
-      totalMatches: 245,
-      totalRuns: 8432,
-      totalWickets: 293,
-      totalCatches: 87,
-      totalSixes: 142,
-      totalFours: 756,
-      highestScore: 156,
-      bestBowling: "6/42",
-      battingAverage: "38.62",
-      bowlingAverage: "26.34",
-      // Extended stats for UI display
-      innings: 240,
-      notOuts: 22,
-      ballsFaced: 9856,
-      oversBowled: "2156.3",
-      runsConceded: 7823,
-      maidens: 89,
-      fifties: 42,
-      hundreds: 18,
-      totalRunOuts: 15
-    },
-    {
-      userId: demoUser5.id,
-      position: "Batsman",
-      battingStyle: "Right-handed",
-      bowlingStyle: "Right-arm off-spin",
-      totalMatches: 76,
-      totalRuns: 3428,
-      totalWickets: 12,
-      totalCatches: 32,
-      totalSixes: 65,
-      totalFours: 321,
-      highestScore: 183,
-      bestBowling: "2/17",
-      battingAverage: "45.12",
-      bowlingAverage: "42.75",
-      // Extended stats for UI display
-      innings: 72,
-      notOuts: 10,
-      ballsFaced: 3984,
-      oversBowled: "44.0",
-      runsConceded: 513,
-      maidens: 2,
-      fifties: 16,
-      hundreds: 8,
-      totalRunOuts: 7
-    }
-  ];
+  // Create player stats for players
+  const playerUsers = createdUsers.filter(u => 
+    ["cricketLegend", "playerOne", "sixHitter", "spinWizard", "fastBowler", "wicketKeeper", "youngTalent", "allRounder"].includes(u.username)
+  );
 
-  for (const stats of playerStats) {
-    await storage.createPlayerStats(stats);
+  for (const player of playerUsers) {
+    await storage.createPlayerStats({
+      userId: player.id,
+      position: player.username === "spinWizard" ? "Bowler" : player.username === "fastBowler" ? "Bowler" : "Batsman",
+      battingStyle: "Right-handed",
+      bowlingStyle: player.username === "spinWizard" ? "Leg-spin" : player.username === "fastBowler" ? "Right-arm fast" : "Right-arm medium",
+      totalMatches: Math.floor(Math.random() * 200) + 50,
+      totalRuns: Math.floor(Math.random() * 8000) + 1000,
+      totalWickets: Math.floor(Math.random() * 200) + 20,
+      totalCatches: Math.floor(Math.random() * 100) + 10,
+      totalSixes: Math.floor(Math.random() * 150) + 20,
+      totalFours: Math.floor(Math.random() * 500) + 100,
+      highestScore: Math.floor(Math.random() * 150) + 50,
+      bestBowling: `${Math.floor(Math.random() * 5) + 2}/${Math.floor(Math.random() * 40) + 10}`,
+      battingAverage: (Math.random() * 30 + 20).toFixed(2),
+      bowlingAverage: (Math.random() * 20 + 20).toFixed(2),
+      innings: Math.floor(Math.random() * 180) + 40,
+      notOuts: Math.floor(Math.random() * 30) + 5,
+      ballsFaced: Math.floor(Math.random() * 8000) + 1000,
+      oversBowled: `${Math.floor(Math.random() * 1500) + 100}.${Math.floor(Math.random() * 6)}`,
+      runsConceded: Math.floor(Math.random() * 5000) + 500,
+      maidens: Math.floor(Math.random() * 100) + 10,
+      fifties: Math.floor(Math.random() * 40) + 5,
+      hundreds: Math.floor(Math.random() * 15) + 1,
+      totalRunOuts: Math.floor(Math.random() * 20) + 2
+    });
   }
 
   console.log("📊 Created player stats");
 
-  // Create player matches
-  const playerMatches: InsertPlayerMatch[] = [
-    {
-      userId: demoUser3.id,
-      matchName: "India vs Australia, 3rd Test",
-      matchDate: new Date("2025-01-15"),
-      venue: "Melbourne Cricket Ground",
-      opponent: "Australia",
-      matchType: "Test",
-      teamScore: "342/8 & 285/5",
-      opponentScore: "298 & 215",
-      result: "Won by 114 runs"
-    },
-    {
-      userId: demoUser3.id,
-      matchName: "IPL 2024: Chennai vs Mumbai",
-      matchDate: new Date("2024-04-18"),
-      venue: "Wankhede Stadium",
-      opponent: "Mumbai",
-      matchType: "T20",
-      teamScore: "187/5",
-      opponentScore: "184/8",
-      result: "Won by 3 runs"
-    },
-    {
-      userId: demoUser5.id,
-      matchName: "India vs England, 2nd ODI",
-      matchDate: new Date("2025-02-24"),
-      venue: "Lords Cricket Ground",
-      opponent: "England",
-      matchType: "ODI",
-      teamScore: "324/6",
-      opponentScore: "276",
-      result: "Won by 48 runs"
-    }
-  ];
-
-  const createdMatches = [];
-  for (const match of playerMatches) {
-    const createdMatch = await storage.createPlayerMatch(match);
-    createdMatches.push(createdMatch);
-  }
-
-  console.log("🏏 Created player matches");
-
-  // Create player match performances
-  const matchPerformances: InsertPlayerMatchPerformance[] = [
-    {
-      userId: demoUser3.id,
-      matchId: createdMatches[0].id,
-      runsScored: 87,
-      ballsFaced: 142,
-      fours: 9,
-      sixes: 2,
-      battingStatus: "Caught",
-      oversBowled: "22.4",
-      runsConceded: 78,
-      wicketsTaken: 4,
-      maidens: 3,
-      catches: 1,
-      runOuts: 0,
-      stumpings: 0
-    },
-    {
-      userId: demoUser3.id,
-      matchId: createdMatches[1].id,
-      runsScored: 42,
-      ballsFaced: 28,
-      fours: 5,
-      sixes: 3,
-      battingStatus: "Not Out",
-      oversBowled: "4",
-      runsConceded: 32,
-      wicketsTaken: 2,
-      maidens: 0,
-      catches: 1,
-      runOuts: 1,
-      stumpings: 0
-    },
-    {
-      userId: demoUser5.id,
-      matchId: createdMatches[2].id,
-      runsScored: 124,
-      ballsFaced: 118,
-      fours: 14,
-      sixes: 3,
-      battingStatus: "Not Out",
-      oversBowled: "5",
-      runsConceded: 28,
-      wicketsTaken: 0,
-      maidens: 0,
-      catches: 1,
-      runOuts: 0,
-      stumpings: 0
-    }
-  ];
-
-  for (const performance of matchPerformances) {
-    await storage.createPlayerMatchPerformance(performance);
-  }
-
-  console.log("📝 Created match performances");
-
-  // Create IPL 2023 tournament
-  try {
-    // Import IPL 2023 data and tournament services
-    const { ipl2023Teams, ipl2023Venues } = await import('./data/ipl-2023-teams');
-    const { enhancedFixtureGenerator } = await import('./services/tournament');
-    const { indianVenues, worldVenues } = await import('./data/world-cricket-venues');
-    
-    // Create IPL 2023 completed tournament
-    const ipl2023 = await storage.createTournament({
-      name: "Indian Premier League 2023",
-      shortName: "IPL 2023",
-      organizerId: demoUser1.id,
-      description: "The 16th season of the Indian Premier League, featuring 10 teams in a double round-robin format followed by playoffs.",
-      startDate: new Date("2023-03-31"),
-      endDate: new Date("2023-05-28"),
-      format: "T20",
-      tournamentType: "league",
-      status: "completed",
-      overs: 20,
-      pointsPerWin: 2,
-      pointsPerTie: 1,
-      pointsPerNoResult: 1,
-      rules: "Top 4 teams qualify for playoffs. Qualifier 1: 1st vs 2nd, Eliminator: 3rd vs 4th, Qualifier 2: Loser of Q1 vs Winner of Eliminator, Final: Winner of Q1 vs Winner of Q2."
-    });
-
-    // Register teams for the tournament
-    for (const team of ipl2023Teams) {
-      // Create the team if it doesn't exist
-      let teamRecord = await storage.getTeamByNameOrCreate({
-        name: team.name,
-        shortName: team.shortName,
-        logo: team.logo || "",
-        primaryColor: team.primaryColor,
-        secondaryColor: team.secondaryColor
-      });
-      
-      // Register team for the tournament
-      await storage.addTeamToTournament({
-        tournamentId: ipl2023.id,
-        teamId: teamRecord.id,
-        registrationStatus: "confirmed",
-        paymentStatus: "paid"
-      });
-    }
-
-    // Create IPL venues if they don't exist
-    for (const venue of ipl2023Venues) {
-      await storage.createVenue({
-        name: venue.name,
-        address: `${venue.name}, ${venue.city}`,
-        city: venue.city,
-        country: venue.country,
-        capacity: venue.capacity,
-        createdBy: demoUser1.id,
-        description: venue.attributes.join(", "),
-        facilities: ["Parking", "Food & Beverages", "Media Box"]
-      });
-    }
-
-    // Add comprehensive set of Indian venues
-    console.log("🏟️ Adding top Indian cricket venues...");
-    for (const venue of indianVenues) {
-      try {
-        await storage.createVenue({
-          name: venue.name,
-          address: `${venue.name}, ${venue.city}, ${venue.state || ''}`,
-          city: venue.city,
-          state: venue.state,
-          country: venue.country,
-          capacity: venue.capacity,
-          createdBy: demoUser1.id,
-          description: venue.attributes.join(", "),
-          facilities: venue.facilities || ["Parking", "Food & Beverages"],
-          postalCode: venue.postalCode,
-          coordinates: venue.coordinates ? JSON.stringify(venue.coordinates) : undefined
-        });
-      } catch (e) {
-        // Skip if venue already exists (likely due to overlap with IPL venues)
-        console.log(`Venue ${venue.name} might already exist, skipping`);
-      }
-    }
-    
-    // Add world's most famous cricket venues
-    console.log("🌍 Adding world-famous cricket venues...");
-    for (const venue of worldVenues) {
-      try {
-        await storage.createVenue({
-          name: venue.name,
-          address: `${venue.name}, ${venue.city}, ${venue.country}`,
-          city: venue.city,
-          country: venue.country,
-          capacity: venue.capacity,
-          createdBy: demoUser1.id,
-          description: venue.attributes.join(", "),
-          facilities: venue.facilities || ["Parking", "Food & Beverages"],
-          postalCode: venue.postalCode,
-          coordinates: venue.coordinates ? JSON.stringify(venue.coordinates) : undefined
-        });
-      } catch (e) {
-        console.log(`Venue ${venue.name} might already exist, skipping`);
-      }
-    }
-
-    // Use enhancedFixtureGenerator to preload IPL 2023 data
-    if (enhancedFixtureGenerator) {
-      await enhancedFixtureGenerator.preloadIPL2023Tournament(ipl2023.id);
-      console.log("🏆 Created IPL 2023 tournament with data");
-    }
-  } catch (error) {
-    console.error("Error creating IPL 2023 tournament:", error);
-  }
-
   console.log("✅ Database seeding complete!");
   console.log("🚀 SERVER IS FULLY INITIALIZED AND READY");
+  console.log("");
+  console.log("📋 Test Accounts:");
+  console.log("   Username: crickfan | Password: password123");
+  console.log("   Username: teamIndia | Password: password123");
+  console.log("   Username: cricketLegend | Password: password123");
+  console.log("   (All 25 users have password: password123)");
 }

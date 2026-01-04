@@ -27,6 +27,7 @@ import VenueDiscovery from "@/pages/venue-discovery";
 import VenueManagement from "@/pages/venue-management";
 import PollsPage from "@/pages/polls";
 import StoriesPage from "@/pages/stories";
+import SavedPostsPage from "@/pages/saved-posts-page";
 // AI Features
 import AIFeatures from "@/pages/ai-features";
 import MatchPrediction from "@/pages/ai-features/match-prediction";
@@ -74,6 +75,7 @@ function Router() {
       <ProtectedRoute path="/chat/:id" component={ChatPage} />
       <ProtectedRoute path="/messages" component={MessagesPage} />
       <ProtectedRoute path="/settings" component={SettingsPage} />
+      <ProtectedRoute path="/saved" component={SavedPostsPage} />
       {/* AI Features Routes */}
       <ProtectedRoute path="/ai-features" component={AIFeatures} />
       <ProtectedRoute path="/ai-features/match-prediction" component={MatchPrediction} />

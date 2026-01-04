@@ -150,6 +150,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       });
     },
     onSuccess: () => {
+      // Invalidate user query to refresh privacy settings in UI
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Privacy settings updated",
         description: "Your privacy settings have been updated successfully."

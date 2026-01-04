@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, numeric, jsonb, primaryKey, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,6 +27,11 @@ export const users = pgTable("users", {
   verificationBadge: boolean("verification_badge").default(false),
   registrationMethod: text("registration_method").default("email"), // "email", "google", "facebook", "phone"
   lastLoginAt: timestamp("last_login_at"),
+  // Privacy settings
+  isPrivate: boolean("is_private").default(false), // Private account setting
+  allowTagging: boolean("allow_tagging").default(true),
+  allowMentions: boolean("allow_mentions").default(true),
+  showActivityStatus: boolean("show_activity_status").default(true),
 });
 
 export const tokens = pgTable("tokens", {
@@ -67,6 +72,37 @@ export const comments = pgTable("comments", {
   content: text("content").notNull(),
   userId: integer("user_id").notNull(),
   postId: integer("post_id").notNull(),
+  parentId: integer("parent_id"), // For nested replies - references another comment
+  isPinned: boolean("is_pinned").default(false), // Pinned by post owner
+  isEdited: boolean("is_edited").default(false), // Track if comment was edited
+  editedAt: timestamp("edited_at"), // When comment was last edited
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Saved posts (bookmarks)
+export const savedPosts = pgTable("saved_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Comment likes
+export const commentLikes = pgTable("comment_likes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  commentId: integer("comment_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Post shares tracking
+export const postShares = pgTable("post_shares", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  postId: integer("post_id").notNull(),
+  shareType: text("share_type").notNull(), // "followers", "direct", "external", "copy_link"
+  recipientId: integer("recipient_id"), // For direct shares to specific users
+  platform: text("platform"), // For external shares: "twitter", "facebook", "whatsapp", etc.
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -74,6 +110,24 @@ export const follows = pgTable("follows", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").notNull(),
   followingId: integer("following_id").notNull(),
+  status: text("status").notNull().default("accepted"), // "pending", "accepted", "rejected"
+  createdAt: timestamp("created_at").defaultNow(),
+  acceptedAt: timestamp("accepted_at"), // When the follow request was accepted
+});
+
+// Notifications system
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // User who receives the notification
+  fromUserId: integer("from_user_id"), // User who triggered the notification (optional)
+  type: text("type").notNull(), // "follow_request", "follow_accepted", "like", "comment", "mention", "story_view", "post_share"
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  entityType: text("entity_type"), // "post", "story", "comment", "user"
+  entityId: integer("entity_id"), // ID of the related entity
+  imageUrl: text("image_url"), // Optional image for the notification
+  actionUrl: text("action_url"), // URL to navigate when notification is clicked
+  isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -154,6 +208,60 @@ export const storyComments = pgTable("story_comments", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Story polls
+export const storyPolls = pgTable("story_polls", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  question: text("question").notNull(),
+  option1: text("option1").notNull(),
+  option2: text("option2").notNull(),
+  option3: text("option3"),
+  option4: text("option4"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryPoll = typeof storyPolls.$inferSelect;
+export type InsertStoryPoll = typeof storyPolls.$inferInsert;
+export const createInsertStoryPollSchema = createInsertSchema(storyPolls).omit({ id: true, createdAt: true });
+
+// Story poll votes
+export const storyPollVotes = pgTable("story_poll_votes", {
+  id: serial("id").primaryKey(),
+  pollId: integer("poll_id").notNull(),
+  userId: integer("user_id").notNull(),
+  optionNumber: integer("option_number").notNull(), // 1, 2, 3, or 4
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryPollVote = typeof storyPollVotes.$inferSelect;
+export type InsertStoryPollVote = typeof storyPollVotes.$inferInsert;
+export const createInsertStoryPollVoteSchema = createInsertSchema(storyPollVotes).omit({ id: true, createdAt: true });
+
+// Story questions (Q&A)
+export const storyQuestions = pgTable("story_questions", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull(),
+  question: text("question").notNull(), // The question prompt
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryQuestion = typeof storyQuestions.$inferSelect;
+export type InsertStoryQuestion = typeof storyQuestions.$inferInsert;
+export const createInsertStoryQuestionSchema = createInsertSchema(storyQuestions).omit({ id: true, createdAt: true });
+
+// Story question responses
+export const storyQuestionResponses = pgTable("story_question_responses", {
+  id: serial("id").primaryKey(),
+  questionId: integer("question_id").notNull(),
+  userId: integer("user_id").notNull(),
+  response: text("response").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type StoryQuestionResponse = typeof storyQuestionResponses.$inferSelect;
+export type InsertStoryQuestionResponse = typeof storyQuestionResponses.$inferInsert;
+export const createInsertStoryQuestionResponseSchema = createInsertSchema(storyQuestionResponses).omit({ id: true, createdAt: true });
 
 export type StoryComment = typeof storyComments.$inferSelect;
 export type InsertStoryComment = typeof storyComments.$inferInsert;
@@ -493,6 +601,172 @@ export const contentRewards = pgTable("content_rewards", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Enhanced Social Features Tables
+
+// User relationships tracking all social connections
+export const userRelationships = pgTable("user_relationships", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  targetUserId: integer("target_user_id").notNull().references(() => users.id),
+  relationshipType: text("relationship_type").notNull(), // "following", "blocked", "restricted", "muted", "close_friend"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueRelationship: unique().on(table.userId, table.targetUserId),
+  };
+});
+
+// Follow requests for private accounts
+export const followRequests = pgTable("follow_requests", {
+  id: serial("id").primaryKey(),
+  requesterId: integer("requester_id").notNull().references(() => users.id),
+  requestedId: integer("requested_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // "pending", "accepted", "rejected", "cancelled"
+  createdAt: timestamp("created_at").defaultNow(),
+  respondedAt: timestamp("responded_at"),
+}, (table) => {
+  return {
+    uniqueRequest: unique().on(table.requesterId, table.requestedId),
+  };
+});
+
+// Enhanced privacy settings
+export const userPrivacySettings = pgTable("user_privacy_settings", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  allowTagging: boolean("allow_tagging").default(true),
+  allowMentions: boolean("allow_mentions").default(true),
+  showActivityStatus: boolean("show_activity_status").default(true),
+  allowMessageRequests: boolean("allow_message_requests").default(true),
+  allowStoryReplies: boolean("allow_story_replies").default(true),
+  whoCanSeeFollowers: text("who_can_see_followers").default("everyone"), // "everyone", "followers", "no_one"
+  whoCanSeeFollowing: text("who_can_see_following").default("everyone"), // "everyone", "followers", "no_one"
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Close friends management
+export const closeFriends = pgTable("close_friends", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  friendId: integer("friend_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueFriendship: unique().on(table.userId, table.friendId),
+  };
+});
+
+// Post collaborators
+export const postCollaborators = pgTable("post_collaborators", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => posts.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  status: text("status").default("pending"), // "pending", "accepted", "rejected"
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueCollaboration: unique().on(table.postId, table.userId),
+  };
+});
+
+// Post mentions
+export const postMentions = pgTable("post_mentions", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => posts.id),
+  mentionedUserId: integer("mentioned_user_id").notNull().references(() => users.id),
+  mentionedByUserId: integer("mentioned_by_user_id").notNull().references(() => users.id),
+  mentionType: text("mention_type").default("post"), // "post", "comment"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Enhanced story privacy
+export const storyPrivacy = pgTable("story_privacy", {
+  id: serial("id").primaryKey(),
+  storyId: integer("story_id").notNull().references(() => stories.id),
+  visibilityType: text("visibility_type").default("followers"), // "public", "followers", "close_friends", "custom"
+  customList: jsonb("custom_list"), // Array of user IDs for custom visibility
+  hiddenFrom: jsonb("hidden_from"), // Array of user IDs to hide from
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Content reports
+export const contentReports = pgTable("content_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id").notNull().references(() => users.id),
+  contentId: integer("content_id").notNull(),
+  contentType: text("content_type").notNull(), // "post", "story", "comment", "user"
+  reason: text("reason").notNull(),
+  description: text("description"),
+  status: text("status").default("pending"), // "pending", "reviewed", "resolved", "dismissed"
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Group chats
+export const groupChats = pgTable("group_chats", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  avatarUrl: text("avatar_url"),
+  creatorId: integer("creator_id").notNull().references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Group members
+export const groupMembers = pgTable("group_members", {
+  id: serial("id").primaryKey(),
+  groupId: integer("group_id").notNull().references(() => groupChats.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: text("role").default("member"), // "admin", "member"
+  joinedAt: timestamp("joined_at").defaultNow(),
+  leftAt: timestamp("left_at"),
+  isActive: boolean("is_active").default(true),
+}, (table) => {
+  return {
+    uniqueMembership: unique().on(table.groupId, table.userId),
+  };
+});
+
+// Message reactions
+export const messageReactions = pgTable("message_reactions", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => messages.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  reaction: text("reaction").notNull(), // emoji or reaction type
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueReaction: unique().on(table.messageId, table.userId),
+  };
+});
+
+// Message requests
+export const messageRequests = pgTable("message_requests", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
+  messageId: integer("message_id").notNull().references(() => messages.id),
+  status: text("status").default("pending"), // "pending", "accepted", "declined"
+  createdAt: timestamp("created_at").defaultNow(),
+  respondedAt: timestamp("responded_at"),
+});
+
+// User restrictions (blocked, muted, restricted users)
+export const userRestrictions = pgTable("user_restrictions", {
+  id: serial("id").primaryKey(),
+  restricterId: integer("restricter_id").notNull().references(() => users.id),
+  restrictedId: integer("restricted_id").notNull().references(() => users.id),
+  restrictionType: text("restriction_type").notNull(), // "blocked", "muted", "restricted"
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueRestriction: unique().on(table.restricterId, table.restrictedId, table.restrictionType),
+  };
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -529,11 +803,43 @@ export const insertCommentSchema = createInsertSchema(comments).pick({
   content: true,
   userId: true,
   postId: true,
+  parentId: true,
+});
+
+export const insertSavedPostSchema = createInsertSchema(savedPosts).pick({
+  userId: true,
+  postId: true,
+});
+
+export const insertCommentLikeSchema = createInsertSchema(commentLikes).pick({
+  userId: true,
+  commentId: true,
+});
+
+export const insertPostShareSchema = createInsertSchema(postShares).pick({
+  userId: true,
+  postId: true,
+  shareType: true,
+  recipientId: true,
+  platform: true,
 });
 
 export const insertFollowSchema = createInsertSchema(follows).pick({
   followerId: true,
   followingId: true,
+  status: true,
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  fromUserId: true,
+  type: true,
+  title: true,
+  message: true,
+  entityType: true,
+  entityId: true,
+  imageUrl: true,
+  actionUrl: true,
 });
 
 export const insertBlockedUserSchema = createInsertSchema(blockedUsers).pick({
@@ -639,7 +945,7 @@ export const insertPlayerMatchPerformanceSchema = createInsertSchema(playerMatch
   });
 
 // Story Schema
-export const createStorySchema = insertStorySchema.extend({
+export const createStorySchema = z.object({
   imageUrl: z.string().min(1, "Image URL is required"),
   caption: z.string().max(100, "Caption must be less than 100 characters").optional(),
 });
@@ -798,8 +1104,20 @@ export type Like = typeof likes.$inferSelect;
 export type InsertComment = z.infer<typeof insertCommentSchema>;
 export type Comment = typeof comments.$inferSelect;
 
+export type InsertSavedPost = z.infer<typeof insertSavedPostSchema>;
+export type SavedPost = typeof savedPosts.$inferSelect;
+
+export type InsertCommentLike = z.infer<typeof insertCommentLikeSchema>;
+export type CommentLike = typeof commentLikes.$inferSelect;
+
+export type InsertPostShare = z.infer<typeof insertPostShareSchema>;
+export type PostShare = typeof postShares.$inferSelect;
+
 export type InsertFollow = z.infer<typeof insertFollowSchema>;
 export type Follow = typeof follows.$inferSelect;
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
 
 export type InsertBlockedUser = z.infer<typeof insertBlockedUserSchema>;
 export type BlockedUser = typeof blockedUsers.$inferSelect;
@@ -867,6 +1185,47 @@ export type UserInterest = typeof userInterests.$inferSelect;
 export type InsertContentEngagement = z.infer<typeof insertContentEngagementSchema>;
 export type ContentEngagement = typeof contentEngagement.$inferSelect;
 
+// Enhanced Social Features Types
+
+export type InsertUserRelationship = z.infer<typeof insertUserRelationshipSchema>;
+export type UserRelationship = typeof userRelationships.$inferSelect;
+
+export type InsertFollowRequest = z.infer<typeof insertFollowRequestSchema>;
+export type FollowRequest = typeof followRequests.$inferSelect;
+
+export type InsertUserPrivacySettings = z.infer<typeof insertUserPrivacySettingsSchema>;
+export type UserPrivacySettings = typeof userPrivacySettings.$inferSelect;
+
+export type InsertCloseFriend = z.infer<typeof insertCloseFriendSchema>;
+export type CloseFriend = typeof closeFriends.$inferSelect;
+
+export type InsertPostCollaborator = z.infer<typeof insertPostCollaboratorSchema>;
+export type PostCollaborator = typeof postCollaborators.$inferSelect;
+
+export type InsertPostMention = z.infer<typeof insertPostMentionSchema>;
+export type PostMention = typeof postMentions.$inferSelect;
+
+export type InsertStoryPrivacy = z.infer<typeof insertStoryPrivacySchema>;
+export type StoryPrivacy = typeof storyPrivacy.$inferSelect;
+
+export type InsertContentReport = z.infer<typeof insertContentReportSchema>;
+export type ContentReport = typeof contentReports.$inferSelect;
+
+export type InsertGroupChat = z.infer<typeof insertGroupChatSchema>;
+export type GroupChat = typeof groupChats.$inferSelect;
+
+export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+export type GroupMember = typeof groupMembers.$inferSelect;
+
+export type InsertMessageReaction = z.infer<typeof insertMessageReactionSchema>;
+export type MessageReaction = typeof messageReactions.$inferSelect;
+
+export type InsertMessageRequest = z.infer<typeof insertMessageRequestSchema>;
+export type MessageRequest = typeof messageRequests.$inferSelect;
+
+export type InsertUserRestriction = z.infer<typeof insertUserRestrictionSchema>;
+export type UserRestriction = typeof userRestrictions.$inferSelect;
+
 // Token schema
 export const insertTokenSchema = createInsertSchema(tokens).pick({
   userId: true,
@@ -877,6 +1236,96 @@ export const insertTokenSchema = createInsertSchema(tokens).pick({
 
 export type InsertToken = z.infer<typeof insertTokenSchema>;
 export type Token = typeof tokens.$inferSelect;
+
+// Enhanced Social Features Insert Schemas
+
+export const insertUserRelationshipSchema = createInsertSchema(userRelationships).pick({
+  userId: true,
+  targetUserId: true,
+  relationshipType: true,
+});
+
+export const insertFollowRequestSchema = createInsertSchema(followRequests).pick({
+  requesterId: true,
+  requestedId: true,
+  status: true,
+});
+
+export const insertUserPrivacySettingsSchema = createInsertSchema(userPrivacySettings).pick({
+  userId: true,
+  allowTagging: true,
+  allowMentions: true,
+  showActivityStatus: true,
+  allowMessageRequests: true,
+  allowStoryReplies: true,
+  whoCanSeeFollowers: true,
+  whoCanSeeFollowing: true,
+});
+
+export const insertCloseFriendSchema = createInsertSchema(closeFriends).pick({
+  userId: true,
+  friendId: true,
+});
+
+export const insertPostCollaboratorSchema = createInsertSchema(postCollaborators).pick({
+  postId: true,
+  userId: true,
+  status: true,
+});
+
+export const insertPostMentionSchema = createInsertSchema(postMentions).pick({
+  postId: true,
+  mentionedUserId: true,
+  mentionedByUserId: true,
+  mentionType: true,
+});
+
+export const insertStoryPrivacySchema = createInsertSchema(storyPrivacy).pick({
+  storyId: true,
+  visibilityType: true,
+  customList: true,
+  hiddenFrom: true,
+});
+
+export const insertContentReportSchema = createInsertSchema(contentReports).pick({
+  reporterId: true,
+  contentId: true,
+  contentType: true,
+  reason: true,
+  description: true,
+});
+
+export const insertGroupChatSchema = createInsertSchema(groupChats).pick({
+  name: true,
+  description: true,
+  avatarUrl: true,
+  creatorId: true,
+});
+
+export const insertGroupMemberSchema = createInsertSchema(groupMembers).pick({
+  groupId: true,
+  userId: true,
+  role: true,
+});
+
+export const insertMessageReactionSchema = createInsertSchema(messageReactions).pick({
+  messageId: true,
+  userId: true,
+  reaction: true,
+});
+
+export const insertMessageRequestSchema = createInsertSchema(messageRequests).pick({
+  senderId: true,
+  recipientId: true,
+  messageId: true,
+  status: true,
+});
+
+export const insertUserRestrictionSchema = createInsertSchema(userRestrictions).pick({
+  restricterId: true,
+  restrictedId: true,
+  restrictionType: true,
+});
 
 // Extended schemas for frontend validation
 export const loginSchema = z.object({

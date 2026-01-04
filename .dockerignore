@@ -1,0 +1,16 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+*.md
+*.log
+.DS_Store
+.replit
+replit.nix
+replit.md
+attached_assets
+docs
+mobile
+.config
+.local

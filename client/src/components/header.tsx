@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CreatePostModal } from "./create-post-modal";
-import { RealTimeNotifications } from "./real-time-notifications";
+import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./ui/theme-toggle";
 
 export function Header() {
@@ -115,73 +115,7 @@ export function Header() {
             </Button>
           </Link>
           
-          <RealTimeNotifications className="text-white hover:text-[#FFC107]" />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-white hover:text-[#FFC107]">
-                <Heart className="h-5 w-5" />
-                <span className="sr-only">Notifications</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 max-h-[calc(100vh-100px)] overflow-y-auto">
-              <div className="px-4 py-3 font-medium border-b">Notifications</div>
-              <div className="py-2">
-                <div className="p-4 text-center">
-                  <p className="text-sm text-muted-foreground">No new notifications</p>
-                </div>
-                
-                {/* Example notifications that will be populated dynamically */}
-                {/* Post like notification with clickable link */}
-                <Link href="/posts/1" className="block">
-                  <div className="px-4 py-2 hover:bg-muted/50 cursor-pointer transition" onClick={() => setLocation("/profile/shubhx45")}>
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 mt-1">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm leading-tight"><span className="font-semibold">crickfan</span> liked your post</p>
-                        <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-                
-                {/* Follow notification with clickable link */}
-                <Link href="/profile/cricketlover" className="block">
-                  <div className="px-4 py-2 hover:bg-muted/50 cursor-pointer transition">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 mt-1">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm leading-tight"><span className="font-semibold">cricketlover</span> started following you</p>
-                        <p className="text-xs text-muted-foreground mt-1">1 day ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-                
-                {/* Comment notification with clickable link */}
-                <Link href="/posts/3" className="block">
-                  <div className="px-4 py-2 hover:bg-muted/50 cursor-pointer transition">
-                    <div className="flex items-start gap-3">
-                      <Avatar className="h-8 w-8 mt-1">
-                        <AvatarImage src="https://github.com/shadcn.png" alt="User" />
-                        <AvatarFallback>C</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm leading-tight"><span className="font-semibold">cricketstar</span> commented on your post</p>
-                        <p className="text-xs text-muted-foreground mt-1">3 hours ago</p>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <NotificationBell />
           
           {/* Theme Toggle */}
           <ThemeToggle className="text-white hover:text-[#FFC107]" />

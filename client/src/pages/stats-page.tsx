@@ -406,7 +406,7 @@ export default function StatsPage() {
     fours: match.performance?.fours || 0,
     sixes: match.performance?.sixes || 0,
     maidens: match.performance?.maidens || 0,
-  })).reverse(); // Reverse to show latest matches last in chart
+  })).reverse() : []; // Reverse to show latest matches last in chart
 
 
   return (
@@ -593,7 +593,7 @@ export default function StatsPage() {
               <>
                 {matches && matches.length > 0 ? (
                   <div className="space-y-4">
-                    {matches && Array.isArray(matches) ? matches.map((match) => (
+                    {matches.map((match) => (
                       <Card key={match.id} className="overflow-hidden border shadow-sm">
 
                          <div className="flex flex-wrap bg-muted/50 dark:bg-muted/30 p-2 px-4 items-center text-xs text-muted-foreground gap-x-3 gap-y-1">

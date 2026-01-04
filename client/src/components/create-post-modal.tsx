@@ -73,6 +73,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
       const response = await fetch('/api/upload/post', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -80,7 +81,12 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
       }
       
       const data = await response.json();
-      setImageUrl(data.url);
+      // Ensure we get the URL from the response
+      const uploadedUrl = data.url || data.filename || data.path;
+      if (!uploadedUrl) {
+        throw new Error('No URL returned from upload');
+      }
+      setImageUrl(uploadedUrl);
       
       toast({
         title: "Image uploaded",
@@ -132,6 +138,7 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
       const response = await fetch('/api/upload/reel', {
         method: 'POST',
         body: formData,
+        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -273,14 +280,24 @@ export function CreatePostModal({ open, onClose }: CreatePostModalProps) {
     e.preventDefault();
     
     if (postType === "image") {
+      // Validate that imageUrl is provided for image posts
+      if (!imageUrl || imageUrl.trim() === "") {
+        toast({
+          title: "Image required",
+          description: "Please upload an image or provide an image URL before creating a post.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       createPostMutation.mutate({
         content,
-        imageUrl: imageUrl || undefined,
-        location: location || undefined,
+        imageUrl: imageUrl.trim(), // Ensure no whitespace and always send if provided
+        location: location?.trim() || undefined,
         category: category || undefined as any,
-        matchId: matchId || undefined,
-        teamId: teamId || undefined,
-        playerId: playerId || undefined,
+        matchId: matchId?.trim() || undefined,
+        teamId: teamId?.trim() || undefined,
+        playerId: playerId?.trim() || undefined,
       });
     } else {
       // For reels

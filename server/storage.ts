@@ -11,6 +11,10 @@ import {
   storyViews, type StoryView, type InsertStoryView,
   storyReactions, type StoryReaction, type InsertStoryReaction,
   storyComments, type StoryComment, type InsertStoryComment,
+  storyPolls, type StoryPoll, type InsertStoryPoll,
+  storyPollVotes, type StoryPollVote, type InsertStoryPollVote,
+  storyQuestions, type StoryQuestion, type InsertStoryQuestion,
+  storyQuestionResponses, type StoryQuestionResponse, type InsertStoryQuestionResponse,
   playerStats, type PlayerStats, type InsertPlayerStats,
   playerMatches, type PlayerMatch, type InsertPlayerMatch,
   playerMatchPerformance, type PlayerMatchPerformance, type InsertPlayerMatchPerformance,
@@ -34,7 +38,18 @@ import {
   playerTournamentStats, type PlayerTournamentStats, type InsertPlayerTournamentStats,
   polls, type Poll, type InsertPoll,
   pollOptions, type PollOption, type InsertPollOption,
-  pollVotes, type PollVote, type InsertPollVote
+  pollVotes, type PollVote, type InsertPollVote,
+  savedPosts, type SavedPost, type InsertSavedPost,
+  commentLikes, type CommentLike, type InsertCommentLike,
+  postShares, type PostShare, type InsertPostShare,
+  postMentions, type PostMention,
+  // Enhanced Social Features
+  userRelationships, type UserRelationship, type InsertUserRelationship,
+  followRequests, type FollowRequest, type InsertFollowRequest,
+  userPrivacySettings, type UserPrivacySettings, type InsertUserPrivacySettings,
+  closeFriends, type CloseFriend, type InsertCloseFriend,
+  userRestrictions, type UserRestriction, type InsertUserRestriction,
+  notifications, type Notification, type InsertNotification
 } from "@shared/schema";
 
 // Type aliases for storage interface
@@ -100,16 +115,59 @@ export interface IStorage {
   
   // Comment methods
   createComment(comment: InsertComment): Promise<Comment>;
-  getCommentsForPost(postId: number): Promise<(Comment & { user: User })[]>;
+  getCommentsForPost(postId: number): Promise<(Comment & { user: User, likeCount: number, replyCount: number, hasLiked: boolean })[]>;
+  getComment(id: number): Promise<Comment | undefined>;
   deleteComment(id: number): Promise<boolean>;
+  updateComment(id: number, data: Partial<Comment>): Promise<Comment | undefined>;
+  unpinAllComments(postId: number): Promise<boolean>;
+  getRepliesForComment(commentId: number): Promise<(Comment & { user: User, likeCount: number, hasLiked: boolean })[]>;
+  
+  // Comment like methods
+  likeComment(like: InsertCommentLike): Promise<CommentLike>;
+  unlikeComment(userId: number, commentId: number): Promise<boolean>;
+  getCommentLike(userId: number, commentId: number): Promise<CommentLike | undefined>;
+  getCommentLikesCount(commentId: number): Promise<number>;
+  
+  // Saved posts methods
+  savePost(save: InsertSavedPost): Promise<SavedPost>;
+  unsavePost(userId: number, postId: number): Promise<boolean>;
+  getSavedPost(userId: number, postId: number): Promise<SavedPost | undefined>;
+  getUserSavedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>;
+  getUserTaggedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]>;
+  
+  // Post share methods
+  createPostShare(share: InsertPostShare): Promise<PostShare>;
+  getPostShares(postId: number): Promise<PostShare[]>;
+  getPostShareCount(postId: number): Promise<number>;
   
   // Follow methods
   followUser(follow: InsertFollow): Promise<Follow>;
   unfollowUser(followerId: number, followingId: number): Promise<boolean>;
+  removeFollower(userId: number, followerIdToRemove: number): Promise<boolean>;
+  cancelFollowRequest(followerId: number, followingId: number): Promise<boolean>;
   getFollowers(userId: number): Promise<User[]>;
   getFollowing(userId: number): Promise<User[]>;
   isFollowing(followerId: number, followingId: number): Promise<boolean>;
+  isMutualFollow(userId1: number, userId2: number): Promise<boolean>;
+  getMutualFollowers(userId: number): Promise<User[]>;
+  getMutualFriends(userId1: number, userId2: number): Promise<User[]>;
+  getFollowByUsers(followerId: number, followingId: number): Promise<Follow | undefined>;
   getSuggestedUsers(userId: number, limit?: number): Promise<User[]>;
+  
+  // Follow request methods
+  sendFollowRequest(followerId: number, followingId: number): Promise<Follow>;
+  acceptFollowRequest(followId: number): Promise<Follow | null>;
+  rejectFollowRequest(followId: number): Promise<boolean>;
+  getPendingFollowRequests(userId: number): Promise<(Follow & { follower: User })[]>;
+  getFollowRequestStatus(followerId: number, followingId: number): Promise<string | null>;
+  
+  // Notification methods
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: number, limit?: number): Promise<(Notification & { fromUser?: User })[]>;
+  markNotificationAsRead(notificationId: number): Promise<boolean>;
+  markAllNotificationsAsRead(userId: number): Promise<boolean>;
+  getUnreadNotificationCount(userId: number): Promise<number>;
+  deleteNotification(notificationId: number): Promise<boolean>;
 
   // Block methods
   blockUser(block: InsertBlockedUser): Promise<BlockedUser>;
@@ -143,6 +201,7 @@ export interface IStorage {
   // Story Views
   createStoryView(view: InsertStoryView): Promise<StoryView>;
   incrementStoryViewCount(storyId: number): Promise<Story | null>;
+  hasUserViewedStories(viewerId: number, storyUserId: number): Promise<boolean>;
   
   // Story Reactions
   createStoryReaction(reaction: InsertStoryReaction): Promise<StoryReaction>;
@@ -156,6 +215,20 @@ export interface IStorage {
   getStoryComments(storyId: number): Promise<StoryComment[]>;
   getStoryCommentById(commentId: number): Promise<StoryComment | null>;
   deleteStoryComment(commentId: number): Promise<void>;
+  
+  // Story Poll methods
+  createStoryPoll(poll: InsertStoryPoll): Promise<StoryPoll>;
+  getStoryPoll(storyId: number): Promise<StoryPoll | null>;
+  createStoryPollVote(vote: InsertStoryPollVote): Promise<StoryPollVote>;
+  getStoryPollVotes(pollId: number): Promise<StoryPollVote[]>;
+  getUserStoryPollVote(pollId: number, userId: number): Promise<StoryPollVote | null>;
+  updateStoryPollVote(voteId: number, optionNumber: number): Promise<StoryPollVote | null>;
+  
+  // Story Question methods
+  createStoryQuestion(question: InsertStoryQuestion): Promise<StoryQuestion>;
+  getStoryQuestion(storyId: number): Promise<StoryQuestion | null>;
+  createStoryQuestionResponse(response: InsertStoryQuestionResponse): Promise<StoryQuestionResponse>;
+  getStoryQuestionResponses(questionId: number): Promise<StoryQuestionResponse[]>;
   
   // Player Stats methods
   createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats>;
@@ -176,7 +249,7 @@ export interface IStorage {
   createMatch(match: InsertMatch): Promise<Match>;
   getMatchById(id: number): Promise<Match | undefined>;
   updateMatch(id: number, matchData: Partial<Match>): Promise<Match | undefined>;
-  getUserMatches(userId: number): Promise<Match[]>;
+  getMatchesByCreator(userId: number): Promise<Match[]>;
   deleteMatch(id: number): Promise<boolean>;
   
   // Team management methods
@@ -284,6 +357,37 @@ export interface IStorage {
   getPollResults(pollId: number): Promise<{ optionId: number, option: string, count: number, percentage: number }[]>;
   deletePollVote(userId: number, pollId: number): Promise<boolean>;
   
+  // Enhanced Social Graph methods
+  // Relationship management
+  createUserRelationship(relationship: InsertUserRelationship): Promise<UserRelationship>;
+  deleteUserRelationship(userId: number, targetUserId: number, relationshipType: string): Promise<boolean>;
+  getUserRelationships(userId: number, relationshipType?: string): Promise<UserRelationship[]>;
+  getRelationshipStatus(userId1: number, userId2: number): Promise<string>;
+  
+  // Follow requests
+  createFollowRequest(request: InsertFollowRequest): Promise<FollowRequest>;
+  updateFollowRequest(requestId: number, status: string): Promise<FollowRequest | undefined>;
+  getFollowRequest(requesterId: number, requestedId: number): Promise<FollowRequest | undefined>;
+  getPendingFollowRequestsForUser(userId: number): Promise<(FollowRequest & { requester: User })[]>;
+  getSentFollowRequests(userId: number): Promise<(FollowRequest & { requested: User })[]>;
+  
+  // Privacy settings
+  createUserPrivacySettings(settings: InsertUserPrivacySettings): Promise<UserPrivacySettings>;
+  getUserPrivacySettings(userId: number): Promise<UserPrivacySettings | undefined>;
+  updateUserPrivacySettings(userId: number, settings: Partial<UserPrivacySettings>): Promise<UserPrivacySettings | undefined>;
+  
+  // Close friends
+  addCloseFriend(closeFriend: InsertCloseFriend): Promise<CloseFriend>;
+  removeCloseFriend(userId: number, friendId: number): Promise<boolean>;
+  getCloseFriends(userId: number): Promise<User[]>;
+  isCloseFriend(userId: number, friendId: number): Promise<boolean>;
+  
+  // User restrictions (blocking, muting, restricting)
+  createUserRestriction(restriction: InsertUserRestriction): Promise<UserRestriction>;
+  removeUserRestriction(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean>;
+  getUserRestrictions(userId: number, restrictionType?: string): Promise<UserRestriction[]>;
+  isUserRestricted(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean>;
+  
   // Session store for authentication
   sessionStore: any; // Fixed to work with various session store types
 }
@@ -295,6 +399,7 @@ export class MemStorage implements IStorage {
   private comments: Map<number, Comment>;
   private follows: Map<number, Follow>;
   private blockedUsers: Map<number, BlockedUser>;
+  private notifications: Map<number, Notification>;
   private conversations: Map<number, Conversation>;
   private messages: Map<number, Message>;
   private stories: Map<number, Story>;
@@ -325,6 +430,9 @@ export class MemStorage implements IStorage {
   private storyViews: Map<number, StoryView>;
   private storyReactions: Map<number, StoryReaction>;
   private storyComments: Map<number, StoryComment>;
+  private savedPosts: Map<string, SavedPost>; // Composite key: `${userId}-${postId}`
+  private commentLikes: Map<string, CommentLike>; // Composite key: `${userId}-${commentId}`
+  private postSharesMap: Map<number, PostShare>;
   
   userCurrentId: number;
   postCurrentId: number;
@@ -332,6 +440,7 @@ export class MemStorage implements IStorage {
   commentCurrentId: number;
   followCurrentId: number;
   blockedUserCurrentId: number;
+  notificationCurrentId: number;
   conversationCurrentId: number;
   messageCurrentId: number;
   storyCurrentId: number;
@@ -358,6 +467,9 @@ export class MemStorage implements IStorage {
   storyViewCurrentId: number;
   storyReactionCurrentId: number;
   storyCommentCurrentId: number;
+  savedPostCurrentId: number;
+  commentLikeCurrentId: number;
+  postShareCurrentId: number;
   sessionStore: any;
 
   constructor() {
@@ -384,6 +496,7 @@ export class MemStorage implements IStorage {
     this.ballByBalls = new Map();
     this.tags = new Map();
     this.postTags = new Map();
+    this.notifications = new Map();
     this.contentCategories = new Map();
     this.userInterests = new Map();
     this.contentEngagements = new Map();
@@ -397,6 +510,9 @@ export class MemStorage implements IStorage {
     this.polls = new Map();
     this.pollOptions = new Map();
     this.pollVotes = new Map();
+    this.savedPosts = new Map();
+    this.commentLikes = new Map();
+    this.postSharesMap = new Map();
     
     this.userCurrentId = 1;
     this.postCurrentId = 1;
@@ -404,6 +520,7 @@ export class MemStorage implements IStorage {
     this.commentCurrentId = 1;
     this.followCurrentId = 1;
     this.blockedUserCurrentId = 1;
+    this.notificationCurrentId = 1;
     this.conversationCurrentId = 1;
     this.messageCurrentId = 1;
     this.storyCurrentId = 1;
@@ -426,6 +543,13 @@ export class MemStorage implements IStorage {
     this.tournamentStandingCurrentId = 1;
     this.pollCurrentId = 1;
     this.pollOptionCurrentId = 1;
+    this.pollVoteCurrentId = 1;
+    this.storyViewCurrentId = 1;
+    this.storyReactionCurrentId = 1;
+    this.storyCommentCurrentId = 1;
+    this.savedPostCurrentId = 1;
+    this.commentLikeCurrentId = 1;
+    this.postShareCurrentId = 1;
     this.pollVoteCurrentId = 1;
     this.storyViewCurrentId = 1;
     this.storyReactionCurrentId = 1;
@@ -552,22 +676,67 @@ export class MemStorage implements IStorage {
   }
   
   async getFeed(userId: number, limit: number = 10): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
-    // Get following IDs
+    // Get accepted following relationships only
     const followingIds = Array.from(this.follows.values())
-      .filter(follow => follow.followerId === userId)
+      .filter(follow => follow.followerId === userId && follow.status === "accepted")
       .map(follow => follow.followingId);
     
     // Include user's own posts
     followingIds.push(userId);
     
-    // Get posts from following users
+    // Get posts from following users, but filter out private accounts that user doesn't follow
     const feedPosts = Array.from(this.posts.values())
-      .filter(post => followingIds.includes(post.userId))
+      .filter(async post => {
+        // Always include own posts
+        if (post.userId === userId) return true;
+        
+        // Check if post author is private
+        const postAuthor = await this.getUser(post.userId);
+        if (!postAuthor) return false;
+        
+        // If author is private, only show if user follows them
+        if (postAuthor.isPrivate) {
+          return followingIds.includes(post.userId);
+        }
+        
+        // For public accounts, show if following or if it's a public post
+        return followingIds.includes(post.userId);
+      })
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
+      .slice(0, limit);
+    
+    // Filter posts synchronously since we can't use async in filter
+    const validPosts = [];
+    for (const post of Array.from(this.posts.values())) {
+      // Always include own posts
+      if (post.userId === userId) {
+        validPosts.push(post);
+        continue;
+      }
+      
+      // Check if post author is private
+      const postAuthor = await this.getUser(post.userId);
+      if (!postAuthor) continue;
+      
+      // If author is private, only show if user follows them
+      if (postAuthor.isPrivate) {
+        if (followingIds.includes(post.userId)) {
+          validPosts.push(post);
+        }
+      } else {
+        // For public accounts, show if following
+        if (followingIds.includes(post.userId)) {
+          validPosts.push(post);
+        }
+      }
+    }
+    
+    const sortedPosts = validPosts
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
       .slice(0, limit);
     
     // Enrich post data
-    return Promise.all(feedPosts.map(async post => {
+    return Promise.all(sortedPosts.map(async post => {
       const user = await this.getUser(post.userId) as User;
       const likes = await this.getLikesForPost(post.id);
       const comments = await this.getCommentsForPost(post.id);
@@ -596,11 +765,12 @@ export class MemStorage implements IStorage {
     // Include user's own reels
     followingIds.push(userId);
     
-    // Get reels (posts with videoUrl)
+    // Get reels (posts with videoUrl OR reel categories)
+    const reelCategories = ['reel', 'match_highlight', 'player_moment', 'training', 'fan_moment'];
     const reelPosts = Array.from(this.posts.values())
       .filter(post => 
-        post.videoUrl !== null && 
-        post.category === 'reel' && 
+        post.videoUrl && 
+        post.videoUrl.trim() !== '' &&
         followingIds.includes(post.userId)
       )
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
@@ -666,39 +836,212 @@ export class MemStorage implements IStorage {
       userId: insertComment.userId,
       postId: insertComment.postId,
       content: insertComment.content,
+      parentId: insertComment.parentId || null,
       createdAt: new Date()
     };
     this.comments.set(id, comment);
     return comment;
   }
   
-  async getCommentsForPost(postId: number): Promise<(Comment & { user: User })[]> {
+  async getComment(id: number): Promise<Comment | undefined> {
+    return this.comments.get(id);
+  }
+  
+  async getCommentsForPost(postId: number): Promise<(Comment & { user: User, likeCount: number, replyCount: number, hasLiked: boolean })[]> {
+    // Get only top-level comments (no parentId)
     const postComments = Array.from(this.comments.values())
-      .filter(comment => comment.postId === postId)
-      .sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
+      .filter(comment => comment.postId === postId && !comment.parentId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
     
     return Promise.all(postComments.map(async comment => {
       const user = await this.getUser(comment.userId) as User;
-      return { ...comment, user };
+      const likeCount = await this.getCommentLikesCount(comment.id);
+      const replyCount = Array.from(this.comments.values())
+        .filter(c => c.parentId === comment.id).length;
+      const hasLiked = false; // Will be set by the route based on current user
+      return { ...comment, user, likeCount, replyCount, hasLiked };
+    }));
+  }
+  
+  async getRepliesForComment(commentId: number): Promise<(Comment & { user: User, likeCount: number, hasLiked: boolean })[]> {
+    const replies = Array.from(this.comments.values())
+      .filter(comment => comment.parentId === commentId)
+      .sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
+    
+    return Promise.all(replies.map(async comment => {
+      const user = await this.getUser(comment.userId) as User;
+      const likeCount = await this.getCommentLikesCount(comment.id);
+      const hasLiked = false; // Will be set by the route based on current user
+      return { ...comment, user, likeCount, hasLiked };
     }));
   }
   
   async deleteComment(id: number): Promise<boolean> {
+    // Also delete all replies to this comment
+    const replies = Array.from(this.comments.values())
+      .filter(c => c.parentId === id);
+    for (const reply of replies) {
+      this.comments.delete(reply.id);
+      // Delete likes for the reply
+      for (const [key, like] of this.commentLikes.entries()) {
+        if (like.commentId === reply.id) {
+          this.commentLikes.delete(key);
+        }
+      }
+    }
+    // Delete likes for the comment
+    for (const [key, like] of this.commentLikes.entries()) {
+      if (like.commentId === id) {
+        this.commentLikes.delete(key);
+      }
+    }
     return this.comments.delete(id);
+  }
+
+  async updateComment(id: number, data: Partial<Comment>): Promise<Comment | undefined> {
+    const comment = this.comments.get(id);
+    if (!comment) return undefined;
+    const updated = { ...comment, ...data };
+    this.comments.set(id, updated);
+    return updated;
+  }
+
+  async unpinAllComments(postId: number): Promise<boolean> {
+    for (const [id, comment] of this.comments.entries()) {
+      if (comment.postId === postId && comment.isPinned) {
+        this.comments.set(id, { ...comment, isPinned: false });
+      }
+    }
+    return true;
+  }
+  
+  // Comment like methods
+  async likeComment(insertLike: InsertCommentLike): Promise<CommentLike> {
+    const key = `${insertLike.userId}-${insertLike.commentId}`;
+    const existing = this.commentLikes.get(key);
+    if (existing) return existing;
+    
+    const id = this.commentLikeCurrentId++;
+    const like: CommentLike = {
+      id,
+      userId: insertLike.userId,
+      commentId: insertLike.commentId,
+      createdAt: new Date()
+    };
+    this.commentLikes.set(key, like);
+    return like;
+  }
+  
+  async unlikeComment(userId: number, commentId: number): Promise<boolean> {
+    const key = `${userId}-${commentId}`;
+    return this.commentLikes.delete(key);
+  }
+  
+  async getCommentLike(userId: number, commentId: number): Promise<CommentLike | undefined> {
+    const key = `${userId}-${commentId}`;
+    return this.commentLikes.get(key);
+  }
+  
+  async getCommentLikesCount(commentId: number): Promise<number> {
+    return Array.from(this.commentLikes.values())
+      .filter(like => like.commentId === commentId).length;
+  }
+  
+  // Saved posts methods
+  async savePost(insertSave: InsertSavedPost): Promise<SavedPost> {
+    const key = `${insertSave.userId}-${insertSave.postId}`;
+    const existing = this.savedPosts.get(key);
+    if (existing) return existing;
+    
+    const id = this.savedPostCurrentId++;
+    const save: SavedPost = {
+      id,
+      userId: insertSave.userId,
+      postId: insertSave.postId,
+      createdAt: new Date()
+    };
+    this.savedPosts.set(key, save);
+    return save;
+  }
+  
+  async unsavePost(userId: number, postId: number): Promise<boolean> {
+    const key = `${userId}-${postId}`;
+    return this.savedPosts.delete(key);
+  }
+  
+  async getSavedPost(userId: number, postId: number): Promise<SavedPost | undefined> {
+    const key = `${userId}-${postId}`;
+    return this.savedPosts.get(key);
+  }
+  
+  async getUserSavedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    const userSaves = Array.from(this.savedPosts.values())
+      .filter(save => save.userId === userId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    const posts: (Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[] = [];
+    
+    for (const save of userSaves) {
+      const post = await this.getPost(save.postId);
+      if (post) {
+        const user = await this.getUser(post.userId) as User;
+        const likes = await this.getLikesForPost(post.id);
+        const comments = await this.getCommentsForPost(post.id);
+        const hasLiked = !!(await this.getLike(userId, post.id));
+        posts.push({
+          ...post,
+          user,
+          likeCount: likes.length,
+          commentCount: comments.length,
+          hasLiked
+        });
+      }
+    }
+    
+    return posts;
+  }
+  
+  async getUserTaggedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    // MemStorage doesn't track post mentions, return empty array
+    // Real implementation is in DatabaseStorage
+    return [];
+  }
+  
+  // Post share methods
+  async createPostShare(insertShare: InsertPostShare): Promise<PostShare> {
+    const id = this.postShareCurrentId++;
+    const share: PostShare = {
+      id,
+      userId: insertShare.userId,
+      postId: insertShare.postId,
+      shareType: insertShare.shareType,
+      recipientId: insertShare.recipientId || null,
+      platform: insertShare.platform || null,
+      createdAt: new Date()
+    };
+    this.postSharesMap.set(id, share);
+    return share;
+  }
+  
+  async getPostShares(postId: number): Promise<PostShare[]> {
+    return Array.from(this.postSharesMap.values())
+      .filter(share => share.postId === postId);
+  }
+  
+  async getPostShareCount(postId: number): Promise<number> {
+    return Array.from(this.postSharesMap.values())
+      .filter(share => share.postId === postId).length;
   }
 
   // Follow methods
   async followUser(insertFollow: InsertFollow): Promise<Follow> {
-    // Check if already following
-    const isAlreadyFollowing = await this.isFollowing(
-      insertFollow.followerId, 
-      insertFollow.followingId
+    // Check if already following or has pending request
+    const existingFollow = Array.from(this.follows.values()).find(
+      f => f.followerId === insertFollow.followerId && f.followingId === insertFollow.followingId
     );
     
-    if (isAlreadyFollowing) {
-      return Array.from(this.follows.values()).find(
-        f => f.followerId === insertFollow.followerId && f.followingId === insertFollow.followingId
-      ) as Follow;
+    if (existingFollow) {
+      return existingFollow;
     }
     
     const id = this.followCurrentId++;
@@ -706,7 +1049,9 @@ export class MemStorage implements IStorage {
       id,
       followerId: insertFollow.followerId,
       followingId: insertFollow.followingId,
-      createdAt: new Date()
+      status: insertFollow.status || "accepted", // Default to accepted for backward compatibility
+      createdAt: new Date(),
+      acceptedAt: insertFollow.status === "accepted" ? new Date() : null
     };
     this.follows.set(id, follow);
     return follow;
@@ -718,32 +1063,180 @@ export class MemStorage implements IStorage {
     );
     
     if (!follow) return false;
+    
+    // Delete the follow relationship - NO notification sent (silent action)
+    return this.follows.delete(follow.id);
+  }
+  
+  // Remove a follower from your account (silent action - no notification)
+  async removeFollower(userId: number, followerIdToRemove: number): Promise<boolean> {
+    const follow = Array.from(this.follows.values()).find(
+      f => f.followerId === followerIdToRemove && f.followingId === userId
+    );
+    
+    if (!follow) return false;
+    
+    // Delete the follow relationship - NO notification sent (silent action)
+    return this.follows.delete(follow.id);
+  }
+  
+  // Cancel a pending follow request (for the requester)
+  async cancelFollowRequest(followerId: number, followingId: number): Promise<boolean> {
+    const follow = Array.from(this.follows.values()).find(
+      f => f.followerId === followerId && f.followingId === followingId && f.status === "pending"
+    );
+    
+    if (!follow) return false;
+    
+    // Delete the pending request
     return this.follows.delete(follow.id);
   }
   
   async getFollowers(userId: number): Promise<User[]> {
     const followerIds = Array.from(this.follows.values())
-      .filter(follow => follow.followingId === userId)
+      .filter(follow => follow.followingId === userId && follow.status === "accepted")
       .map(follow => follow.followerId);
     
-    return Promise.all(followerIds.map(id => this.getUser(id))) as Promise<User[]>;
+    const users = await Promise.all(followerIds.map(id => this.getUser(id)));
+    return users.filter((user): user is User => user !== undefined);
   }
   
   async getFollowing(userId: number): Promise<User[]> {
     const followingIds = Array.from(this.follows.values())
-      .filter(follow => follow.followerId === userId)
+      .filter(follow => follow.followerId === userId && follow.status === "accepted")
       .map(follow => follow.followingId);
     
-    return Promise.all(followingIds.map(id => this.getUser(id))) as Promise<User[]>;
+    const users = await Promise.all(followingIds.map(id => this.getUser(id)));
+    return users.filter((user): user is User => user !== undefined);
   }
   
   async isFollowing(followerId: number, followingId: number): Promise<boolean> {
     return !!Array.from(this.follows.values()).find(
-      follow => follow.followerId === followerId && follow.followingId === followingId
+      follow => follow.followerId === followerId && 
+                follow.followingId === followingId && 
+                follow.status === "accepted"
     );
   }
   
-  async getSuggestedUsers(userId: number, limit: number = 5): Promise<User[]> {
+  // Follow request methods
+  async sendFollowRequest(followerId: number, followingId: number): Promise<Follow> {
+    // Check if already following or has pending request
+    const existingFollow = Array.from(this.follows.values()).find(
+      f => f.followerId === followerId && f.followingId === followingId
+    );
+    
+    if (existingFollow) {
+      return existingFollow;
+    }
+    
+    // Check if blocked in either direction
+    const isBlockedByTarget = await this.isBlocked(followingId, followerId);
+    const hasBlockedTarget = await this.isBlocked(followerId, followingId);
+    
+    if (isBlockedByTarget || hasBlockedTarget) {
+      throw new Error("Cannot follow this user");
+    }
+    
+    // Check if target user is private
+    const targetUser = await this.getUser(followingId);
+    const status = targetUser?.isPrivate ? "pending" : "accepted";
+    
+    const id = this.followCurrentId++;
+    const follow: Follow = {
+      id,
+      followerId,
+      followingId,
+      status,
+      createdAt: new Date(),
+      acceptedAt: status === "accepted" ? new Date() : null
+    };
+    this.follows.set(id, follow);
+    return follow;
+  }
+  
+  async acceptFollowRequest(followId: number): Promise<Follow | null> {
+    const follow = this.follows.get(followId);
+    if (!follow || follow.status !== "pending") {
+      return null;
+    }
+    
+    follow.status = "accepted";
+    follow.acceptedAt = new Date();
+    this.follows.set(followId, follow);
+    return follow;
+  }
+  
+  async rejectFollowRequest(followId: number): Promise<boolean> {
+    const follow = this.follows.get(followId);
+    if (!follow || follow.status !== "pending") {
+      return false;
+    }
+    
+    // Delete the request completely - NO notification sent (silent action)
+    return this.follows.delete(followId);
+  }
+  
+  // Get follow by follower and following IDs
+  async getFollowByUsers(followerId: number, followingId: number): Promise<Follow | undefined> {
+    return Array.from(this.follows.values()).find(
+      f => f.followerId === followerId && f.followingId === followingId
+    );
+  }
+  
+  // Check if two users mutually follow each other
+  async isMutualFollow(userId1: number, userId2: number): Promise<boolean> {
+    const user1FollowsUser2 = await this.isFollowing(userId1, userId2);
+    const user2FollowsUser1 = await this.isFollowing(userId2, userId1);
+    return user1FollowsUser2 && user2FollowsUser1;
+  }
+  
+  // Get mutual followers (users who follow each other)
+  async getMutualFollowers(userId: number): Promise<User[]> {
+    const followers = await this.getFollowers(userId);
+    const following = await this.getFollowing(userId);
+    
+    const followingIds = new Set(following.map(u => u.id));
+    return followers.filter(follower => followingIds.has(follower.id));
+  }
+
+  // Get mutual friends (users that both users follow)
+  async getMutualFriends(userId1: number, userId2: number): Promise<User[]> {
+    const user1Following = await this.getFollowing(userId1);
+    const user2Following = await this.getFollowing(userId2);
+    
+    const user2FollowingIds = new Set(user2Following.map(u => u.id));
+    return user1Following.filter(u => 
+      user2FollowingIds.has(u.id) && 
+      u.id !== userId1 && 
+      u.id !== userId2
+    );
+  }
+  
+  async getPendingFollowRequests(userId: number): Promise<(Follow & { follower: User })[]> {
+    const pendingRequests = Array.from(this.follows.values())
+      .filter(follow => follow.followingId === userId && follow.status === "pending");
+    
+    const requestsWithUsers = await Promise.all(
+      pendingRequests.map(async (follow) => {
+        const follower = await this.getUser(follow.followerId);
+        if (!follower) return null;
+        return { ...follow, follower };
+      })
+    );
+    
+    // Filter out null entries (where follower was not found)
+    return requestsWithUsers.filter((req): req is (Follow & { follower: User }) => req !== null);
+  }
+  
+  async getFollowRequestStatus(followerId: number, followingId: number): Promise<string | null> {
+    const follow = Array.from(this.follows.values()).find(
+      f => f.followerId === followerId && f.followingId === followingId
+    );
+    
+    return follow ? follow.status : null;
+  }
+  
+  async getSuggestedUsers(userId: number, limit: number = 20): Promise<User[]> {
     const following = await this.getFollowing(userId);
     const followingIds = new Set(following.map(u => u.id));
     followingIds.add(userId);
@@ -751,6 +1244,76 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values())
       .filter(u => !followingIds.has(u.id))
       .slice(0, limit);
+  }
+
+  // Notification methods
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const id = this.notificationCurrentId++;
+    const notification: Notification = {
+      id,
+      userId: insertNotification.userId,
+      fromUserId: insertNotification.fromUserId || null,
+      type: insertNotification.type,
+      title: insertNotification.title,
+      message: insertNotification.message,
+      entityType: insertNotification.entityType || null,
+      entityId: insertNotification.entityId || null,
+      imageUrl: insertNotification.imageUrl || null,
+      actionUrl: insertNotification.actionUrl || null,
+      isRead: false,
+      createdAt: new Date()
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+  
+  async getUserNotifications(userId: number, limit: number = 50): Promise<(Notification & { fromUser?: User })[]> {
+    const userNotifications = Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+    
+    const notificationsWithUsers = await Promise.all(
+      userNotifications.map(async (notification) => {
+        if (notification.fromUserId) {
+          const fromUser = await this.getUser(notification.fromUserId);
+          return { ...notification, fromUser };
+        }
+        return notification;
+      })
+    );
+    
+    return notificationsWithUsers;
+  }
+  
+  async markNotificationAsRead(notificationId: number): Promise<boolean> {
+    const notification = this.notifications.get(notificationId);
+    if (!notification) return false;
+    
+    notification.isRead = true;
+    this.notifications.set(notificationId, notification);
+    return true;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    const userNotifications = Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead);
+    
+    userNotifications.forEach(notification => {
+      notification.isRead = true;
+      this.notifications.set(notification.id, notification);
+    });
+    
+    return true;
+  }
+  
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead).length;
+  }
+  
+  async deleteNotification(notificationId: number): Promise<boolean> {
+    return this.notifications.delete(notificationId);
   }
 
   async searchUsers(query: string, limit: number = 10): Promise<User[]> {
@@ -786,11 +1349,28 @@ export class MemStorage implements IStorage {
     };
     this.blockedUsers.set(id, block);
     
-    // When a user blocks someone, they should automatically unfollow them
-    this.unfollowUser(insertBlock.blockerId, insertBlock.blockedId);
+    // When a user blocks someone:
+    // 1. Remove follow relationships in both directions (including pending)
+    // 2. NO notification sent (silent action)
     
-    // And the blocked user should be unfollowed from the blocker
-    this.unfollowUser(insertBlock.blockedId, insertBlock.blockerId);
+    // Remove any follow from blocker to blocked (accepted or pending)
+    const blockerFollow = Array.from(this.follows.values()).find(
+      f => f.followerId === insertBlock.blockerId && f.followingId === insertBlock.blockedId
+    );
+    if (blockerFollow) {
+      this.follows.delete(blockerFollow.id);
+    }
+    
+    // Remove any follow from blocked to blocker (accepted or pending)
+    const blockedFollow = Array.from(this.follows.values()).find(
+      f => f.followerId === insertBlock.blockedId && f.followingId === insertBlock.blockerId
+    );
+    if (blockedFollow) {
+      this.follows.delete(blockedFollow.id);
+    }
+    
+    // Remove any pending follow requests in both directions
+    // (These are already handled above since we check all statuses)
     
     return block;
   }
@@ -1012,23 +1592,50 @@ export class MemStorage implements IStorage {
   }
   
   async getStoriesForFeed(userId: number): Promise<(Story & { user: User })[]> {
-    // Get following IDs
+    // Get accepted following relationships only
     const followingIds = Array.from(this.follows.values())
-      .filter(follow => follow.followerId === userId)
+      .filter(follow => follow.followerId === userId && follow.status === "accepted")
       .map(follow => follow.followingId);
     
-    // Get unexpired stories from following users
+    // Include user's own stories
+    followingIds.push(userId);
+    
+    // Get unexpired stories from following users, respecting private accounts
     const now = new Date();
-    const feedStories = Array.from(this.stories.values())
-      .filter(story => 
-        followingIds.includes(story.userId) && 
-        story.expiresAt && 
-        new Date(story.expiresAt) > now
-      )
+    const validStories = [];
+    
+    for (const story of Array.from(this.stories.values())) {
+      // Skip expired stories
+      if (!story.expiresAt || new Date(story.expiresAt) <= now) continue;
+      
+      // Always include own stories
+      if (story.userId === userId) {
+        validStories.push(story);
+        continue;
+      }
+      
+      // Check if story author is private
+      const storyAuthor = await this.getUser(story.userId);
+      if (!storyAuthor) continue;
+      
+      // If author is private, only show if user follows them
+      if (storyAuthor.isPrivate) {
+        if (followingIds.includes(story.userId)) {
+          validStories.push(story);
+        }
+      } else {
+        // For public accounts, show if following
+        if (followingIds.includes(story.userId)) {
+          validStories.push(story);
+        }
+      }
+    }
+    
+    const sortedStories = validStories
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
     
     // Enrich story data with user info
-    return Promise.all(feedStories.map(async story => {
+    return Promise.all(sortedStories.map(async story => {
       const user = await this.getUser(story.userId) as User;
       return { ...story, user };
     }));
@@ -1073,6 +1680,19 @@ export class MemStorage implements IStorage {
     
     this.stories.set(storyId, updatedStory);
     return updatedStory;
+  }
+  
+  async hasUserViewedStories(viewerId: number, storyUserId: number): Promise<boolean> {
+    // Get all stories from the user
+    const userStories = await this.getUserStories(storyUserId);
+    if (userStories.length === 0) return false;
+    
+    // Check if viewer has viewed any of the user's stories
+    const storyIds = userStories.map(s => s.id);
+    const views = Array.from(this.storyViews.values())
+      .filter(view => storyIds.includes(view.storyId) && view.userId === viewerId);
+    
+    return views.length > 0;
   }
   
   // Story Reactions methods
@@ -1160,6 +1780,102 @@ export class MemStorage implements IStorage {
   
   async deleteStoryComment(commentId: number): Promise<void> {
     this.storyComments.delete(commentId);
+  }
+
+  // Story Poll methods (stub implementations for MemStorage)
+  private storyPolls: Map<number, StoryPoll> = new Map();
+  private storyPollVotes: Map<number, StoryPollVote> = new Map();
+  private storyPollCurrentId = 1;
+  private storyPollVoteCurrentId = 1;
+
+  async createStoryPoll(poll: InsertStoryPoll): Promise<StoryPoll> {
+    const id = this.storyPollCurrentId++;
+    const storyPoll: StoryPoll = {
+      id,
+      storyId: poll.storyId,
+      question: poll.question,
+      option1: poll.option1,
+      option2: poll.option2,
+      option3: poll.option3 || null,
+      option4: poll.option4 || null,
+      createdAt: new Date()
+    };
+    this.storyPolls.set(id, storyPoll);
+    return storyPoll;
+  }
+
+  async getStoryPoll(storyId: number): Promise<StoryPoll | null> {
+    return Array.from(this.storyPolls.values()).find(p => p.storyId === storyId) || null;
+  }
+
+  async createStoryPollVote(vote: InsertStoryPollVote): Promise<StoryPollVote> {
+    const id = this.storyPollVoteCurrentId++;
+    const pollVote: StoryPollVote = {
+      id,
+      pollId: vote.pollId,
+      userId: vote.userId,
+      optionNumber: vote.optionNumber,
+      createdAt: new Date()
+    };
+    this.storyPollVotes.set(id, pollVote);
+    return pollVote;
+  }
+
+  async getStoryPollVotes(pollId: number): Promise<StoryPollVote[]> {
+    return Array.from(this.storyPollVotes.values()).filter(v => v.pollId === pollId);
+  }
+
+  async getUserStoryPollVote(pollId: number, userId: number): Promise<StoryPollVote | null> {
+    return Array.from(this.storyPollVotes.values()).find(v => v.pollId === pollId && v.userId === userId) || null;
+  }
+
+  async updateStoryPollVote(voteId: number, optionNumber: number): Promise<StoryPollVote | null> {
+    const vote = this.storyPollVotes.get(voteId);
+    if (!vote) return null;
+    const updated = { ...vote, optionNumber };
+    this.storyPollVotes.set(voteId, updated);
+    return updated;
+  }
+
+  // Story Question methods (stub implementations for MemStorage)
+  private storyQuestionsMap: Map<number, StoryQuestion> = new Map();
+  private storyQuestionResponsesMap: Map<number, StoryQuestionResponse> = new Map();
+  private storyQuestionCurrentId = 1;
+  private storyQuestionResponseCurrentId = 1;
+
+  async createStoryQuestion(question: InsertStoryQuestion): Promise<StoryQuestion> {
+    const id = this.storyQuestionCurrentId++;
+    const storyQuestion: StoryQuestion = {
+      id,
+      storyId: question.storyId,
+      question: question.question,
+      createdAt: new Date()
+    };
+    this.storyQuestionsMap.set(id, storyQuestion);
+    return storyQuestion;
+  }
+
+  async getStoryQuestion(storyId: number): Promise<StoryQuestion | null> {
+    return Array.from(this.storyQuestionsMap.values()).find(q => q.storyId === storyId) || null;
+  }
+
+  async createStoryQuestionResponse(response: InsertStoryQuestionResponse): Promise<StoryQuestionResponse> {
+    const id = this.storyQuestionResponseCurrentId++;
+    const questionResponse: StoryQuestionResponse = {
+      id,
+      questionId: response.questionId,
+      userId: response.userId,
+      response: response.response,
+      createdAt: new Date()
+    };
+    this.storyQuestionResponsesMap.set(id, questionResponse);
+    return questionResponse;
+  }
+
+  async getStoryQuestionResponses(questionId: number): Promise<StoryQuestionResponse[]> {
+    return Array.from(this.storyQuestionResponsesMap.values())
+      .filter(r => r.questionId === questionId)
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   // Player Stats methods
@@ -1337,7 +2053,7 @@ export class MemStorage implements IStorage {
     return updatedMatch;
   }
   
-  async getUserMatches(userId: number): Promise<Match[]> {
+  async getMatchesByCreator(userId: number): Promise<Match[]> {
     return Array.from(this.matches.values())
       .filter(match => match.createdBy === userId)
       .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
@@ -2851,17 +3567,108 @@ export class MemStorage implements IStorage {
     this.playerTournamentStats.set(key, updatedStats);
     return updatedStats;
   }
+
+  // Enhanced Social Graph methods - placeholder implementations for MemStorage
+  // These will be properly implemented in DatabaseStorage
+  
+  // Relationship management
+  async createUserRelationship(relationship: InsertUserRelationship): Promise<UserRelationship> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async deleteUserRelationship(userId: number, targetUserId: number, relationshipType: string): Promise<boolean> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getUserRelationships(userId: number, relationshipType?: string): Promise<UserRelationship[]> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getRelationshipStatus(userId1: number, userId2: number): Promise<string> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  // Follow requests
+  async createFollowRequest(request: InsertFollowRequest): Promise<FollowRequest> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async updateFollowRequest(requestId: number, status: string): Promise<FollowRequest | undefined> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getFollowRequest(requesterId: number, requestedId: number): Promise<FollowRequest | undefined> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getPendingFollowRequestsForUser(userId: number): Promise<(FollowRequest & { requester: User })[]> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getSentFollowRequests(userId: number): Promise<(FollowRequest & { requested: User })[]> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  // Privacy settings
+  async createUserPrivacySettings(settings: InsertUserPrivacySettings): Promise<UserPrivacySettings> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getUserPrivacySettings(userId: number): Promise<UserPrivacySettings | undefined> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async updateUserPrivacySettings(userId: number, settings: Partial<UserPrivacySettings>): Promise<UserPrivacySettings | undefined> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  // Close friends
+  async addCloseFriend(closeFriend: InsertCloseFriend): Promise<CloseFriend> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async removeCloseFriend(userId: number, friendId: number): Promise<boolean> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getCloseFriends(userId: number): Promise<User[]> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async isCloseFriend(userId: number, friendId: number): Promise<boolean> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  // User restrictions (blocking, muting, restricting)
+  async createUserRestriction(restriction: InsertUserRestriction): Promise<UserRestriction> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async removeUserRestriction(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async getUserRestrictions(userId: number, restrictionType?: string): Promise<UserRestriction[]> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
+  
+  async isUserRestricted(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean> {
+    throw new Error("Social graph methods not implemented in MemStorage. Use DatabaseStorage instead.");
+  }
 }
 
 // Hybrid DatabaseStorage - migrates core entities to PostgreSQL while delegating unported methods to MemStorage
 import { db } from "./db";
-import { eq, and, or, desc, asc, sql as drizzleSql, like, inArray } from "drizzle-orm";
+import { eq, and, or, desc, asc, sql as drizzleSql, like, inArray, isNotNull } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   private memStorage: MemStorage; // Fallback for unported methods
   
   constructor() {
     this.memStorage = new MemStorage();
+    if (!db) {
+      throw new Error("Database connection not available. DatabaseStorage requires DATABASE_URL to be set.");
+    }
   }
   
   // Delegate sessionStore to MemStorage (will be migrated in Task 2.7)
@@ -2869,27 +3676,35 @@ export class DatabaseStorage implements IStorage {
     return this.memStorage.sessionStore;
   }
   
+  // Helper to ensure db is available
+  private ensureDb() {
+    if (!db) {
+      throw new Error("Database connection not available");
+    }
+    return db;
+  }
+  
   // ===================
   // USER METHODS (Core - Migrated to PostgreSQL)
   // ===================
   
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await this.ensureDb().select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await this.ensureDb().select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
   
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await this.ensureDb().select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
   
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
+    const [user] = await this.ensureDb()
       .insert(users)
       .values({
         ...insertUser,
@@ -2906,7 +3721,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async updateUser(id: number, userData: Partial<User>): Promise<User | undefined> {
-    const [updatedUser] = await db
+    const [updatedUser] = await this.ensureDb()
       .update(users)
       .set(userData)
       .where(eq(users.id, id))
@@ -2916,7 +3731,7 @@ export class DatabaseStorage implements IStorage {
   
   async searchUsers(query: string, limit: number = 20): Promise<User[]> {
     const searchPattern = `%${query}%`;
-    return await db
+    return await this.ensureDb()
       .select()
       .from(users)
       .where(
@@ -2934,7 +3749,7 @@ export class DatabaseStorage implements IStorage {
   // ===================
   
   async createToken(insertToken: InsertToken): Promise<Token> {
-    const [token] = await db
+    const [token] = await this.ensureDb()
       .insert(tokens)
       .values({
         ...insertToken,
@@ -2945,12 +3760,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getTokenByToken(tokenString: string): Promise<Token | undefined> {
-    const [token] = await db.select().from(tokens).where(eq(tokens.token, tokenString));
+    const [token] = await this.ensureDb().select().from(tokens).where(eq(tokens.token, tokenString));
     return token || undefined;
   }
   
   async deleteToken(id: number): Promise<boolean> {
-    const result = await db.delete(tokens).where(eq(tokens.id, id));
+    const result = await this.ensureDb().delete(tokens).where(eq(tokens.id, id));
     return result.rowCount !== null && result.rowCount > 0;
   }
   
@@ -2959,7 +3774,7 @@ export class DatabaseStorage implements IStorage {
   // ===================
   
   async createPost(insertPost: InsertPost): Promise<Post> {
-    const [post] = await db
+    const [post] = await this.ensureDb()
       .insert(posts)
       .values({
         ...insertPost,
@@ -2970,12 +3785,12 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPost(id: number): Promise<Post | undefined> {
-    const [post] = await db.select().from(posts).where(eq(posts.id, id));
+    const [post] = await this.ensureDb().select().from(posts).where(eq(posts.id, id));
     return post || undefined;
   }
   
   async getUserPosts(userId: number): Promise<Post[]> {
-    return await db
+    return await this.ensureDb()
       .select()
       .from(posts)
       .where(eq(posts.userId, userId))
@@ -2983,17 +3798,21 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getFeed(userId: number, limit: number = 20): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
-    // Get following IDs
-    const followingRows = await db
+    const dbInstance = this.ensureDb();
+    // Get following IDs - only accepted follows
+    const followingRows = await dbInstance
       .select({ followingId: follows.followingId })
       .from(follows)
-      .where(eq(follows.followerId, userId));
+      .where(and(
+        eq(follows.followerId, userId),
+        eq(follows.status, "accepted")
+      ));
     
     const followingIds = followingRows.map(row => row.followingId);
     followingIds.push(userId); // Include user's own posts
     
     // Get posts from following users
-    const feedPosts = await db
+    const feedPosts = await dbInstance
       .select()
       .from(posts)
       .where(inArray(posts.userId, followingIds))
@@ -3002,10 +3821,10 @@ export class DatabaseStorage implements IStorage {
     
     // Enrich with user data and counts
     return await Promise.all(feedPosts.map(async post => {
-      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
-      const likesCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
-      const commentsCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
-      const [userLike] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await dbInstance.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
       
       return {
         ...post,
@@ -3018,39 +3837,50 @@ export class DatabaseStorage implements IStorage {
   }
   
   async deletePost(id: number): Promise<boolean> {
-    const result = await db.delete(posts).where(eq(posts.id, id));
+    const result = await this.ensureDb().delete(posts).where(eq(posts.id, id));
     return result.rowCount !== null && result.rowCount > 0;
   }
   
   async getReels(userId: number, limit: number = 20): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
-    // Get following IDs
-    const followingRows = await db
+    const dbInstance = this.ensureDb();
+    // Get following IDs - only accepted follows
+    const followingRows = await dbInstance
       .select({ followingId: follows.followingId })
       .from(follows)
-      .where(eq(follows.followerId, userId));
+      .where(and(
+        eq(follows.followerId, userId),
+        eq(follows.status, "accepted")
+      ));
     
     const followingIds = followingRows.map(row => row.followingId);
     followingIds.push(userId);
     
-    // Get reels (posts with videoUrl and category='reel')
-    const reelPosts = await db
+    // Get reels (posts with videoUrl OR category='reel' or other reel categories)
+    const reelCategories = ['reel', 'match_highlight', 'player_moment', 'training', 'fan_moment'];
+    const reelPosts = await dbInstance
       .select()
       .from(posts)
       .where(
         and(
           inArray(posts.userId, followingIds),
-          eq(posts.category, 'reel')
+          or(
+            isNotNull(posts.videoUrl),
+            inArray(posts.category, reelCategories)
+          )
         )
       )
       .orderBy(desc(posts.createdAt))
       .limit(limit);
     
+    // Filter out posts without videoUrl (safety check)
+    const filteredPosts = reelPosts.filter(post => post.videoUrl && post.videoUrl.trim() !== '');
+    
     // Enrich with user data and counts
-    return await Promise.all(reelPosts.map(async post => {
-      const [user] = await db.select().from(users).where(eq(users.id, post.userId));
-      const likesCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
-      const commentsCount = await db.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
-      const [userLike] = await db.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+    return await Promise.all(filteredPosts.map(async post => {
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await dbInstance.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
       
       return {
         ...post,
@@ -3071,7 +3901,7 @@ export class DatabaseStorage implements IStorage {
     const existingLike = await this.getLike(insertLike.userId, insertLike.postId);
     if (existingLike) return existingLike;
     
-    const [like] = await db
+    const [like] = await this.ensureDb()
       .insert(likes)
       .values({
         ...insertLike,
@@ -3082,14 +3912,14 @@ export class DatabaseStorage implements IStorage {
   }
   
   async unlikePost(userId: number, postId: number): Promise<boolean> {
-    const result = await db
+    const result = await this.ensureDb()
       .delete(likes)
       .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
     return result.rowCount !== null && result.rowCount > 0;
   }
   
   async getLike(userId: number, postId: number): Promise<Like | undefined> {
-    const [like] = await db
+    const [like] = await this.ensureDb()
       .select()
       .from(likes)
       .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
@@ -3097,7 +3927,7 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getLikesForPost(postId: number): Promise<Like[]> {
-    return await db.select().from(likes).where(eq(likes.postId, postId));
+    return await this.ensureDb().select().from(likes).where(eq(likes.postId, postId));
   }
   
   // ===================
@@ -3105,7 +3935,7 @@ export class DatabaseStorage implements IStorage {
   // ===================
   
   async createComment(insertComment: InsertComment): Promise<Comment> {
-    const [comment] = await db
+    const [comment] = await this.ensureDb()
       .insert(comments)
       .values({
         ...insertComment,
@@ -3115,22 +3945,247 @@ export class DatabaseStorage implements IStorage {
     return comment;
   }
   
-  async getCommentsForPost(postId: number): Promise<(Comment & { user: User })[]> {
-    const postComments = await db
+  async getCommentsForPost(postId: number): Promise<(Comment & { user: User, likeCount: number, replyCount: number, hasLiked: boolean })[]> {
+    const dbInstance = this.ensureDb();
+    const postComments = await dbInstance
       .select()
       .from(comments)
       .where(eq(comments.postId, postId))
       .orderBy(asc(comments.createdAt));
     
     return await Promise.all(postComments.map(async comment => {
-      const [user] = await db.select().from(users).where(eq(users.id, comment.userId));
-      return { ...comment, user: user! };
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, comment.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(commentLikes).where(eq(commentLikes.commentId, comment.id));
+      const repliesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.parentId, comment.id));
+      // Note: hasLiked would need userId context, but interface doesn't provide it. Setting to false for now.
+      return { 
+        ...comment, 
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        replyCount: Number(repliesCount[0]?.count || 0),
+        hasLiked: false
+      };
     }));
   }
   
   async deleteComment(id: number): Promise<boolean> {
-    const result = await db.delete(comments).where(eq(comments.id, id));
+    const result = await this.ensureDb().delete(comments).where(eq(comments.id, id));
     return result.rowCount !== null && result.rowCount > 0;
+  }
+
+  async updateComment(id: number, data: Partial<Comment>): Promise<Comment | undefined> {
+    const [updated] = await this.ensureDb()
+      .update(comments)
+      .set(data)
+      .where(eq(comments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async unpinAllComments(postId: number): Promise<boolean> {
+    const result = await this.ensureDb()
+      .update(comments)
+      .set({ isPinned: false })
+      .where(eq(comments.postId, postId));
+    return true;
+  }
+  
+  // ===================
+  // SAVED POSTS METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async savePost(insertSave: InsertSavedPost): Promise<SavedPost> {
+    // Check if save already exists
+    const existingSave = await this.getSavedPost(insertSave.userId, insertSave.postId);
+    if (existingSave) return existingSave;
+    
+    const [save] = await this.ensureDb()
+      .insert(savedPosts)
+      .values({
+        ...insertSave,
+        createdAt: new Date()
+      })
+      .returning();
+    return save;
+  }
+  
+  async unsavePost(userId: number, postId: number): Promise<boolean> {
+    const result = await this.ensureDb()
+      .delete(savedPosts)
+      .where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  async getSavedPost(userId: number, postId: number): Promise<SavedPost | undefined> {
+    const [save] = await this.ensureDb()
+      .select()
+      .from(savedPosts)
+      .where(and(eq(savedPosts.userId, userId), eq(savedPosts.postId, postId)));
+    return save || undefined;
+  }
+  
+  async getUserSavedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    const dbInstance = this.ensureDb();
+    const userSaves = await dbInstance
+      .select()
+      .from(savedPosts)
+      .where(eq(savedPosts.userId, userId))
+      .orderBy(desc(savedPosts.createdAt));
+    
+    const postIds = userSaves.map(save => save.postId);
+    if (postIds.length === 0) return [];
+    
+    const savedPostsData = await dbInstance
+      .select()
+      .from(posts)
+      .where(inArray(posts.id, postIds));
+    
+    return await Promise.all(savedPostsData.map(async post => {
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await dbInstance.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+      
+      return {
+        ...post,
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        commentCount: Number(commentsCount[0]?.count || 0),
+        hasLiked: !!userLike
+      };
+    }));
+  }
+  
+  async getUserTaggedPosts(userId: number): Promise<(Post & { user: User, likeCount: number, commentCount: number, hasLiked: boolean })[]> {
+    const dbInstance = this.ensureDb();
+    
+    // Get posts where user is mentioned
+    const mentions = await dbInstance
+      .select({ postId: postMentions.postId })
+      .from(postMentions)
+      .where(eq(postMentions.mentionedUserId, userId))
+      .orderBy(desc(postMentions.createdAt));
+    
+    const postIds = mentions.map(m => m.postId);
+    if (postIds.length === 0) return [];
+    
+    const taggedPostsData = await dbInstance
+      .select()
+      .from(posts)
+      .where(inArray(posts.id, postIds));
+    
+    return await Promise.all(taggedPostsData.map(async post => {
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, post.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(likes).where(eq(likes.postId, post.id));
+      const commentsCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(comments).where(eq(comments.postId, post.id));
+      const [userLike] = await dbInstance.select().from(likes).where(and(eq(likes.userId, userId), eq(likes.postId, post.id)));
+      
+      return {
+        ...post,
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        commentCount: Number(commentsCount[0]?.count || 0),
+        hasLiked: !!userLike
+      };
+    }));
+  }
+  
+  // ===================
+  // COMMENT LIKE METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async getComment(id: number): Promise<Comment | undefined> {
+    const [comment] = await this.ensureDb().select().from(comments).where(eq(comments.id, id));
+    return comment || undefined;
+  }
+  
+  async getRepliesForComment(commentId: number): Promise<(Comment & { user: User, likeCount: number, hasLiked: boolean })[]> {
+    const dbInstance = this.ensureDb();
+    const replies = await dbInstance
+      .select()
+      .from(comments)
+      .where(eq(comments.parentId, commentId))
+      .orderBy(asc(comments.createdAt));
+    
+    return await Promise.all(replies.map(async reply => {
+      const [user] = await dbInstance.select().from(users).where(eq(users.id, reply.userId));
+      const likesCount = await dbInstance.select({ count: drizzleSql<number>`count(*)` }).from(commentLikes).where(eq(commentLikes.commentId, reply.id));
+      return {
+        ...reply,
+        user: user!,
+        likeCount: Number(likesCount[0]?.count || 0),
+        hasLiked: false // Will be enriched by route handler
+      };
+    }));
+  }
+  
+  async likeComment(insertLike: InsertCommentLike): Promise<CommentLike> {
+    // Check if like already exists
+    const existingLike = await this.getCommentLike(insertLike.userId, insertLike.commentId);
+    if (existingLike) return existingLike;
+    
+    const [like] = await this.ensureDb()
+      .insert(commentLikes)
+      .values({
+        ...insertLike,
+        createdAt: new Date()
+      })
+      .returning();
+    return like;
+  }
+  
+  async unlikeComment(userId: number, commentId: number): Promise<boolean> {
+    const result = await this.ensureDb()
+      .delete(commentLikes)
+      .where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)));
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+  
+  async getCommentLike(userId: number, commentId: number): Promise<CommentLike | undefined> {
+    const [like] = await this.ensureDb()
+      .select()
+      .from(commentLikes)
+      .where(and(eq(commentLikes.userId, userId), eq(commentLikes.commentId, commentId)));
+    return like || undefined;
+  }
+  
+  async getCommentLikesCount(commentId: number): Promise<number> {
+    const result = await this.ensureDb()
+      .select({ count: drizzleSql<number>`count(*)` })
+      .from(commentLikes)
+      .where(eq(commentLikes.commentId, commentId));
+    return Number(result[0]?.count || 0);
+  }
+  
+  // ===================
+  // POST SHARE METHODS (Core - Migrated to PostgreSQL)
+  // ===================
+  
+  async createPostShare(insertShare: InsertPostShare): Promise<PostShare> {
+    const [share] = await this.ensureDb()
+      .insert(postShares)
+      .values({
+        ...insertShare,
+        createdAt: new Date()
+      })
+      .returning();
+    return share;
+  }
+  
+  async getPostShares(postId: number): Promise<PostShare[]> {
+    return await this.ensureDb()
+      .select()
+      .from(postShares)
+      .where(eq(postShares.postId, postId))
+      .orderBy(desc(postShares.createdAt));
+  }
+  
+  async getPostShareCount(postId: number): Promise<number> {
+    const result = await this.ensureDb()
+      .select({ count: drizzleSql<number>`count(*)` })
+      .from(postShares)
+      .where(eq(postShares.postId, postId));
+    return Number(result[0]?.count || 0);
   }
   
   // ===================
@@ -3193,19 +4248,347 @@ export class DatabaseStorage implements IStorage {
     return this.memStorage.followUser(follow);
   }
   async unfollowUser(followerId: number, followingId: number): Promise<boolean> {
-    return this.memStorage.unfollowUser(followerId, followingId);
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId)
+        )
+      );
+    
+    if (!follow) {
+      return false;
+    }
+    
+    await this.ensureDb()
+      .delete(follows)
+      .where(eq(follows.id, follow.id));
+    
+    return true;
+  }
+  async removeFollower(userId: number, followerIdToRemove: number): Promise<boolean> {
+    const result = await this.ensureDb()
+      .delete(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerIdToRemove),
+          eq(follows.followingId, userId),
+          eq(follows.status, "accepted")
+        )
+      );
+    return true;
+  }
+  async cancelFollowRequest(followerId: number, followingId: number): Promise<boolean> {
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId),
+          eq(follows.status, "pending")
+        )
+      );
+    
+    if (!follow) {
+      return false;
+    }
+    
+    await this.ensureDb()
+      .delete(follows)
+      .where(eq(follows.id, follow.id));
+    
+    return true;
   }
   async getFollowers(userId: number): Promise<User[]> {
-    return this.memStorage.getFollowers(userId);
+    const followerRelations = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followingId, userId),
+          eq(follows.status, "accepted")
+        )
+      );
+    
+    const followers = await Promise.all(
+      followerRelations.map(async (f) => {
+        const user = await this.getUser(f.followerId);
+        return user;
+      })
+    );
+    
+    return followers.filter((u): u is User => u !== undefined);
   }
   async getFollowing(userId: number): Promise<User[]> {
-    return this.memStorage.getFollowing(userId);
+    const followingRelations = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, userId),
+          eq(follows.status, "accepted")
+        )
+      );
+    
+    const following = await Promise.all(
+      followingRelations.map(async (f) => {
+        const user = await this.getUser(f.followingId);
+        return user;
+      })
+    );
+    
+    return following.filter((u): u is User => u !== undefined);
   }
   async isFollowing(followerId: number, followingId: number): Promise<boolean> {
-    return this.memStorage.isFollowing(followerId, followingId);
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId),
+          eq(follows.status, "accepted")
+        )
+      );
+    
+    return !!follow;
+  }
+  async isMutualFollow(userId1: number, userId2: number): Promise<boolean> {
+    const user1FollowsUser2 = await this.isFollowing(userId1, userId2);
+    const user2FollowsUser1 = await this.isFollowing(userId2, userId1);
+    return user1FollowsUser2 && user2FollowsUser1;
+  }
+  async getMutualFollowers(userId: number): Promise<User[]> {
+    const followers = await this.getFollowers(userId);
+    const following = await this.getFollowing(userId);
+    const followingIds = new Set(following.map(u => u.id));
+    return followers.filter(f => followingIds.has(f.id));
+  }
+
+  async getMutualFriends(userId1: number, userId2: number): Promise<User[]> {
+    // Get users that both userId1 and userId2 follow
+    const user1Following = await this.getFollowing(userId1);
+    const user2Following = await this.getFollowing(userId2);
+    
+    const user2FollowingIds = new Set(user2Following.map(u => u.id));
+    
+    // Find users that both follow (excluding each other)
+    return user1Following.filter(u => 
+      user2FollowingIds.has(u.id) && 
+      u.id !== userId1 && 
+      u.id !== userId2
+    );
+  }
+
+  async getFollowByUsers(followerId: number, followingId: number): Promise<Follow | undefined> {
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId)
+        )
+      );
+    
+    return follow || undefined;
   }
   async getSuggestedUsers(userId: number, limit?: number): Promise<User[]> {
-    return this.memStorage.getSuggestedUsers(userId, limit);
+    // Get users the current user is following
+    const following = await this.getFollowing(userId);
+    const followingIds = new Set(following.map(u => u.id));
+    followingIds.add(userId); // Exclude self
+    
+    // Get all users except those already followed
+    const allUsers = await this.ensureDb()
+      .select()
+      .from(users)
+      .limit(limit || 20);
+    
+    return allUsers.filter(u => !followingIds.has(u.id));
+  }
+  
+  // Follow request methods
+  async sendFollowRequest(followerId: number, followingId: number): Promise<Follow> {
+    // Check if already following or has pending request
+    const [existingFollow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId)
+        )
+      );
+    
+    if (existingFollow) {
+      return existingFollow;
+    }
+    
+    // Check if blocked in either direction
+    const isBlockedByTarget = await this.isBlocked(followingId, followerId);
+    const hasBlockedTarget = await this.isBlocked(followerId, followingId);
+    
+    if (isBlockedByTarget || hasBlockedTarget) {
+      throw new Error("Cannot follow this user");
+    }
+    
+    // Check if target user is private - use database, not memStorage
+    const targetUser = await this.getUser(followingId);
+    const status = targetUser?.isPrivate ? "pending" : "accepted";
+    
+    const [follow] = await this.ensureDb()
+      .insert(follows)
+      .values({
+        followerId,
+        followingId,
+        status,
+        createdAt: new Date(),
+        acceptedAt: status === "accepted" ? new Date() : null
+      })
+      .returning();
+    
+    return follow;
+  }
+  async acceptFollowRequest(followId: number): Promise<Follow | null> {
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(eq(follows.id, followId));
+    
+    if (!follow || follow.status !== "pending") {
+      return null;
+    }
+    
+    const [updatedFollow] = await this.ensureDb()
+      .update(follows)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date()
+      })
+      .where(eq(follows.id, followId))
+      .returning();
+    
+    return updatedFollow;
+  }
+  async rejectFollowRequest(followId: number): Promise<boolean> {
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(eq(follows.id, followId));
+    
+    if (!follow || follow.status !== "pending") {
+      return false;
+    }
+    
+    // Delete the request completely - NO notification sent (silent action)
+    await this.ensureDb()
+      .delete(follows)
+      .where(eq(follows.id, followId));
+    
+    return true;
+  }
+  async getPendingFollowRequests(userId: number): Promise<(Follow & { follower: User })[]> {
+    const pendingRequests = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followingId, userId),
+          eq(follows.status, "pending")
+        )
+      );
+    
+    const requestsWithUsers = await Promise.all(
+      pendingRequests.map(async (follow) => {
+        const follower = await this.getUser(follow.followerId);
+        if (!follower) return null;
+        return { ...follow, follower };
+      })
+    );
+    
+    return requestsWithUsers.filter((req): req is (Follow & { follower: User }) => req !== null);
+  }
+  async getFollowRequestStatus(followerId: number, followingId: number): Promise<string | null> {
+    const [follow] = await this.ensureDb()
+      .select()
+      .from(follows)
+      .where(
+        and(
+          eq(follows.followerId, followerId),
+          eq(follows.followingId, followingId)
+        )
+      );
+    
+    return follow ? follow.status : null;
+  }
+  
+  // Notification methods
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [created] = await this.ensureDb()
+      .insert(notifications)
+      .values({
+        ...notification,
+        isRead: false,
+        createdAt: new Date()
+      })
+      .returning();
+    return created;
+  }
+  async getUserNotifications(userId: number, limit?: number): Promise<(Notification & { fromUser?: User })[]> {
+    const userNotifications = await this.ensureDb()
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit || 50);
+    
+    const notificationsWithUsers = await Promise.all(
+      userNotifications.map(async (notification) => {
+        if (notification.fromUserId) {
+          const fromUser = await this.getUser(notification.fromUserId);
+          return { ...notification, fromUser };
+        }
+        return notification;
+      })
+    );
+    
+    return notificationsWithUsers;
+  }
+  async markNotificationAsRead(notificationId: number): Promise<boolean> {
+    await this.ensureDb()
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, notificationId));
+    return true;
+  }
+  async markAllNotificationsAsRead(userId: number): Promise<boolean> {
+    await this.ensureDb()
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.userId, userId));
+    return true;
+  }
+  async getUnreadNotificationCount(userId: number): Promise<number> {
+    const result = await this.ensureDb()
+      .select({ count: drizzleSql<number>`count(*)` })
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+    return Number(result[0]?.count || 0);
+  }
+  async deleteNotification(notificationId: number): Promise<boolean> {
+    await this.ensureDb()
+      .delete(notifications)
+      .where(eq(notifications.id, notificationId));
+    return true;
   }
   
   // Block methods (Task 2.2)
@@ -3278,6 +4661,9 @@ export class DatabaseStorage implements IStorage {
   async incrementStoryViewCount(storyId: number): Promise<Story | null> {
     return this.memStorage.incrementStoryViewCount(storyId);
   }
+  async hasUserViewedStories(viewerId: number, storyUserId: number): Promise<boolean> {
+    return this.memStorage.hasUserViewedStories(viewerId, storyUserId);
+  }
   
   // Story Reactions (Task 2.4)
   async createStoryReaction(reaction: InsertStoryReaction): Promise<StoryReaction> {
@@ -3309,6 +4695,80 @@ export class DatabaseStorage implements IStorage {
   async deleteStoryComment(commentId: number): Promise<void> {
     return this.memStorage.deleteStoryComment(commentId);
   }
+
+  // Story Poll methods
+  async createStoryPoll(poll: InsertStoryPoll): Promise<StoryPoll> {
+    const [created] = await this.ensureDb()
+      .insert(storyPolls)
+      .values(poll)
+      .returning();
+    return created;
+  }
+  async getStoryPoll(storyId: number): Promise<StoryPoll | null> {
+    const [poll] = await this.ensureDb()
+      .select()
+      .from(storyPolls)
+      .where(eq(storyPolls.storyId, storyId));
+    return poll || null;
+  }
+  async createStoryPollVote(vote: InsertStoryPollVote): Promise<StoryPollVote> {
+    const [created] = await this.ensureDb()
+      .insert(storyPollVotes)
+      .values(vote)
+      .returning();
+    return created;
+  }
+  async getStoryPollVotes(pollId: number): Promise<StoryPollVote[]> {
+    return await this.ensureDb()
+      .select()
+      .from(storyPollVotes)
+      .where(eq(storyPollVotes.pollId, pollId));
+  }
+  async getUserStoryPollVote(pollId: number, userId: number): Promise<StoryPollVote | null> {
+    const [vote] = await this.ensureDb()
+      .select()
+      .from(storyPollVotes)
+      .where(and(eq(storyPollVotes.pollId, pollId), eq(storyPollVotes.userId, userId)));
+    return vote || null;
+  }
+  async updateStoryPollVote(voteId: number, optionNumber: number): Promise<StoryPollVote | null> {
+    const [updated] = await this.ensureDb()
+      .update(storyPollVotes)
+      .set({ optionNumber })
+      .where(eq(storyPollVotes.id, voteId))
+      .returning();
+    return updated || null;
+  }
+
+  // Story Question methods
+  async createStoryQuestion(question: InsertStoryQuestion): Promise<StoryQuestion> {
+    const [created] = await this.ensureDb()
+      .insert(storyQuestions)
+      .values(question)
+      .returning();
+    return created;
+  }
+  async getStoryQuestion(storyId: number): Promise<StoryQuestion | null> {
+    const [question] = await this.ensureDb()
+      .select()
+      .from(storyQuestions)
+      .where(eq(storyQuestions.storyId, storyId));
+    return question || null;
+  }
+  async createStoryQuestionResponse(response: InsertStoryQuestionResponse): Promise<StoryQuestionResponse> {
+    const [created] = await this.ensureDb()
+      .insert(storyQuestionResponses)
+      .values(response)
+      .returning();
+    return created;
+  }
+  async getStoryQuestionResponses(questionId: number): Promise<StoryQuestionResponse[]> {
+    return await this.ensureDb()
+      .select()
+      .from(storyQuestionResponses)
+      .where(eq(storyQuestionResponses.questionId, questionId))
+      .orderBy(desc(storyQuestionResponses.createdAt));
+  }
   
   // Player Stats methods (Task 2.5)
   async createPlayerStats(stats: InsertPlayerStats): Promise<PlayerStats> {
@@ -3328,8 +4788,11 @@ export class DatabaseStorage implements IStorage {
   async getPlayerMatch(id: number): Promise<PlayerMatch | undefined> {
     return this.memStorage.getPlayerMatch(id);
   }
-  async getUserMatches(userId: number): Promise<PlayerMatch[] | Match[]> {
+  async getUserMatches(userId: number): Promise<PlayerMatch[]> {
     return this.memStorage.getUserMatches(userId);
+  }
+  async getMatchesByCreator(userId: number): Promise<Match[]> {
+    return this.memStorage.getMatchesByCreator(userId);
   }
   
   // Player Match Performance methods (Task 2.5)
@@ -3611,8 +5074,297 @@ export class DatabaseStorage implements IStorage {
   async deletePollVote(userId: number, pollId: number): Promise<boolean> {
     return this.memStorage.deletePollVote(userId, pollId);
   }
+
+  // ===================
+  // ENHANCED SOCIAL GRAPH METHODS (Migrated to PostgreSQL)
+  // ===================
+  
+  // Relationship management
+  async createUserRelationship(relationship: InsertUserRelationship): Promise<UserRelationship> {
+    const db = this.ensureDb();
+    const [result] = await db.insert(userRelationships).values(relationship).returning();
+    return result;
+  }
+  
+  async deleteUserRelationship(userId: number, targetUserId: number, relationshipType: string): Promise<boolean> {
+    const db = this.ensureDb();
+    const result = await db.delete(userRelationships)
+      .where(
+        and(
+          eq(userRelationships.userId, userId),
+          eq(userRelationships.targetUserId, targetUserId),
+          eq(userRelationships.relationshipType, relationshipType)
+        )
+      );
+    return result.rowCount > 0;
+  }
+  
+  async getUserRelationships(userId: number, relationshipType?: string): Promise<UserRelationship[]> {
+    const db = this.ensureDb();
+    const conditions = [eq(userRelationships.userId, userId)];
+    if (relationshipType) {
+      conditions.push(eq(userRelationships.relationshipType, relationshipType));
+    }
+    
+    return await db.select()
+      .from(userRelationships)
+      .where(and(...conditions))
+      .orderBy(desc(userRelationships.createdAt));
+  }
+  
+  async getRelationshipStatus(userId1: number, userId2: number): Promise<string> {
+    // Use the SocialGraphService to get comprehensive relationship status
+    const { socialGraphService } = await import('./services/social-graph');
+    const status = await socialGraphService.getRelationshipStatus(userId1, userId2);
+    return status;
+  }
+  
+  // Follow requests
+  async createFollowRequest(request: InsertFollowRequest): Promise<FollowRequest> {
+    const db = this.ensureDb();
+    const [result] = await db.insert(followRequests).values(request).returning();
+    return result;
+  }
+  
+  async updateFollowRequest(requestId: number, status: string): Promise<FollowRequest | undefined> {
+    const db = this.ensureDb();
+    const [result] = await db.update(followRequests)
+      .set({ 
+        status, 
+        respondedAt: new Date() 
+      })
+      .where(eq(followRequests.id, requestId))
+      .returning();
+    return result;
+  }
+  
+  async getFollowRequest(requesterId: number, requestedId: number): Promise<FollowRequest | undefined> {
+    const db = this.ensureDb();
+    const [result] = await db.select()
+      .from(followRequests)
+      .where(
+        and(
+          eq(followRequests.requesterId, requesterId),
+          eq(followRequests.requestedId, requestedId)
+        )
+      )
+      .limit(1);
+    return result;
+  }
+  
+  async getPendingFollowRequestsForUser(userId: number): Promise<(FollowRequest & { requester: User })[]> {
+    const db = this.ensureDb();
+    return await db.select({
+      id: followRequests.id,
+      requesterId: followRequests.requesterId,
+      requestedId: followRequests.requestedId,
+      status: followRequests.status,
+      createdAt: followRequests.createdAt,
+      respondedAt: followRequests.respondedAt,
+      requester: {
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        profileImage: users.profileImage,
+        verificationBadge: users.verificationBadge,
+        isPrivate: users.isPrivate
+      }
+    })
+    .from(followRequests)
+    .innerJoin(users, eq(followRequests.requesterId, users.id))
+    .where(
+      and(
+        eq(followRequests.requestedId, userId),
+        eq(followRequests.status, 'pending')
+      )
+    )
+    .orderBy(desc(followRequests.createdAt)) as (FollowRequest & { requester: User })[];
+  }
+  
+  async getSentFollowRequests(userId: number): Promise<(FollowRequest & { requested: User })[]> {
+    const db = this.ensureDb();
+    return await db.select({
+      id: followRequests.id,
+      requesterId: followRequests.requesterId,
+      requestedId: followRequests.requestedId,
+      status: followRequests.status,
+      createdAt: followRequests.createdAt,
+      respondedAt: followRequests.respondedAt,
+      requested: {
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        profileImage: users.profileImage,
+        verificationBadge: users.verificationBadge,
+        isPrivate: users.isPrivate
+      }
+    })
+    .from(followRequests)
+    .innerJoin(users, eq(followRequests.requestedId, users.id))
+    .where(
+      and(
+        eq(followRequests.requesterId, userId),
+        eq(followRequests.status, 'pending')
+      )
+    )
+    .orderBy(desc(followRequests.createdAt)) as (FollowRequest & { requested: User })[];
+  }
+  
+  // Privacy settings
+  async createUserPrivacySettings(settings: InsertUserPrivacySettings): Promise<UserPrivacySettings> {
+    const db = this.ensureDb();
+    const [result] = await db.insert(userPrivacySettings).values(settings).returning();
+    return result;
+  }
+  
+  async getUserPrivacySettings(userId: number): Promise<UserPrivacySettings | undefined> {
+    const db = this.ensureDb();
+    const [result] = await db.select()
+      .from(userPrivacySettings)
+      .where(eq(userPrivacySettings.userId, userId))
+      .limit(1);
+    return result;
+  }
+  
+  async updateUserPrivacySettings(userId: number, settings: Partial<UserPrivacySettings>): Promise<UserPrivacySettings | undefined> {
+    const db = this.ensureDb();
+    const [result] = await db.update(userPrivacySettings)
+      .set({ 
+        ...settings, 
+        updatedAt: new Date() 
+      })
+      .where(eq(userPrivacySettings.userId, userId))
+      .returning();
+    return result;
+  }
+  
+  // Close friends
+  async addCloseFriend(closeFriend: InsertCloseFriend): Promise<CloseFriend> {
+    const db = this.ensureDb();
+    const [result] = await db.insert(closeFriends).values(closeFriend).returning();
+    return result;
+  }
+  
+  async removeCloseFriend(userId: number, friendId: number): Promise<boolean> {
+    const db = this.ensureDb();
+    const result = await db.delete(closeFriends)
+      .where(
+        and(
+          eq(closeFriends.userId, userId),
+          eq(closeFriends.friendId, friendId)
+        )
+      );
+    return result.rowCount > 0;
+  }
+  
+  async getCloseFriends(userId: number): Promise<User[]> {
+    const db = this.ensureDb();
+    const friends = await db.select({
+      id: users.id,
+      username: users.username,
+      fullName: users.fullName,
+      profileImage: users.profileImage,
+      verificationBadge: users.verificationBadge,
+      isPrivate: users.isPrivate,
+      createdAt: users.createdAt
+    })
+    .from(closeFriends)
+    .innerJoin(users, eq(closeFriends.friendId, users.id))
+    .where(eq(closeFriends.userId, userId))
+    .orderBy(desc(closeFriends.createdAt));
+
+    return friends as User[];
+  }
+  
+  async isCloseFriend(userId: number, friendId: number): Promise<boolean> {
+    const db = this.ensureDb();
+    const [result] = await db.select()
+      .from(closeFriends)
+      .where(
+        and(
+          eq(closeFriends.userId, userId),
+          eq(closeFriends.friendId, friendId)
+        )
+      )
+      .limit(1);
+    return !!result;
+  }
+  
+  // User restrictions (blocking, muting, restricting)
+  async createUserRestriction(restriction: InsertUserRestriction): Promise<UserRestriction> {
+    const db = this.ensureDb();
+    const [result] = await db.insert(userRestrictions).values(restriction).returning();
+    return result;
+  }
+  
+  async removeUserRestriction(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean> {
+    const db = this.ensureDb();
+    const result = await db.delete(userRestrictions)
+      .where(
+        and(
+          eq(userRestrictions.restricterId, restricterId),
+          eq(userRestrictions.restrictedId, restrictedId),
+          eq(userRestrictions.restrictionType, restrictionType)
+        )
+      );
+    return result.rowCount > 0;
+  }
+  
+  async getUserRestrictions(userId: number, restrictionType?: string): Promise<UserRestriction[]> {
+    const db = this.ensureDb();
+    const conditions = [eq(userRestrictions.restricterId, userId)];
+    if (restrictionType) {
+      conditions.push(eq(userRestrictions.restrictionType, restrictionType));
+    }
+    
+    return await db.select()
+      .from(userRestrictions)
+      .where(and(...conditions))
+      .orderBy(desc(userRestrictions.createdAt));
+  }
+  
+  async isUserRestricted(restricterId: number, restrictedId: number, restrictionType: string): Promise<boolean> {
+    const db = this.ensureDb();
+    const [result] = await db.select()
+      .from(userRestrictions)
+      .where(
+        and(
+          eq(userRestrictions.restricterId, restricterId),
+          eq(userRestrictions.restrictedId, restrictedId),
+          eq(userRestrictions.restrictionType, restrictionType)
+        )
+      )
+      .limit(1);
+    return !!result;
+  }
 }
 
-// Temporarily using MemStorage until full database migration is complete
-// TODO: Complete migration of all features to DatabaseStorage to avoid data inconsistency
-export const storage = new MemStorage();
+// Use DatabaseStorage if DATABASE_URL is available, otherwise fall back to MemStorage
+// This ensures data persistence in Docker containers
+let storageInstance: IStorage;
+
+if (process.env.DATABASE_URL) {
+  try {
+    console.log("📦 Initializing PostgreSQL database storage...");
+    
+    // Test if the database connection is actually working
+    const { isDatabaseAvailable } = await import('./db');
+    
+    if (isDatabaseAvailable()) {
+      storageInstance = new DatabaseStorage();
+      console.log("✅ DatabaseStorage initialized successfully");
+    } else {
+      console.warn("⚠️ Database connection not available, falling back to MemStorage");
+      storageInstance = new MemStorage();
+    }
+  } catch (error) {
+    console.warn("⚠️ Failed to initialize DatabaseStorage, falling back to MemStorage:", error);
+    storageInstance = new MemStorage();
+  }
+} else {
+  console.log("💾 Using in-memory storage (MemStorage) - data will not persist");
+  console.log("💡 Set DATABASE_URL environment variable to enable persistent storage");
+  storageInstance = new MemStorage();
+}
+
+export const storage = storageInstance;
