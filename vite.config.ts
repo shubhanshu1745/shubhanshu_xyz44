@@ -7,25 +7,10 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const isProduction = process.env.NODE_ENV === "production";
-
 export default defineConfig({
   plugins: [
     react(),
     themePlugin(),
-    // Only include Replit plugins in development
-    ...(!isProduction
-      ? [
-          (await import("@replit/vite-plugin-runtime-error-modal")).default(),
-          ...(process.env.REPL_ID !== undefined
-            ? [
-                await import("@replit/vite-plugin-cartographer").then((m) =>
-                  m.cartographer(),
-                ),
-              ]
-            : []),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
