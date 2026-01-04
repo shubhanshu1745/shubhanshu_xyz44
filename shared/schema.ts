@@ -2124,3 +2124,162 @@ export type CreateTagFormData = z.infer<typeof createTagSchema>;
 export type CreateContentCategoryFormData = z.infer<typeof createContentCategorySchema>;
 export type CreateUserInterestFormData = z.infer<typeof createUserInterestSchema>;
 export type CreateContentEngagementFormData = z.infer<typeof createContentEngagementSchema>;
+
+
+// ============================================
+// CHAT SYSTEM TABLES (2026 Architecture)
+// ============================================
+
+// Chat conversations (supports DM and Group)
+export const chatConversations = pgTable("chat_conversations", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull().default("dm"), // "dm" | "group"
+  name: text("name"), // For groups only
+  avatarUrl: text("avatar_url"), // For groups only
+  createdBy: integer("created_by").references(() => users.id),
+  lastMessageAt: timestamp("last_message_at").defaultNow(),
+  lastMessagePreview: text("last_message_preview"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ChatConversation = typeof chatConversations.$inferSelect;
+export type InsertChatConversation = typeof chatConversations.$inferInsert;
+export const insertChatConversationSchema = createInsertSchema(chatConversations).omit({ id: true, createdAt: true, updatedAt: true });
+
+// Chat conversation members
+export const chatMembers = pgTable("chat_members", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").default("member"), // "admin" | "member"
+  nickname: text("nickname"), // Custom nickname in group
+  joinedAt: timestamp("joined_at").defaultNow(),
+  leftAt: timestamp("left_at"),
+  isMuted: boolean("is_muted").default(false),
+  mutedUntil: timestamp("muted_until"),
+  isArchived: boolean("is_archived").default(false),
+  isPinned: boolean("is_pinned").default(false),
+  lastReadMessageId: integer("last_read_message_id"),
+  lastSeenAt: timestamp("last_seen_at"),
+  isActive: boolean("is_active").default(true),
+}, (table) => {
+  return {
+    uniqueMember: unique().on(table.conversationId, table.userId),
+  };
+});
+
+export type ChatMember = typeof chatMembers.$inferSelect;
+export type InsertChatMember = typeof chatMembers.$inferInsert;
+export const insertChatMemberSchema = createInsertSchema(chatMembers).omit({ id: true, joinedAt: true });
+
+// Chat messages
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  type: text("type").default("text"), // "text" | "image" | "video" | "voice" | "gif" | "sticker" | "post" | "reel" | "location" | "document"
+  content: text("content"),
+  mediaUrl: text("media_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  duration: integer("duration"), // For voice/video in seconds
+  replyToId: integer("reply_to_id").references(() => chatMessages.id),
+  forwardedFromId: integer("forwarded_from_id").references(() => chatMessages.id),
+  sharedPostId: integer("shared_post_id"), // For sharing posts
+  sharedStoryId: integer("shared_story_id"), // For sharing stories
+  isEdited: boolean("is_edited").default(false),
+  editedAt: timestamp("edited_at"),
+  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: timestamp("deleted_at"),
+  deletedFor: jsonb("deleted_for"), // Array of user IDs who deleted this message for themselves
+  expiresAt: timestamp("expires_at"), // For vanish mode
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
+
+// Message reactions
+export const chatMessageReactions = pgTable("chat_message_reactions", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => chatMessages.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  emoji: text("emoji").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueReaction: unique().on(table.messageId, table.userId),
+  };
+});
+
+export type ChatMessageReaction = typeof chatMessageReactions.$inferSelect;
+export type InsertChatMessageReaction = typeof chatMessageReactions.$inferInsert;
+export const insertChatMessageReactionSchema = createInsertSchema(chatMessageReactions).omit({ id: true, createdAt: true });
+
+// Message read status (for delivered/seen tracking)
+export const chatMessageStatus = pgTable("chat_message_status", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => chatMessages.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").default("delivered"), // "delivered" | "seen"
+  deliveredAt: timestamp("delivered_at").defaultNow(),
+  seenAt: timestamp("seen_at"),
+}, (table) => {
+  return {
+    uniqueStatus: unique().on(table.messageId, table.userId),
+  };
+});
+
+export type ChatMessageStatus = typeof chatMessageStatus.$inferSelect;
+export type InsertChatMessageStatus = typeof chatMessageStatus.$inferInsert;
+export const insertChatMessageStatusSchema = createInsertSchema(chatMessageStatus).omit({ id: true, deliveredAt: true });
+
+// Chat message requests (for non-followers)
+export const chatRequests = pgTable("chat_requests", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
+  conversationId: integer("conversation_id").references(() => chatConversations.id),
+  status: text("status").default("pending"), // "pending" | "accepted" | "declined" | "blocked"
+  messagePreview: text("message_preview"),
+  createdAt: timestamp("created_at").defaultNow(),
+  respondedAt: timestamp("responded_at"),
+}, (table) => {
+  return {
+    uniqueRequest: unique().on(table.senderId, table.recipientId),
+  };
+});
+
+export type ChatRequest = typeof chatRequests.$inferSelect;
+export type InsertChatRequest = typeof chatRequests.$inferInsert;
+export const insertChatRequestSchema = createInsertSchema(chatRequests).omit({ id: true, createdAt: true });
+
+// User online status tracking
+export const userOnlineStatus = pgTable("user_online_status", {
+  userId: integer("user_id").primaryKey().references(() => users.id),
+  isOnline: boolean("is_online").default(false),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  lastActiveConversationId: integer("last_active_conversation_id"),
+});
+
+export type UserOnlineStatus = typeof userOnlineStatus.$inferSelect;
+export type InsertUserOnlineStatus = typeof userOnlineStatus.$inferInsert;
+export const insertUserOnlineStatusSchema = createInsertSchema(userOnlineStatus);
+
+// Typing indicators (ephemeral, could use Redis instead)
+export const chatTypingIndicators = pgTable("chat_typing_indicators", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  startedAt: timestamp("started_at").defaultNow(),
+}, (table) => {
+  return {
+    uniqueTyping: unique().on(table.conversationId, table.userId),
+  };
+});
+
+export type ChatTypingIndicator = typeof chatTypingIndicators.$inferSelect;
+export type InsertChatTypingIndicator = typeof chatTypingIndicators.$inferInsert;

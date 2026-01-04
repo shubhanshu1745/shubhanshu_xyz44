@@ -53,6 +53,7 @@ import { saveFile, FileUploadResult } from "./services/file-upload";
 import { NotificationService } from "./services/notification-service";
 import * as AIService from "./services/ai/ai-service";
 import reelsRoutes from "./routes/reels";
+import { registerChatRoutes } from "./routes/chat";
 
 // Zod schemas for validation
 const forgotPasswordSchema = z.object({
@@ -105,6 +106,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register reels routes (after auth setup)
   app.use('/api/reels', reelsRoutes);
+  
+  // Register chat routes with SSE support
+  registerChatRoutes(app);
 
   // Current user endpoint
   app.get("/api/user", async (req, res) => {
