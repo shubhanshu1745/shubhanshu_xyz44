@@ -140,12 +140,14 @@ export default function ChatPage() {
 
   // Fetch users for new chat
   const { data: searchUsers = [] } = useQuery({
-    queryKey: ["/api/users/search", searchQuery],
+    queryKey: ["/api/search", searchQuery],
     queryFn: async () => {
       if (!searchQuery || searchQuery.length < 2) return [];
-      const res = await fetch(`/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+      const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
       if (!res.ok) return [];
-      return res.json();
+      const data = await res.json();
+      // The search endpoint returns { users: [...] }
+      return data.users || [];
     },
     enabled: searchQuery.length >= 2,
   });

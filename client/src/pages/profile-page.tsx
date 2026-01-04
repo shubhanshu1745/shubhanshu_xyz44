@@ -358,6 +358,32 @@ export default function ProfilePage() {
                         <Button 
                           variant="outline" 
                           className="text-sm font-semibold"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/chat/conversations/dm", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ recipientId: profile.id }),
+                                credentials: "include",
+                              });
+                              if (res.ok) {
+                                const conversation = await res.json();
+                                setLocation(`/chat/${conversation.id}`);
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: "Could not start conversation",
+                                  variant: "destructive",
+                                });
+                              }
+                            } catch (err) {
+                              toast({
+                                title: "Error",
+                                description: "Could not start conversation",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
                         >
                           <MessageSquare className="h-4 w-4 mr-1" />
                           Message
