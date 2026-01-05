@@ -6,82 +6,99 @@ import * as schema from '@shared/schema';
  */
 export async function updatePlayerStatistics(tournamentId: number, matchId: number) {
   try {
-    // Get match details
     const match = await storage.getTournamentMatch(matchId);
     
     if (!match || match.status !== "completed") {
       throw new Error("Match not found or not completed");
     }
     
-    // Get player performances for this match
     const performances = await storage.getMatchPerformances(matchId);
     
     if (!performances || performances.length === 0) {
-      // No performances recorded yet
       return;
     }
     
-    // Process each player's performance
     for (const performance of performances) {
-      // Get existing tournament stats for this player
       const existingStats = await storage.getPlayerTournamentStats(tournamentId, performance.userId);
       
+      const runsScored = performance.runsScored || 0;
+      const ballsFaced = performance.ballsFaced || 0;
+      const fours = performance.fours || 0;
+      const sixes = performance.sixes || 0;
+      const wicketsTaken = performance.wicketsTaken || 0;
+      const oversBowled = performance.oversBowled ? parseFloat(performance.oversBowled) : 0;
+      const runsConceded = performance.runsConceded || 0;
+      const catches = performance.catches || 0;
+      const runOuts = performance.runOuts || 0;
+      const stumpings = performance.stumpings || 0;
+      
       if (existingStats) {
-        // Update existing stats
+        const newMatches = (existingStats.matches || 0) + 1;
+        const newRuns = (existingStats.runs || 0) + runsScored;
+        const newBalls = (existingStats.ballsFaced || 0) + ballsFaced;
+        const newFours = (existingStats.fours || 0) + fours;
+        const newSixes = (existingStats.sixes || 0) + sixes;
+        const newWickets = (existingStats.wickets || 0) + wicketsTaken;
+        const newOvers = (parseFloat(existingStats.overs?.toString() || "0")) + oversBowled;
+        const newRunsConceded = (existingStats.runsConceded || 0) + runsConceded;
+        const newCatches = (existingStats.catches || 0) + catches;
+        const newRunOuts = (existingStats.runOuts || 0) + runOuts;
+        const newStumpings = (existingStats.stumpings || 0) + stumpings;
+        const newFifties = (existingStats.fifties || 0) + (runsScored >= 50 && runsScored < 100 ? 1 : 0);
+        const newHundreds = (existingStats.hundreds || 0) + (runsScored >= 100 ? 1 : 0);
+        const newHighestScore = Math.max(existingStats.highestScore || 0, runsScored);
+        
+        const battingAverage = newMatches > 0 ? newRuns / newMatches : 0;
+        const strikeRate = newBalls > 0 ? (newRuns / newBalls) * 100 : 0;
+        const economyRate = newOvers > 0 ? newRunsConceded / newOvers : 0;
+        
         await storage.updatePlayerTournamentStats(tournamentId, performance.userId, {
-          matches: existingStats.matches + 1,
-          runs: existingStats.runs + (performance.runsScored || 0),
-          balls: existingStats.balls + (performance.ballsFaced || 0),
-          fours: existingStats.fours + (performance.fours || 0),
-          sixes: existingStats.sixes + (performance.sixes || 0),
-          fifties: existingStats.fifties + (performance.runsScored && performance.runsScored >= 50 && performance.runsScored < 100 ? 1 : 0),
-          hundreds: existingStats.hundreds + (performance.runsScored && performance.runsScored >= 100 ? 1 : 0),
-          highestScore: Math.max(existingStats.highestScore || 0, performance.runsScored || 0),
-          
-          // Bowling stats
-          overs: existingStats.overs + (performance.oversBowled ? parseFloat(performance.oversBowled) : 0),
-          wickets: existingStats.wickets + (performance.wicketsTaken || 0),
-          catches: existingStats.catches + (performance.catches || 0),
-          runOuts: existingStats.runOuts + (performance.runOuts || 0),
-          
-          // Updated averages and strike rates will be calculated below
-          updatedAt: new Date()
+          matches: newMatches,
+          runs: newRuns,
+          ballsFaced: newBalls,
+          fours: newFours,
+          sixes: newSixes,
+          fifties: newFifties,
+          hundreds: newHundreds,
+          highestScore: newHighestScore,
+          battingAverage: battingAverage.toFixed(2),
+          strikeRate: strikeRate.toFixed(2),
+          overs: newOvers.toString(),
+          wickets: newWickets,
+          runsConceded: newRunsConceded,
+          economyRate: economyRate.toFixed(2),
+          catches: newCatches,
+          runOuts: newRunOuts,
+          stumpings: newStumpings,
+          lastUpdated: new Date()
         });
       } else {
-        // Create new stats entry
+        const battingAverage = runsScored;
+        const strikeRate = ballsFaced > 0 ? (runsScored / ballsFaced) * 100 : 0;
+        const economyRate = oversBowled > 0 ? runsConceded / oversBowled : 0;
+        
         await storage.createPlayerTournamentStats({
           tournamentId,
           userId: performance.userId,
           matches: 1,
-          innings: 1,
-          runs: performance.runsScored || 0,
-          balls: performance.ballsFaced || 0,
-          fours: performance.fours || 0,
-          sixes: performance.sixes || 0,
-          fifties: (performance.runsScored && performance.runsScored >= 50 && performance.runsScored < 100) ? 1 : 0,
-          hundreds: (performance.runsScored && performance.runsScored >= 100) ? 1 : 0,
-          highestScore: performance.runsScored || 0,
-          average: 0, // Will be calculated below
-          strikeRate: 0, // Will be calculated below
-          
-          // Bowling stats
-          overs: performance.oversBowled ? parseFloat(performance.oversBowled) : 0,
-          wickets: performance.wicketsTaken || 0,
-          bestBowling: null,
-          economyRate: 0, // Will be calculated below
-          
-          // Fielding stats
-          catches: performance.catches || 0,
-          runOuts: performance.runOuts || 0,
-          stumpings: performance.stumpings || 0,
-          
-          createdAt: new Date(),
-          updatedAt: new Date()
+          runs: runsScored,
+          ballsFaced: ballsFaced,
+          fours: fours,
+          sixes: sixes,
+          fifties: (runsScored >= 50 && runsScored < 100) ? 1 : 0,
+          hundreds: runsScored >= 100 ? 1 : 0,
+          highestScore: runsScored,
+          battingAverage: battingAverage.toFixed(2),
+          strikeRate: strikeRate.toFixed(2),
+          overs: oversBowled.toString(),
+          wickets: wicketsTaken,
+          runsConceded: runsConceded,
+          economyRate: economyRate.toFixed(2),
+          catches: catches,
+          runOuts: runOuts,
+          stumpings: stumpings
         });
       }
-      
-      // Update derived statistics (averages, etc.)
-      await updatePlayerAverages(tournamentId, performance.userId);
     }
     
     return true;
@@ -91,58 +108,20 @@ export async function updatePlayerStatistics(tournamentId: number, matchId: numb
   }
 }
 
-/**
- * Helper function to update a player's batting and bowling averages
- */
-async function updatePlayerAverages(tournamentId: number, userId: number) {
-  try {
-    const stats = await storage.getPlayerTournamentStats(tournamentId, userId);
-    
-    if (!stats) {
-      return;
-    }
-    
-    // Calculate batting average (runs / dismissals)
-    // For simplicity, we'll assume each innings counts as a dismissal
-    const battingAverage = stats.innings > 0 ? stats.runs / stats.innings : 0;
-    
-    // Calculate strike rate (runs / balls faced * 100)
-    const strikeRate = stats.balls > 0 ? (stats.runs / stats.balls) * 100 : 0;
-    
-    // Calculate economy rate (runs conceded / overs)
-    const economyRate = stats.overs > 0 ? stats.runs / stats.overs : 0;
-    
-    // Update the statistics
-    await storage.updatePlayerTournamentStats(tournamentId, userId, {
-      average: battingAverage,
-      strikeRate,
-      economyRate,
-      updatedAt: new Date()
-    });
-    
-    return true;
-  } catch (error) {
-    console.error("Error updating player averages:", error);
-    throw error;
-  }
-}
 
 /**
  * Gets the top performers in a tournament by various statistics
  */
 export async function getTopPerformers(tournamentId: number, category: string, limit: number = 10) {
   try {
-    // Validate the tournament exists
     const tournament = await storage.getTournament(tournamentId);
     
     if (!tournament) {
       throw new Error(`Tournament with ID ${tournamentId} not found`);
     }
     
-    // Get all player stats in this tournament
     const allStats = await storage.getPlayerTournamentStatsByTournament(tournamentId);
     
-    // Enrich with user data and sort based on category
     const statsWithUsers = await Promise.all(allStats.map(async (stat) => {
       const user = await storage.getUser(stat.userId);
       return { ...stat, user };
@@ -150,36 +129,44 @@ export async function getTopPerformers(tournamentId: number, category: string, l
     
     let sortedStats = [...statsWithUsers];
     
-    // Different orders based on category
     switch (category.toLowerCase()) {
       case 'runs':
-        sortedStats.sort((a, b) => b.runs - a.runs);
-        break;
-        
-      case 'batting_average':
-        sortedStats.sort((a, b) => (b.average || 0) - (a.average || 0));
-        break;
-        
-      case 'strike_rate':
-        sortedStats.sort((a, b) => (b.strikeRate || 0) - (a.strikeRate || 0));
+      case 'orange_cap':
+        sortedStats.sort((a, b) => (b.runs || 0) - (a.runs || 0));
         break;
         
       case 'wickets':
+      case 'purple_cap':
         sortedStats.sort((a, b) => (b.wickets || 0) - (a.wickets || 0));
         break;
         
-      case 'economy_rate':
-        // Filter out players with no economy rate, then sort ascending (lower is better)
-        sortedStats = sortedStats.filter(stat => stat.economyRate && stat.economyRate > 0);
-        sortedStats.sort((a, b) => (a.economyRate || 999) - (b.economyRate || 999));
+      case 'batting_average':
+        sortedStats = sortedStats.filter(stat => (stat.matches || 0) >= 3);
+        sortedStats.sort((a, b) => {
+          const avgA = parseFloat(a.battingAverage?.toString() || "0");
+          const avgB = parseFloat(b.battingAverage?.toString() || "0");
+          return avgB - avgA;
+        });
         break;
         
-      case 'allrounder':
-        // Combined ranking for all-rounders (e.g., runs + wickets * 20)
+      case 'strike_rate':
+        sortedStats = sortedStats.filter(stat => (stat.runs || 0) >= 100);
         sortedStats.sort((a, b) => {
-          const aScore = a.runs + (a.wickets || 0) * 20;
-          const bScore = b.runs + (b.wickets || 0) * 20;
-          return bScore - aScore;
+          const srA = parseFloat(a.strikeRate?.toString() || "0");
+          const srB = parseFloat(b.strikeRate?.toString() || "0");
+          return srB - srA;
+        });
+        break;
+        
+      case 'economy_rate':
+        sortedStats = sortedStats.filter(stat => {
+          const overs = parseFloat(stat.overs?.toString() || "0");
+          return overs >= 10;
+        });
+        sortedStats.sort((a, b) => {
+          const erA = parseFloat(a.economyRate?.toString() || "999");
+          const erB = parseFloat(b.economyRate?.toString() || "999");
+          return erA - erB;
         });
         break;
         
@@ -191,6 +178,7 @@ export async function getTopPerformers(tournamentId: number, category: string, l
         sortedStats.sort((a, b) => (b.fours || 0) - (a.fours || 0));
         break;
         
+      case 'catches':
       case 'fielding':
         sortedStats.sort((a, b) => {
           const aFielding = (a.catches || 0) + (a.runOuts || 0) + (a.stumpings || 0);
@@ -199,13 +187,24 @@ export async function getTopPerformers(tournamentId: number, category: string, l
         });
         break;
         
+      case 'allrounder':
+      case 'mvp':
+        // MVP Formula: (Runs * 1) + (Wickets * 20) + (Catches * 10) + (RunOuts * 15)
+        sortedStats.sort((a, b) => {
+          const aScore = (a.runs || 0) + ((a.wickets || 0) * 20) + ((a.catches || 0) * 10) + ((a.runOuts || 0) * 15);
+          const bScore = (b.runs || 0) + ((b.wickets || 0) * 20) + ((b.catches || 0) * 10) + ((b.runOuts || 0) * 15);
+          return bScore - aScore;
+        });
+        break;
+        
       default:
-        // Default to most runs
-        sortedStats.sort((a, b) => b.runs - a.runs);
+        sortedStats.sort((a, b) => (b.runs || 0) - (a.runs || 0));
     }
     
-    // Return limited results
-    return sortedStats.slice(0, limit);
+    return sortedStats.slice(0, limit).map((stat, index) => ({
+      ...stat,
+      rank: index + 1
+    }));
   } catch (error) {
     console.error("Error getting top performers:", error);
     throw error;
@@ -217,15 +216,12 @@ export async function getTopPerformers(tournamentId: number, category: string, l
  */
 export async function getPlayerStatistics(tournamentId: number, userId: number) {
   try {
-    // Get player's statistics for this tournament
     const stats = await storage.getPlayerTournamentStats(tournamentId, userId);
     
     if (!stats) {
-      // Player has no stats for this tournament yet
       return {
         userId,
         matches: 0,
-        innings: 0,
         runs: 0,
         balls: 0,
         fours: 0,
@@ -236,29 +232,8 @@ export async function getPlayerStatistics(tournamentId: number, userId: number) 
       };
     }
     
-    // Enrich with user data
     const user = await storage.getUser(userId);
-    const statsWithUser = { ...stats, user };
-    
-    // Get all tournament matches
-    const tournamentMatches = await storage.getTournamentMatchesByTournament(tournamentId);
-    const tournamentMatchIds = tournamentMatches.map(match => match.matchId);
-    
-    // Get player's recent performances from matches in this tournament
-    const allPlayerPerformances = await storage.getPlayerMatchesByUserId(userId);
-    const recentPerformances = allPlayerPerformances
-      .filter(perf => tournamentMatchIds.includes(perf.matchId))
-      .sort((a, b) => {
-        const dateA = a.createdAt ? a.createdAt.getTime() : 0;
-        const dateB = b.createdAt ? b.createdAt.getTime() : 0;
-        return dateB - dateA;
-      })
-      .slice(0, 5); // Get last 5 performances
-    
-    return {
-      ...statsWithUser,
-      recentPerformances
-    };
+    return { ...stats, user };
   } catch (error) {
     console.error("Error getting player statistics:", error);
     throw error;
@@ -270,116 +245,164 @@ export async function getPlayerStatistics(tournamentId: number, userId: number) 
  */
 export async function getTournamentSummaryStats(tournamentId: number) {
   try {
-    // Validate the tournament exists
     const tournament = await storage.getTournament(tournamentId);
     
     if (!tournament) {
       throw new Error(`Tournament with ID ${tournamentId} not found`);
     }
     
-    // Get all matches in this tournament
     const tournamentMatches = await storage.getTournamentMatchesByTournament(tournamentId);
-    
-    // Get the actual matches
-    const matchPromises = tournamentMatches.map(tm => storage.getTournamentMatch(tm.matchId));
-    const matches = await Promise.all(matchPromises);
-    
-    // Get all player stats in this tournament
     const playerStats = await storage.getPlayerTournamentStatsByTournament(tournamentId);
     
-    // Calculate tournament summary statistics
     const totalMatches = tournamentMatches.length;
     const completedMatches = tournamentMatches.filter(m => m.status === 'completed').length;
+    const upcomingMatches = tournamentMatches.filter(m => m.status === 'scheduled').length;
+    const liveMatches = tournamentMatches.filter(m => m.status === 'live').length;
     
-    // Total runs in tournament
-    const totalRuns = playerStats.reduce((sum, stat) => sum + stat.runs, 0);
-    
-    // Total wickets in tournament
+    const totalRuns = playerStats.reduce((sum, stat) => sum + (stat.runs || 0), 0);
     const totalWickets = playerStats.reduce((sum, stat) => sum + (stat.wickets || 0), 0);
-    
-    // Highest team score
-    let highestTeamScore = 0;
-    let highestScoringTeamId = null;
-    let highestScoringMatchId = null;
-    
-    for (const match of matches) {
-      if (match && match.team1Score && match.team1Score > highestTeamScore) {
-        highestTeamScore = match.team1Score;
-        highestScoringTeamId = match.team1Id;
-        highestScoringMatchId = match.id;
-      }
-      
-      if (match && match.team2Score && match.team2Score > highestTeamScore) {
-        highestTeamScore = match.team2Score;
-        highestScoringTeamId = match.team2Id;
-        highestScoringMatchId = match.id;
-      }
-    }
-    
-    // Get scoring teams if we have them
-    let highestScoringTeam = null;
-    if (highestScoringTeamId) {
-      highestScoringTeam = await storage.getTeam(highestScoringTeamId);
-    }
-    
-    // Lowest team score (only count completed matches with scores)
-    const completedMatchesWithScores = matches.filter(m => 
-      m && m.status === 'completed' && 
-      (m.team1Score !== null || m.team2Score !== null)
-    );
-    
-    let lowestTeamScore = Number.MAX_SAFE_INTEGER;
-    let lowestScoringTeamId = null;
-    let lowestScoringMatchId = null;
-    
-    for (const match of completedMatchesWithScores) {
-      if (match && match.team1Score !== null && match.team1Score < lowestTeamScore) {
-        lowestTeamScore = match.team1Score;
-        lowestScoringTeamId = match.team1Id;
-        lowestScoringMatchId = match.id;
-      }
-      
-      if (match && match.team2Score !== null && match.team2Score < lowestTeamScore) {
-        lowestTeamScore = match.team2Score;
-        lowestScoringTeamId = match.team2Id;
-        lowestScoringMatchId = match.id;
-      }
-    }
-    
-    let lowestScoringTeam = null;
-    if (lowestScoringTeamId) {
-      lowestScoringTeam = await storage.getTeam(lowestScoringTeamId);
-    }
-    
-    // Most boundaries
     const totalFours = playerStats.reduce((sum, stat) => sum + (stat.fours || 0), 0);
     const totalSixes = playerStats.reduce((sum, stat) => sum + (stat.sixes || 0), 0);
     
-    // Return the summary statistics
+    // Orange Cap holder
+    const orangeCapHolder = [...playerStats].sort((a, b) => (b.runs || 0) - (a.runs || 0))[0];
+    let orangeCapUser = null;
+    if (orangeCapHolder) {
+      orangeCapUser = await storage.getUser(orangeCapHolder.userId);
+    }
+    
+    // Purple Cap holder
+    const purpleCapHolder = [...playerStats].sort((a, b) => (b.wickets || 0) - (a.wickets || 0))[0];
+    let purpleCapUser = null;
+    if (purpleCapHolder) {
+      purpleCapUser = await storage.getUser(purpleCapHolder.userId);
+    }
+    
+    // MVP
+    const mvpStats = [...playerStats].sort((a, b) => {
+      const aScore = (a.runs || 0) + ((a.wickets || 0) * 20) + ((a.catches || 0) * 10) + ((a.runOuts || 0) * 15);
+      const bScore = (b.runs || 0) + ((b.wickets || 0) * 20) + ((b.catches || 0) * 10) + ((b.runOuts || 0) * 15);
+      return bScore - aScore;
+    })[0];
+    let mvpUser = null;
+    let mvpScore = 0;
+    if (mvpStats) {
+      mvpUser = await storage.getUser(mvpStats.userId);
+      mvpScore = (mvpStats.runs || 0) + ((mvpStats.wickets || 0) * 20) + ((mvpStats.catches || 0) * 10) + ((mvpStats.runOuts || 0) * 15);
+    }
+    
     return {
       tournamentId,
       tournamentName: tournament.name,
+      status: tournament.status,
       totalMatches,
       completedMatches,
+      upcomingMatches,
+      liveMatches,
       totalRuns,
       totalWickets,
-      highestTeamScore: {
-        score: highestTeamScore,
-        team: highestScoringTeam,
-        matchId: highestScoringMatchId
-      },
-      lowestTeamScore: lowestTeamScore === Number.MAX_SAFE_INTEGER ? null : {
-        score: lowestTeamScore,
-        team: lowestScoringTeam,
-        matchId: lowestScoringMatchId
-      },
-      boundaries: {
-        fours: totalFours,
-        sixes: totalSixes
-      }
+      boundaries: { fours: totalFours, sixes: totalSixes, total: totalFours + totalSixes },
+      orangeCap: orangeCapHolder ? {
+        player: orangeCapUser,
+        runs: orangeCapHolder.runs,
+        matches: orangeCapHolder.matches,
+        average: orangeCapHolder.battingAverage,
+        strikeRate: orangeCapHolder.strikeRate
+      } : null,
+      purpleCap: purpleCapHolder ? {
+        player: purpleCapUser,
+        wickets: purpleCapHolder.wickets,
+        matches: purpleCapHolder.matches,
+        economy: purpleCapHolder.economyRate
+      } : null,
+      mvp: mvpStats ? {
+        player: mvpUser,
+        score: mvpScore,
+        runs: mvpStats.runs,
+        wickets: mvpStats.wickets,
+        catches: mvpStats.catches
+      } : null
     };
   } catch (error) {
     console.error("Error getting tournament summary stats:", error);
+    throw error;
+  }
+}
+
+/**
+ * Calculate MVP score for a player
+ * Formula: (Runs * 1) + (Wickets * 20) + (Catches * 10) + (RunOuts * 15)
+ */
+export function calculateMVPScore(stats: { runs?: number; wickets?: number; catches?: number; runOuts?: number }): number {
+  return (stats.runs || 0) + ((stats.wickets || 0) * 20) + ((stats.catches || 0) * 10) + ((stats.runOuts || 0) * 15);
+}
+
+/**
+ * Get form guide for a team (last 5 matches)
+ */
+export async function getTeamFormGuide(tournamentId: number, teamId: number): Promise<string[]> {
+  try {
+    const matches = await storage.getTournamentMatchesByTournament(tournamentId);
+    
+    const teamMatches = matches.filter(m => 
+      m.status === 'completed' && 
+      (m.home_team_id === teamId || m.away_team_id === teamId)
+    );
+    
+    teamMatches.sort((a, b) => {
+      const dateA = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
+      const dateB = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+      return dateB - dateA;
+    });
+    
+    const formGuide: string[] = [];
+    
+    for (const match of teamMatches.slice(0, 5)) {
+      const isHomeTeam = match.home_team_id === teamId;
+      
+      if (match.result === 'no_result' || match.result === 'abandoned') {
+        formGuide.push('N');
+      } else if (match.result === 'tie') {
+        formGuide.push('T');
+      } else if ((isHomeTeam && match.result === 'home_win') || (!isHomeTeam && match.result === 'away_win')) {
+        formGuide.push('W');
+      } else {
+        formGuide.push('L');
+      }
+    }
+    
+    return formGuide;
+  } catch (error) {
+    console.error("Error getting team form guide:", error);
+    return [];
+  }
+}
+
+/**
+ * Get enhanced standings with form guide
+ */
+export async function getEnhancedStandings(tournamentId: number) {
+  try {
+    const standings = await storage.getTournamentStandingsByTournament(tournamentId);
+    
+    const enhancedStandings = await Promise.all(standings.map(async (standing) => {
+      const team = await storage.getTeamById(standing.teamId);
+      const formGuide = await getTeamFormGuide(tournamentId, standing.teamId);
+      const nrr = parseFloat(standing.netRunRate?.toString() || "0");
+      
+      return {
+        ...standing,
+        team,
+        formGuide,
+        nrrFormatted: nrr >= 0 ? `+${nrr.toFixed(3)}` : nrr.toFixed(3)
+      };
+    }));
+    
+    enhancedStandings.sort((a, b) => (a.position || 0) - (b.position || 0));
+    
+    return enhancedStandings;
+  } catch (error) {
+    console.error("Error getting enhanced standings:", error);
     throw error;
   }
 }

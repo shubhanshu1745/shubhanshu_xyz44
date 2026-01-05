@@ -2,6 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import crypto from 'crypto';
+import { 
+  isCloudinaryConfigured, 
+  uploadToCloudinary, 
+  uploadProfileImage as cloudinaryUploadProfile,
+  uploadImage as cloudinaryUploadImage,
+  uploadVideo as cloudinaryUploadVideo,
+  uploadThumbnail as cloudinaryUploadThumbnail
+} from './cloudinary';
 
 const writeFileAsync = promisify(fs.writeFile);
 const mkdirAsync = promisify(fs.mkdir);
@@ -23,16 +31,58 @@ export interface FileUploadResult {
   mimetype: string;
   size: number;
   url: string;
+  publicId?: string;
+  storageType: 'cloudinary' | 'local';
 }
 
 /**
- * Save file to disk and return file information
+ * Save file to Cloudinary or local disk and return file information
  */
 export async function saveFile(
   file: any, // Using any to avoid TypeScript issues
-  directory: string = 'uploads/messages'
+  directory: string = 'uploads/messages',
+  userId?: number
 ): Promise<FileUploadResult> {
-  // Ensure the upload directory exists
+  const isVideo = file.mimetype.startsWith('video/');
+  const isImage = file.mimetype.startsWith('image/');
+  
+  // Try Cloudinary first if configured
+  if (isCloudinaryConfigured()) {
+    try {
+      console.log(`Uploading ${isVideo ? 'video' : 'image'} to Cloudinary...`);
+      
+      let result;
+      const effectiveUserId = userId || 0;
+      
+      // Use appropriate upload function based on directory/type
+      if (directory.includes('profile')) {
+        result = await cloudinaryUploadProfile(file.buffer, effectiveUserId);
+      } else if (directory.includes('thumbnail')) {
+        result = await cloudinaryUploadThumbnail(file.buffer, effectiveUserId);
+      } else if (isVideo) {
+        result = await cloudinaryUploadVideo(file.buffer, effectiveUserId);
+      } else {
+        result = await cloudinaryUploadImage(file.buffer, effectiveUserId);
+      }
+      
+      console.log('Cloudinary upload successful:', result.url);
+      
+      return {
+        filename: result.publicId,
+        originalName: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        url: result.url,
+        publicId: result.publicId,
+        storageType: 'cloudinary',
+      };
+    } catch (error) {
+      console.error('Cloudinary upload failed, falling back to local storage:', error);
+      // Fall through to local storage
+    }
+  }
+  
+  // Fallback to local storage
   const uploadDir = path.join(process.cwd(), 'public', directory);
   await ensureDirectoryExists(uploadDir);
   
@@ -53,6 +103,7 @@ export async function saveFile(
     originalName: file.originalname,
     mimetype: file.mimetype,
     size: file.size,
-    url: `/${directory}/${filename}`
+    url: `/${directory}/${filename}`,
+    storageType: 'local',
   };
 }

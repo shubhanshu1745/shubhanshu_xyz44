@@ -51,6 +51,7 @@
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "class-variance-authority": "^0.7.0",
+    "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "connect-pg-simple": "^10.0.0",

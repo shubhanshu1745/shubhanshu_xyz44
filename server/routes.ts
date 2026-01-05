@@ -6213,7 +6213,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update tournament standings after match result
+  // Submit match result and update standings
+  app.post("/api/tournaments/:tournamentId/matches/:matchId/result", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const tournamentId = parseInt(req.params.tournamentId);
+      const matchId = parseInt(req.params.matchId);
+      
+      if (isNaN(tournamentId) || isNaN(matchId)) {
+        return res.status(400).json({ error: "Invalid tournament or match ID" });
+      }
+
+      // Check if user is the tournament organizer
+      const tournament = await storage.getTournament(tournamentId);
+
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Not authorized to update this tournament" });
+      }
+
+      // Get match
+      const match = await storage.getTournamentMatch(matchId);
+      if (!match) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+
+      // Extract result data from request body
+      const { 
+        home_team_score, 
+        away_team_score, 
+        result, 
+        resultDetails,
+        playerPerformances 
+      } = req.body;
+
+      // Update match with result
+      await storage.updateTournamentMatch(matchId, {
+        home_team_score,
+        away_team_score,
+        result,
+        resultDetails,
+        status: 'completed'
+      });
+
+      // Update standings
+      await tournamentServices.fixtureGenerator.updateStandings(tournamentId, matchId);
+      
+      // Update player statistics if provided
+      if (playerPerformances && Array.isArray(playerPerformances)) {
+        for (const perf of playerPerformances) {
+          await storage.createPlayerMatchPerformance({
+            matchId,
+            userId: perf.userId,
+            runsScored: perf.runsScored || 0,
+            ballsFaced: perf.ballsFaced || 0,
+            fours: perf.fours || 0,
+            sixes: perf.sixes || 0,
+            wicketsTaken: perf.wicketsTaken || 0,
+            oversBowled: perf.oversBowled || "0",
+            runsConceded: perf.runsConceded || 0,
+            maidens: perf.maidens || 0,
+            catches: perf.catches || 0,
+            runOuts: perf.runOuts || 0,
+            stumpings: perf.stumpings || 0
+          });
+        }
+        await tournamentServices.statisticsService.updatePlayerStatistics(tournamentId, matchId);
+      }
+
+      // Update knockout bracket if applicable
+      if (match.stage && ['quarter-final', 'semi-final', 'final'].includes(match.stage)) {
+        await tournamentServices.fixtureGenerator.updateKnockoutBracket(tournamentId, matchId);
+      }
+
+      res.json({ success: true, message: "Match result saved and standings updated" });
+    } catch (error) {
+      console.error("Error saving match result:", error);
+      res.status(500).json({ error: "Failed to save match result", details: (error as Error).message });
+    }
+  });
+
+  // Update tournament standings after match result (legacy endpoint)
   app.post("/api/tournaments/:tournamentId/matches/:matchId/update-standings", isAuthenticated, async (req, res) => {
     try {
       const user = req.user;
@@ -6249,6 +6336,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating standings:", error);
       res.status(500).json({ error: "Failed to update standings", details: (error as Error).message });
+    }
+  });
+
+  // Recalculate all standings for a tournament
+  app.post("/api/tournaments/:tournamentId/recalculate-standings", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user;
+      if (!user) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
+      const tournamentId = parseInt(req.params.tournamentId);
+      
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      const tournament = await storage.getTournament(tournamentId);
+
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      if (tournament.organizerId !== user.id) {
+        return res.status(403).json({ error: "Not authorized to update this tournament" });
+      }
+
+      await tournamentServices.fixtureGenerator.recalculateStandings(tournamentId);
+      
+      res.json({ success: true, message: "Standings recalculated successfully" });
+    } catch (error) {
+      console.error("Error recalculating standings:", error);
+      res.status(500).json({ error: "Failed to recalculate standings", details: (error as Error).message });
+    }
+  });
+
+  // Get enhanced standings with form guide
+  app.get("/api/tournaments/:id/enhanced-standings", async (req, res) => {
+    try {
+      const tournamentId = parseInt(req.params.id);
+      if (isNaN(tournamentId)) {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+      }
+
+      const standings = await tournamentServices.statisticsService.getEnhancedStandings(tournamentId);
+      res.json(standings);
+    } catch (error) {
+      console.error("Error fetching enhanced standings:", error);
+      res.status(500).json({ error: "Failed to fetch standings", details: (error as Error).message });
     }
   });
 
