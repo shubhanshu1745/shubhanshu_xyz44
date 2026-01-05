@@ -100,16 +100,19 @@ const upload = multer({
 
 // Validation schemas
 const createReelSchema = z.object({
-  caption: z.string().max(2200).optional(),
-  hashtags: z.array(z.string()).optional(),
+  caption: z.string().max(2200).optional().default(''),
+  hashtags: z.array(z.string()).optional().default([]),
   musicId: z.number().optional(),
   visibility: z.enum(['public', 'followers', 'private']).optional().default('public'),
-  category: z.string().optional(),
+  category: z.string().optional().default('reel'),
   matchId: z.string().optional(),
   teamId: z.string().optional(),
   playerId: z.string().optional(),
   isDraft: z.boolean().optional().default(false),
   duration: z.number().optional(),
+  videoUrl: z.string().optional(),
+  thumbnailUrl: z.string().optional().default(''),
+  editorData: z.any().optional(), // Accept editor data but don't require it
 });
 
 // Middleware to check authentication
@@ -183,8 +186,13 @@ router.post('/upload', requireAuth, upload.fields([
 router.post('/', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
+    
+    console.log('Creating reel with body:', JSON.stringify(req.body, null, 2));
+    
     const data = createReelSchema.parse(req.body);
-    const { videoUrl, thumbnailUrl, duration } = req.body;
+    const videoUrl = data.videoUrl || req.body.videoUrl;
+    const thumbnailUrl = data.thumbnailUrl || req.body.thumbnailUrl || '';
+    const duration = data.duration || req.body.duration;
 
     if (!videoUrl) {
       return res.status(400).json({ message: 'Video URL is required' });
@@ -196,11 +204,11 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       content: data.caption || '',
       videoUrl,
       thumbnailUrl: thumbnailUrl || '',
-      duration: duration || 0,
+      duration: duration ? Math.round(duration) : 0, // Convert to integer
       category: data.category || 'reel',
-      matchId: data.matchId,
-      teamId: data.teamId,
-      playerId: data.playerId,
+      matchId: data.matchId || null,
+      teamId: data.teamId || null,
+      playerId: data.playerId || null,
     });
 
     // Get user info for response
@@ -217,6 +225,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error creating reel:', error.errors);
       return res.status(400).json({ message: 'Validation error', errors: error.errors });
     }
     console.error('Error creating reel:', error);
