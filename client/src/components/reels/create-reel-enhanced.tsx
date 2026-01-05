@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -289,21 +290,21 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="flex flex-col items-center justify-center h-full p-8"
+            className="flex flex-col items-center justify-center h-full p-4 sm:p-8"
           >
             <div
-              className="w-full max-w-md border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-12 text-center cursor-pointer hover:border-purple-500 transition-all hover:bg-purple-500/5"
+              className="w-full max-w-md border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 sm:p-12 text-center cursor-pointer hover:border-purple-500 transition-all hover:bg-purple-500/5"
               onClick={() => fileInputRef.current?.click()}
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
             >
               <div className="flex flex-col items-center space-y-4">
-                <div className="h-24 w-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                  <Upload className="h-12 w-12 text-white" />
+                <div className="h-16 w-16 sm:h-24 sm:w-24 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                  <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-white" />
                 </div>
                 <div>
-                  <p className="text-xl font-bold">Drop your video here</p>
-                  <p className="text-sm text-gray-500 mt-2">or click to browse</p>
+                  <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-slate-100">Drop your video here</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">or tap to browse</p>
                 </div>
                 <div className="flex flex-wrap justify-center gap-2 text-xs text-gray-400">
                   <Badge variant="outline">MP4</Badge>
@@ -342,10 +343,10 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="flex h-full"
+            className="flex flex-col md:flex-row h-full"
           >
-            {/* Preview */}
-            <div className="w-80 bg-black flex items-center justify-center p-4">
+            {/* Preview - Hidden on mobile, shown on md+ */}
+            <div className="hidden md:flex w-80 bg-black items-center justify-center p-4">
               <div className="relative aspect-[9/16] w-full max-h-full rounded-xl overflow-hidden">
                 <video
                   ref={videoRef}
@@ -367,18 +368,47 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
               </div>
             </div>
 
+            {/* Mobile Preview - Small preview at top on mobile */}
+            <div className="md:hidden w-full bg-black p-3">
+              <div className="flex items-center gap-3">
+                <div className="relative w-20 h-36 rounded-lg overflow-hidden flex-shrink-0">
+                  <video
+                    src={draft.videoUrl || ""}
+                    className="w-full h-full object-cover"
+                    style={{ filter: draft.filter !== "none" ? draft.filter : undefined }}
+                    muted
+                    playsInline
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white text-sm font-medium">Your Reel</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {Math.round(draft.trimEnd - draft.trimStart)}s duration
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2 text-xs h-7"
+                    onClick={generateThumbnail}
+                  >
+                    <Camera className="h-3 w-3 mr-1" /> Set Cover
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             {/* Details Form */}
-            <ScrollArea className="flex-1 p-6">
-              <div className="max-w-lg space-y-6">
+            <ScrollArea className="flex-1 p-4 sm:p-6 bg-white dark:bg-slate-900">
+              <div className="max-w-lg mx-auto space-y-5">
                 {/* Caption */}
                 <div>
-                  <Label htmlFor="caption" className="text-base font-semibold">Caption</Label>
+                  <Label htmlFor="caption" className="text-base font-semibold text-slate-900 dark:text-slate-100">Caption</Label>
                   <Textarea
                     id="caption"
                     placeholder="Write a caption for your reel..."
                     value={draft.caption}
                     onChange={(e) => setDraft(prev => ({ ...prev, caption: e.target.value }))}
-                    className="mt-2 min-h-[100px]"
+                    className="mt-2 min-h-[80px] sm:min-h-[100px] bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                     maxLength={2200}
                   />
                   <p className="text-xs text-gray-500 mt-1 text-right">{draft.caption.length}/2200</p>
@@ -386,7 +416,7 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
 
                 {/* Hashtags */}
                 <div>
-                  <Label className="text-base font-semibold">Hashtags</Label>
+                  <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Hashtags</Label>
                   <div className="flex items-center space-x-2 mt-2">
                     <div className="relative flex-1">
                       <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -395,10 +425,10 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
                         value={hashtagInput}
                         onChange={(e) => setHashtagInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addHashtag())}
-                        className="pl-9"
+                        className="pl-9 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                       />
                     </div>
-                    <Button type="button" variant="outline" onClick={addHashtag}>Add</Button>
+                    <Button type="button" variant="outline" onClick={addHashtag} size="sm">Add</Button>
                   </div>
                   {draft.hashtags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-3">
@@ -414,24 +444,24 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
 
                 {/* Category */}
                 <div>
-                  <Label className="text-base font-semibold">Category</Label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
+                  <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Category</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                     {categories.map((cat) => (
                       <button
                         key={cat.value}
                         type="button"
                         className={cn(
-                          "flex flex-col items-center p-3 rounded-xl border-2 transition-all",
+                          "flex flex-col items-center p-2 sm:p-3 rounded-xl border-2 transition-all",
                           draft.category === cat.value 
                             ? "border-purple-500 bg-purple-500/10" 
-                            : "border-gray-200 dark:border-gray-800 hover:border-purple-300"
+                            : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
                         )}
                         onClick={() => setDraft(prev => ({ ...prev, category: cat.value }))}
                       >
-                        <span className="text-2xl mb-1">
-                          {typeof cat.icon === "string" ? cat.icon : <cat.icon className="h-6 w-6" />}
+                        <span className="text-xl sm:text-2xl mb-1">
+                          {typeof cat.icon === "string" ? cat.icon : <cat.icon className="h-5 w-5 sm:h-6 sm:w-6" />}
                         </span>
-                        <span className="text-xs font-medium">{cat.label}</span>
+                        <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{cat.label}</span>
                       </button>
                     ))}
                   </div>
@@ -439,7 +469,7 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
 
                 {/* Visibility */}
                 <div>
-                  <Label className="text-base font-semibold">Who can see this?</Label>
+                  <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Who can see this?</Label>
                   <div className="space-y-2 mt-2">
                     {visibilityOptions.map((opt) => (
                       <button
@@ -449,23 +479,23 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
                           "w-full flex items-center p-3 rounded-xl border-2 transition-all",
                           draft.visibility === opt.value 
                             ? "border-purple-500 bg-purple-500/10" 
-                            : "border-gray-200 dark:border-gray-800 hover:border-purple-300"
+                            : "border-gray-200 dark:border-gray-700 hover:border-purple-300"
                         )}
                         onClick={() => setDraft(prev => ({ ...prev, visibility: opt.value as any }))}
                       >
-                        <opt.icon className="h-5 w-5 mr-3" />
+                        <opt.icon className="h-5 w-5 mr-3 text-slate-600 dark:text-slate-400" />
                         <div className="text-left">
-                          <p className="font-medium">{opt.label}</p>
-                          <p className="text-xs text-gray-500">{opt.desc}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{opt.label}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{opt.desc}</p>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Thumbnail */}
-                <div>
-                  <Label className="text-base font-semibold">Cover Image</Label>
+                {/* Thumbnail - Desktop only */}
+                <div className="hidden md:block">
+                  <Label className="text-base font-semibold text-slate-900 dark:text-slate-100">Cover Image</Label>
                   <div className="flex items-center space-x-4 mt-2">
                     <div className="w-20 h-36 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                       {draft.thumbnailUrl ? (
@@ -483,17 +513,17 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center justify-between pt-4 border-t">
-                  <Button variant="ghost" onClick={() => setStep("edit")}>
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <Button variant="ghost" onClick={() => setStep("edit")} className="w-full sm:w-auto order-2 sm:order-1">
                     <ChevronLeft className="h-4 w-4 mr-1" /> Back to Editor
                   </Button>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" onClick={() => handlePublish(true)}>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto order-1 sm:order-2">
+                    <Button variant="outline" onClick={() => handlePublish(true)} className="w-full sm:w-auto">
                       <Save className="h-4 w-4 mr-2" /> Save Draft
                     </Button>
                     <Button 
                       onClick={() => handlePublish(false)}
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      className="w-full sm:w-auto bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                     >
                       Share Reel <ChevronRight className="h-4 w-4 ml-1" />
                     </Button>
@@ -560,7 +590,11 @@ export function CreateReelEnhanced({ open, onOpenChange }: CreateReelEnhancedPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-5xl w-[95vw] h-[90vh] max-h-[90vh] p-0 overflow-hidden">
+        <VisuallyHidden>
+          <DialogTitle>Create New Reel</DialogTitle>
+          <DialogDescription>Upload and edit your video to create a new reel</DialogDescription>
+        </VisuallyHidden>
         <AnimatePresence mode="wait">
           {renderStep()}
         </AnimatePresence>

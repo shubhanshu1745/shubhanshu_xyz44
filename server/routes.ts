@@ -4839,12 +4839,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Initialize Socket.IO server
+  // Initialize Socket.IO server with Railway-compatible settings
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: "*",
-      methods: ["GET", "POST"]
-    }
+      origin: process.env.NODE_ENV === "production" 
+        ? [process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : "*"]
+        : "*",
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    transports: ["polling", "websocket"], // Start with polling, upgrade to websocket
+    allowUpgrades: true,
+    pingTimeout: 60000,
+    pingInterval: 25000,
   });
   
   // Store online users

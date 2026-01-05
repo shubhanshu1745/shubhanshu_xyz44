@@ -28,9 +28,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Create socket connection
+    // Create socket connection with fallback to polling
     const newSocket = io(window.location.origin, {
-      transports: ["websocket", "polling"]
+      transports: ["polling", "websocket"], // Start with polling, upgrade to websocket
+      upgrade: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      timeout: 20000,
     });
 
     setSocket(newSocket);
@@ -40,28 +46,34 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setIsConnected(true);
       // Authenticate socket with user ID
       newSocket.emit("authenticate", user.id);
-      console.log("Socket connected");
+      console.log("Socket connected via", newSocket.io.engine.transport.name);
     };
 
-    const onDisconnect = () => {
+    const onDisconnect = (reason: string) => {
       setIsConnected(false);
-      console.log("Socket disconnected");
+      console.log("Socket disconnected:", reason);
     };
 
-    const onError = (error: Error) => {
-      console.error("Socket error:", error);
+    const onConnectError = (error: Error) => {
+      console.warn("Socket connection error (will retry):", error.message);
+    };
+
+    const onReconnect = (attemptNumber: number) => {
+      console.log("Socket reconnected after", attemptNumber, "attempts");
     };
 
     // Register event listeners
     newSocket.on("connect", onConnect);
     newSocket.on("disconnect", onDisconnect);
-    newSocket.on("error", onError);
+    newSocket.on("connect_error", onConnectError);
+    newSocket.io.on("reconnect", onReconnect);
 
     // Cleanup
     return () => {
       newSocket.off("connect", onConnect);
       newSocket.off("disconnect", onDisconnect);
-      newSocket.off("error", onError);
+      newSocket.off("connect_error", onConnectError);
+      newSocket.io.off("reconnect", onReconnect);
       newSocket.disconnect();
     };
   }, [user]);

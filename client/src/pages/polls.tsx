@@ -2,7 +2,8 @@ import { useState } from "react";
 import { PollsList } from "@/components/polls/polls-list";
 import { PollCreationForm } from "@/components/polls/poll-creation-form";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Plus, BarChart3 } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
@@ -29,6 +30,9 @@ export default function PollsPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[550px]">
+              <DialogHeader>
+                <DialogTitle>Create New Poll</DialogTitle>
+              </DialogHeader>
               <PollCreationForm
                 onSuccess={() => setIsDialogOpen(false)}
                 onCancel={() => setIsDialogOpen(false)}
