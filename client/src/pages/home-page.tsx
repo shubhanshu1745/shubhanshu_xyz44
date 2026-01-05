@@ -69,7 +69,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       <Header />
       
       <main className="flex-grow pt-16 pb-20 md:pb-6">
@@ -140,7 +140,7 @@ export default function HomePage() {
               </Card>
 
               {/* Stories Section */}
-              <Card className="mb-4 border-0 shadow-md bg-white">
+              <Card className="mb-4 border-0 shadow-md bg-white dark:bg-slate-900">
                 <CardContent className="p-0">
                   <StoriesContainer 
                     onCreateStory={() => setCreateStoryOpen(true)}
@@ -149,7 +149,7 @@ export default function HomePage() {
               </Card>
               
               {/* Create Post Button */}
-              <Card className="mb-4 border-0 shadow-md bg-white overflow-hidden">
+              <Card className="mb-4 border-0 shadow-md bg-white dark:bg-slate-900 overflow-hidden">
                 <CardContent className="p-4">
                   <Button 
                     className="w-full h-12 bg-gradient-to-r from-[#FF5722] to-[#FF7043] hover:from-[#E64A19] hover:to-[#FF5722] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300"
@@ -166,35 +166,35 @@ export default function HomePage() {
                 {isLoading ? (
                   <div className="space-y-4">
                     {Array(3).fill(0).map((_, index) => (
-                      <Card key={index} className="border-0 shadow-md bg-white overflow-hidden">
+                      <Card key={index} className="border-0 shadow-md bg-white dark:bg-slate-900 overflow-hidden">
                         <CardContent className="p-0">
                           <div className="p-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+                            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                             <div className="flex-1">
-                              <div className="h-4 w-28 bg-slate-200 rounded animate-pulse mb-2" />
-                              <div className="h-3 w-20 bg-slate-200 rounded animate-pulse" />
+                              <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-2" />
+                              <div className="h-3 w-20 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                             </div>
                           </div>
-                          <div className="w-full aspect-square bg-slate-200 animate-pulse" />
+                          <div className="w-full aspect-square bg-slate-200 dark:bg-slate-700 animate-pulse" />
                           <div className="p-4 space-y-2">
-                            <div className="h-4 w-full bg-slate-200 rounded animate-pulse" />
-                            <div className="h-4 w-3/4 bg-slate-200 rounded animate-pulse" />
+                            <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-3/4 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
                           </div>
                         </CardContent>
                       </Card>
                     ))}
                   </div>
                 ) : error ? (
-                  <Card className="border-0 shadow-md bg-white">
+                  <Card className="border-0 shadow-md bg-white dark:bg-slate-900">
                     <CardContent className="p-8 text-center">
-                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 flex items-center justify-center">
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
                         <AlertCircle className="h-8 w-8 text-red-500" />
                       </div>
-                      <p className="text-red-600 font-semibold text-lg">Error loading posts</p>
-                      <p className="text-slate-500 mt-2">Please try again later or check your connection</p>
+                      <p className="text-red-600 dark:text-red-400 font-semibold text-lg">Error loading posts</p>
+                      <p className="text-slate-500 dark:text-slate-400 mt-2">Please try again later or check your connection</p>
                       <Button 
                         variant="outline" 
-                        className="mt-4"
+                        className="mt-4 dark:border-slate-700 dark:hover:bg-slate-800"
                         onClick={() => window.location.reload()}
                       >
                         Retry
@@ -202,12 +202,12 @@ export default function HomePage() {
                     </CardContent>
                   </Card>
                 ) : posts?.length === 0 ? (
-                  <Card className="border-0 shadow-md bg-white">
+                  <Card className="border-0 shadow-md bg-white dark:bg-slate-900">
                     <CardContent className="p-8 text-center">
-                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-950 dark:to-amber-950 flex items-center justify-center">
                         <Sparkles className="h-10 w-10 text-orange-500" />
                       </div>
-                      <p className="text-slate-700 font-semibold text-lg">No posts yet. Start following cricket fans to see their posts!</p>
+                      <p className="text-slate-700 dark:text-slate-300 font-semibold text-lg">No posts yet. Start following cricket fans to see their posts!</p>
                       <Button 
                         className="mt-4 bg-gradient-to-r from-[#FF5722] to-[#FF7043] hover:from-[#E64A19] hover:to-[#FF5722] text-white"
                         onClick={() => setCreatePostOpen(true)}

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { 
   Heart, MessageCircle, Send, Bookmark, BookmarkCheck, MoreHorizontal, 
   Play, Volume2, VolumeX, Share2, Users, Trophy, Tag, 
-  MapPin, Clock, Check, Copy, Trash2
+  MapPin, Clock, Check, Copy, Trash2, AlertTriangle, Loader2
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,16 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface PostCardProps {
   post: Post & { 
@@ -49,6 +59,7 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [comment, setComment] = useState("");
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
@@ -141,6 +152,26 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
     }
   });
 
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/posts/${post.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.user.username}/posts`] });
+      toast({ title: "Deleted", description: "Post has been deleted successfully" });
+      setShowDeleteDialog(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete post", variant: "destructive" });
+    }
+  });
+
+  const handleDelete = () => {
+    deleteMutation.mutate();
+  };
+
   const handleDoubleTap = () => {
     if (!isLiked) {
       setShowHeartAnimation(true);
@@ -228,13 +259,13 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
   };
 
   return (
-    <article className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden transition-all hover:shadow-md ${className}`}>
+    <article className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden transition-all hover:shadow-md ${className}`}>
       {/* Header */}
       <header className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href={`/profile/${post.user.username}`}>
             <div className="relative">
-              <Avatar className="h-11 w-11 ring-2 ring-offset-2 ring-orange-400/50 cursor-pointer">
+              <Avatar className="h-11 w-11 ring-2 ring-offset-2 ring-orange-400/50 cursor-pointer dark:ring-offset-slate-900">
                 <AvatarImage src={post.user.profileImage || ""} alt={post.user.username} />
                 <AvatarFallback className="bg-gradient-to-br from-orange-400 to-pink-500 text-white font-semibold">
                   {post.user.username.charAt(0).toUpperCase()}
@@ -249,11 +280,11 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
           </Link>
           <div>
             <Link href={`/profile/${post.user.username}`}>
-              <span className="font-semibold text-slate-900 hover:text-orange-600 transition-colors cursor-pointer">
+              <span className="font-semibold text-slate-900 dark:text-slate-100 hover:text-orange-600 dark:hover:text-orange-400 transition-colors cursor-pointer">
                 {post.user.username}
               </span>
             </Link>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Clock className="h-3 w-3" />
               <span>{formatDate(post.createdAt)}</span>
               {post.location && (
@@ -269,7 +300,7 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               <MoreHorizontal className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
@@ -283,7 +314,10 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
             {user?.id === post.userId && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem 
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
                   <Trash2 className="h-4 w-4 mr-2" /> Delete
                 </DropdownMenuItem>
               </>
@@ -414,16 +448,16 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
 
         {/* Like Count */}
         <div className="mb-2">
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
             {likeCount.toLocaleString()} {likeCount === 1 ? 'like' : 'likes'}
           </span>
         </div>
 
         {/* Caption */}
         {post.content && (
-          <p className="text-slate-800 mb-2 leading-relaxed">
+          <p className="text-slate-800 dark:text-slate-200 mb-2 leading-relaxed">
             <Link href={`/profile/${post.user.username}`}>
-              <span className="font-semibold text-slate-900 hover:text-orange-600 cursor-pointer mr-2">
+              <span className="font-semibold text-slate-900 dark:text-slate-100 hover:text-orange-600 dark:hover:text-orange-400 cursor-pointer mr-2">
                 {post.user.username}
               </span>
             </Link>
@@ -435,15 +469,15 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
         {showComments && post.commentCount > 0 && (
           <div className="space-y-1">
             <button
-              className="text-slate-500 text-sm hover:text-slate-700 transition-colors"
+              className="text-slate-500 dark:text-slate-400 text-sm hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
               onClick={onCommentClick}
             >
               View all {post.commentCount} comments
             </button>
             {recentComments.slice(0, 2).map((c: any) => (
               <p key={c.id} className="text-sm">
-                <span className="font-semibold text-slate-900 mr-1">{c.user?.username}</span>
-                <span className="text-slate-700">{c.content}</span>
+                <span className="font-semibold text-slate-900 dark:text-slate-100 mr-1">{c.user?.username}</span>
+                <span className="text-slate-700 dark:text-slate-300">{c.content}</span>
               </p>
             ))}
           </div>
@@ -452,11 +486,11 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
 
       {/* Add Comment */}
       {user && (
-        <div className="px-4 pb-4 border-t border-slate-100">
+        <div className="px-4 pb-4 border-t border-slate-100 dark:border-slate-800">
           <form onSubmit={handleComment} className="flex items-center gap-3 pt-3">
             <Avatar className="h-8 w-8 flex-shrink-0">
               <AvatarImage src={user.profileImage || ""} />
-              <AvatarFallback className="bg-slate-200 text-slate-600 text-sm">
+              <AvatarFallback className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm">
                 {user.username?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -464,7 +498,7 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
               placeholder="Add a comment..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="flex-1 border-0 bg-slate-50 rounded-full px-4 h-9 text-sm focus-visible:ring-1 focus-visible:ring-orange-400"
+              className="flex-1 border-0 bg-slate-50 dark:bg-slate-800 rounded-full px-4 h-9 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 dark:placeholder:text-slate-400 focus-visible:ring-1 focus-visible:ring-orange-400"
               disabled={commentMutation.isPending}
             />
             {comment.trim() && (
@@ -489,37 +523,72 @@ export function EnhancedPostCard({ post, onCommentClick, showComments = true, cl
             <DialogTitle className="text-center">Share Post</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-4 gap-4 py-4">
-            <button onClick={() => handleShareExternal("twitter")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50">
+            <button onClick={() => handleShareExternal("twitter")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">
               <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center">
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>
               </div>
-              <span className="text-xs text-slate-600">X</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">X</span>
             </button>
-            <button onClick={() => handleShareExternal("facebook")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50">
+            <button onClick={() => handleShareExternal("facebook")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">
               <div className="w-12 h-12 rounded-full bg-[#1877F2] flex items-center justify-center">
                 <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                 </svg>
               </div>
-              <span className="text-xs text-slate-600">Facebook</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Facebook</span>
             </button>
-            <button onClick={() => handleShareExternal("whatsapp")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50">
+            <button onClick={() => handleShareExternal("whatsapp")} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">
               <div className="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center">
                 <MessageCircle className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xs text-slate-600">WhatsApp</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">WhatsApp</span>
             </button>
-            <button onClick={handleCopyLink} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50">
+            <button onClick={handleCopyLink} className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800">
               <div className="w-12 h-12 rounded-full bg-slate-600 flex items-center justify-center">
                 {hasCopied ? <Check className="h-6 w-6 text-white" /> : <Copy className="h-6 w-6 text-white" />}
               </div>
-              <span className="text-xs text-slate-600">{hasCopied ? "Copied!" : "Copy"}</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">{hasCopied ? "Copied!" : "Copy"}</span>
             </button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Delete Post
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this post? This action cannot be undone and will permanently remove the post along with all its likes and comments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleteMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </article>
   );
 }
